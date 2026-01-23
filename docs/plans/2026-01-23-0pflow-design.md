@@ -11,20 +11,25 @@
 
 **Core insight:** Users think in terms of workflows, policies, and outcomes - not state machines, retries, or async control flow. The system meets them where they are.
 
+## User App Scaffolding
+
+User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, better-auth). 0pflow adds specific directories for specs, nodes, and generated code.
+
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                   User's App Repo                   │
+│          User's App (T3 Stack: Next.js + tRPC)      │
 ├─────────────────────────────────────────────────────┤
-│  specs/                                             │
-│    workflows/        ← Workflow specs (markdown)    │
-│    agents/           ← Agent definitions (markdown) │
+│  specs/                  ← 0pflow additions         │
+│    workflows/            ← Workflow specs (markdown)│
+│    agents/               ← Agent definitions        │
 │  src/                                               │
-│    nodes/            ← User-written TypeScript      │
-│    tools/            ← Tools for agents             │
+│    nodes/                ← Workflow node functions  │
+│    tools/                ← Tools for agents         │
+│    ... (standard Next.js app structure)            │
 │  generated/                                         │
-│    workflows/        ← Compiled TypeScript (in git) │
+│    workflows/            ← Compiled TS (in git)     │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -47,12 +52,13 @@
 │   │   │   ├── workflow.ts   ← Workflow.create(), WorkflowContext
 │   │   │   ├── agent.ts      ← Agent executor
 │   │   │   ├── primitives/   ← Built-in tools (web.fetch, etc.)
-│   │   │   └── server.ts     ← serve0pflow() with API routes
+│   │   │   ├── discovery.ts  ← Workflow discovery from generated/
+│   │   │   └── api.ts        ← Plain functions: listWorkflows, triggerWorkflow, etc.
 │   │   └── package.json
 │   │
 │   ├── ui/                   ← Default UI (@0pflow/ui)
 │   │   ├── src/
-│   │   │   └── dashboard.tsx ← React components
+│   │   │   └── dashboard.tsx ← React components (fetch via props/hooks)
 │   │   └── package.json
 │   │
 │   └── cli/                  ← CLI tool (@0pflow/cli)
@@ -63,19 +69,22 @@
     └── validate-spec/
 ```
 
-**User's app uses:**
-```typescript
-import { Workflow, serve0pflow } from '0pflow';
-import { dashboard } from '@0pflow/ui';
+**Core SDK API (plain TypeScript functions, no framework dependencies):**
 
-// Mount API + default UI
-app.use('/_0pflow', serve0pflow({ ui: dashboard }));
+```typescript
+import { create0pflow } from '0pflow';
+
+// Create instance at app startup (configures DBOS, discovers workflows)
+const pflow = await create0pflow({ workflowDir: './generated/workflows' });
+
+// Use anywhere server-side
+const workflows = await pflow.listWorkflows();
+const result = await pflow.triggerWorkflow('icp-scoring', { company_url: '...' });
 ```
 
-**API routes (provided by core):**
-- `GET /api/0pflow/workflows` - List workflows
-- `POST /api/0pflow/workflows/:name/trigger` - Trigger a run
-- `GET /api/0pflow/workflows/:name` - Get workflow details
+**User integration:** Users wrap these methods in tRPC routers, REST API routes, or call directly from server components. 0pflow doesn't prescribe how - it's a library, not a framework.
+
+**Webhook triggers:** For external systems to trigger workflows, users create a REST endpoint in their app that calls `pflow.triggerWorkflow()`. Example: `POST /api/workflows/[name]/trigger`.
 
 ## Workflow Spec Format
 
@@ -371,15 +380,17 @@ For MVP, the UI is extremely minimal.
 ## MVP Implementation Plan
 
 ### Phase 1: Project Scaffolding
-- Initialize monorepo structure
+- Initialize monorepo structure for 0pflow packages
 - Set up TypeScript, DBOS dependencies
-- Create example app repo structure (`specs/`, `src/`, `generated/`)
+- Create example user app based on T3 scaffolding (Next.js 16, tRPC, Drizzle, better-auth)
+- Add `specs/workflows/`, `specs/agents/`, `src/nodes/`, `src/tools/`, `generated/workflows/` to example app
 
 ### Phase 2: SDK Core
-- Define `Workflow.create()` API
-- Implement `WorkflowContext` with core methods
-- Wire up DBOS for durability
-- Basic workflow registration and discovery
+- `create0pflow()` factory - returns instance with config (workflow dir, DBOS setup)
+- `Workflow.create()` API for defining workflows
+- `WorkflowContext` with core methods (`runAgent`, `runNode`, `call`, `log`)
+- Workflow discovery from `generated/workflows/`
+- Instance methods: `listWorkflows()`, `getWorkflow()`, `triggerWorkflow()`
 
 ### Phase 3: Agent Runtime
 - Agent executor (takes system prompt + tools, runs LLM)
@@ -397,10 +408,11 @@ For MVP, the UI is extremely minimal.
 - Reference validation (nodes exist, types align)
 - Human description ↔ implementation consistency check
 
-### Phase 6: Minimal UI
-- List workflows from `generated/` directory
-- Trigger button → calls webhook
-- Display webhook URL for external triggers
+### Phase 6: Minimal UI (@0pflow/ui)
+- React components that accept data via props (framework-agnostic)
+- WorkflowList, WorkflowTriggerButton components
+- User wires up data fetching (tRPC, SWR, etc.) in their app
+- Example integration provided in docs
 
 ### Phase 7: CLI
 - `0pflow run <workflow> --input '{...}'`
