@@ -1,0 +1,25 @@
+{
+  "name": "@0pflow/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "0pflow": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "0pflow": "workspace:*",
+    "@clack/prompts": "^0.11.0",
+    "commander": "^14.0.2",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
+  }
+}
