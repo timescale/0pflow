@@ -19,8 +19,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@dbos-inc/dbos-sdk": "^2.0.0",
-    "ai": "^4.0.0",
+    "@dbos-inc/dbos-sdk": "^4.7.9",
+    "ai": "^6.0.49",
     "zod": "^4.3.5"
   },
   "devDependencies": {
