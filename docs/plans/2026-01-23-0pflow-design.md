@@ -50,7 +50,7 @@ User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, bet
 │   ├── core/                 ← SDK + runtime (0pflow)
 │   │   ├── src/
 │   │   │   ├── workflow.ts   ← Workflow.create(), WorkflowContext
-│   │   │   ├── agent.ts      ← Agent executor
+│   │   │   ├── agent-node.ts ← Pre-packaged agent node (Vercel AI SDK)
 │   │   │   ├── primitives/   ← Built-in tools (web.fetch, etc.)
 │   │   │   ├── discovery.ts  ← Workflow discovery from generated/
 │   │   │   └── api.ts        ← Plain functions: listWorkflows, triggerWorkflow, etc.
@@ -209,8 +209,8 @@ Return a JSON object with fields:
 - **Body:** system prompt (task, guidelines, output format)
 
 **Tools can be:**
-- Built-in primitives (`web.scrape`, `slack.postMessage`)
-- User-defined functions from `src/tools/`
+- Built-in primitives (`web.fetch`, `http.post`, `slack.postMessage`) - always available
+- User-defined functions from `src/tools/` - resolved by convention (e.g., `linkedin.getCompanyProfile` → `src/tools/linkedin/getCompanyProfile.ts`)
 - MCP server tools (post-MVP)
 
 ## Node Types
@@ -219,10 +219,16 @@ Workflows orchestrate nodes. Node types:
 
 | Type | Definition | Example |
 |------|------------|---------|
-| **Agent** | Markdown spec (system prompt + tools) | `company-researcher` |
+| **Agent** | Markdown spec (system prompt + tools), executed by pre-packaged agent node | `company-researcher` |
 | **Function** | User TypeScript in `src/nodes/` | `calculateScore` |
 | **Primitive** | Built-in side effect | `slack.postMessage`, `web.fetch` |
 | **Sub-workflow** | Another workflow spec | `enrichment-pipeline` |
+
+**Agent execution model:** Agents are not special runtime machinery. The pre-packaged agent node reads agent specs (`specs/agents/*.md`) at runtime and executes an agentic loop using the Vercel AI SDK. Users can also write custom agent nodes in `src/nodes/` if they need different behavior (e.g., different LLM providers, custom tool-calling logic).
+
+**Tool resolution:** Tools referenced in agent specs are resolved by convention:
+- **User tools:** `src/tools/web/scrape.ts` → referenced as `web.scrape`
+- **Built-in primitives:** `web.fetch`, `http.post`, `slack.postMessage` ship with 0pflow
 
 ## Runtime & SDK
 
@@ -265,13 +271,15 @@ export const icpScoring = Workflow.create({
 ```
 
 **Core SDK methods:**
-- `ctx.runAgent(name, inputs)` - Run an agent node
+- `ctx.runAgent(name, inputs)` - Run an agent node (internally calls the pre-packaged agent node)
 - `ctx.runNode(name, inputs)` - Run a TypeScript function node
 - `ctx.runWorkflow(name, inputs)` - Run a sub-workflow
 - `ctx.call(primitive, params)` - Call a built-in primitive
-- `ctx.log(message)` - Structured logging
+- `ctx.log(message, level?)` - Structured logging (wrapper over `DBOS.logger`, decoupled for future flexibility)
 
 DBOS handles: retries, idempotency, checkpointing, replay.
+
+**Note on caching:** DBOS provides durability (step results persisted for recovery) but not semantic caching (e.g., "don't re-research company X if we did it yesterday"). Semantic caching is user responsibility - implement in tool functions as needed.
 
 ## Compiler Behavior
 
@@ -358,8 +366,8 @@ For MVP, the UI is extremely minimal.
 | **Validator** | Claude Code skill that checks spec structure |
 | **SDK** | `ctx.runAgent`, `ctx.runNode`, `ctx.call`, `ctx.log` |
 | **Runtime** | DBOS-backed execution, local only |
-| **Agents** | Basic agent runner (system prompt + tools) |
-| **Tools** | 2-3 built-in primitives (web.fetch, http.post) |
+| **Agents** | Pre-packaged agent node (Vercel AI SDK, reads specs from `specs/agents/`) |
+| **Tools** | Built-in primitives: `web.fetch`, `http.post`, `slack.postMessage` |
 | **UI** | Workflow list + trigger button |
 | **Triggers** | Manual (UI button, webhook, CLI) |
 
@@ -374,6 +382,8 @@ For MVP, the UI is extremely minimal.
 | CRM integrations | Output to UI only |
 | MCP tool servers | User-defined tools are enough |
 | Approval nodes (`ctx.requestApproval`) | Add when needed |
+| Resumable/incremental workflows | Full runs only for MVP; users compose smaller workflows if needed |
+| Built-in semantic caching | User responsibility; implement in tool functions |
 
 ---
 
@@ -392,10 +402,10 @@ For MVP, the UI is extremely minimal.
 - Workflow discovery from `generated/workflows/`
 - Instance methods: `listWorkflows()`, `getWorkflow()`, `triggerWorkflow()`
 
-### Phase 3: Agent Runtime
-- Agent executor (takes system prompt + tools, runs LLM)
-- Tool calling loop with basic tool interface
-- 2-3 built-in primitives (`web.fetch`, `http.post`)
+### Phase 3: Agent Node + Primitives
+- Pre-packaged agent node using Vercel AI SDK (reads agent specs, runs agentic loop)
+- Tool interface for user-defined tools (`src/tools/`)
+- Built-in primitives (`web.fetch`, `http.post`, `slack.postMessage`)
 
 ### Phase 4: Compiler (Claude Code Skill)
 - Spec parser (extract structure from markdown)
@@ -423,6 +433,7 @@ For MVP, the UI is extremely minimal.
 
 ## Future Considerations (Post-MVP)
 
+- **Resumable/incremental workflows** - Trigger workflows from a specific step, not just start-to-finish (DBOS has `forkWorkflow` primitive)
 - Security policies in workflow specs (tool access, PII redaction)
 - Run history and traces UI
 - Scheduled and event-driven triggers
