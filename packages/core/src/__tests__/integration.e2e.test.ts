@@ -1,0 +1,139 @@
+// packages/core/src/__tests__/integration.e2e.test.ts
+// End-to-end tests that require a real Postgres database
+// Run with: DATABASE_URL=postgres://localhost/test pnpm test integration.e2e
+
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { z } from "zod";
+import pg from "pg";
+import { create0pflow, Workflow, Node, type Pflow } from "../index.js";
+
+const DATABASE_URL = process.env.DATABASE_URL;
+
+async function resetDatabase(): Promise<void> {
+  const client = new pg.Client({ connectionString: DATABASE_URL });
+  await client.connect();
+  try {
+    // Drop DBOS schema to start fresh - DBOS will recreate it on launch
+    await client.query("DROP SCHEMA IF EXISTS dbos CASCADE");
+  } finally {
+    await client.end();
+  }
+}
+
+async function countWorkflowExecutions(workflowName: string): Promise<number> {
+  const client = new pg.Client({ connectionString: DATABASE_URL });
+  await client.connect();
+  try {
+    const result = await client.query(
+      "SELECT COUNT(*) FROM dbos.workflow_status WHERE name = $1",
+      [workflowName]
+    );
+    return parseInt(result.rows[0].count, 10);
+  } finally {
+    await client.end();
+  }
+}
+
+describe.skipIf(!DATABASE_URL)("0pflow e2e", () => {
+  // Define nodes
+  const fetchData = Node.create({
+    name: "fetch-data",
+    inputSchema: z.object({ url: z.string() }),
+    outputSchema: z.object({ title: z.string(), body: z.string() }),
+    execute: async (_ctx, inputs) => ({
+      title: `Page: ${inputs.url}`,
+      body: "Content here",
+    }),
+  });
+
+  const summarize = Node.create({
+    name: "summarize",
+    inputSchema: z.object({ text: z.string() }),
+    outputSchema: z.object({ summary: z.string() }),
+    execute: async (_ctx, inputs) => ({
+      summary: `Summary of: ${inputs.text.slice(0, 20)}...`,
+    }),
+  });
+
+  // Define workflows
+  const researchWorkflow = Workflow.create({
+    name: "research",
+    version: 1,
+    inputSchema: z.object({ url: z.string() }),
+    outputSchema: z.object({ title: z.string(), summary: z.string() }),
+    run: async (ctx, inputs) => {
+      ctx.log("Starting research workflow");
+      const data = await ctx.run(fetchData, { url: inputs.url });
+      ctx.log(`Fetched: ${data.title}`);
+      const result = await ctx.run(summarize, { text: data.body });
+      ctx.log("Summarization complete");
+      return { title: data.title, summary: result.summary };
+    },
+  });
+
+  const innerWorkflow = Workflow.create({
+    name: "inner",
+    version: 1,
+    inputSchema: z.object({ value: z.number() }),
+    run: async (_ctx, inputs) => inputs.value * 2,
+  });
+
+  const outerWorkflow = Workflow.create({
+    name: "outer",
+    version: 1,
+    inputSchema: z.object({ value: z.number() }),
+    run: async (ctx, inputs) => {
+      const doubled = await ctx.run(innerWorkflow, { value: inputs.value });
+      return doubled + 1;
+    },
+  });
+
+  let pflow: Pflow;
+
+  beforeAll(async () => {
+    // Drop DBOS schema for clean test state
+    await resetDatabase();
+
+    pflow = await create0pflow({
+      databaseUrl: DATABASE_URL!,
+      workflows: {
+        research: researchWorkflow,
+        outer: outerWorkflow,
+        inner: innerWorkflow,
+      },
+      nodes: { "fetch-data": fetchData, summarize },
+    });
+  }, 30000); // 30s timeout for DBOS init
+
+  afterAll(async () => {
+    await pflow.shutdown();
+  });
+
+  it("complete workflow with multiple nodes", async () => {
+    const result = await pflow.triggerWorkflow("research", {
+      url: "https://example.com",
+    });
+
+    expect(result).toEqual({
+      title: "Page: https://example.com",
+      summary: "Summary of: Content here...",
+    });
+  });
+
+  it("nested workflow calls", async () => {
+    const result = await pflow.triggerWorkflow("outer", { value: 5 });
+    expect(result).toBe(11); // (5 * 2) + 1
+  });
+
+  it("records exactly one workflow execution per trigger", async () => {
+    // Trigger the workflow once
+    await pflow.triggerWorkflow("research", {
+      url: "https://count-test.example.com",
+    });
+
+    const count = await countWorkflowExecutions("research");
+
+    // First test runs "research" once, this test runs it again = 2 total
+    expect(count).toBe(2);
+  });
+});

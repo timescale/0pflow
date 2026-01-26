@@ -54,4 +54,6 @@ export interface Pflow {
   getWorkflow: (name: string) => AnyExecutable | undefined;
   /** Trigger a workflow by name (for webhooks/UI) */
   triggerWorkflow: <T = unknown>(name: string, inputs: unknown) => Promise<T>;
+  /** Shutdown the 0pflow instance and DBOS */
+  shutdown: () => Promise<void>;
 }

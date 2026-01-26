@@ -1,6 +1,21 @@
 // packages/core/src/__tests__/workflow.test.ts
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
+
+// Mock DBOS SDK
+vi.mock("@dbos-inc/dbos-sdk", () => ({
+  DBOS: {
+    registerWorkflow: vi.fn().mockImplementation((fn) => fn),
+    runStep: vi.fn().mockImplementation(async (fn) => fn()),
+    logger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    },
+  },
+}));
+
 import { Workflow } from "../workflow.js";
 
 describe("Workflow.create()", () => {

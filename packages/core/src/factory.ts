@@ -1,7 +1,7 @@
 // packages/core/src/factory.ts
-import type { Pflow, PflowConfig } from "./types.js";
+import type { Pflow, PflowConfig, WorkflowContext } from "./types.js";
 import { Registry } from "./registry.js";
-import { initializeDBOS, createDurableContext } from "./dbos.js";
+import { initializeDBOS, shutdownDBOS } from "./dbos.js";
 
 /**
  * Create a 0pflow instance
@@ -31,12 +31,13 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
         throw new Error(`Workflow "${name}" not found`);
       }
 
-      // Create durable context for this execution
-      const ctx = createDurableContext();
-
-      // Validate inputs and execute
+      // Validate inputs and execute (workflow handles DBOS context internally)
       const validated = workflow.inputSchema.parse(inputs);
-      return workflow.execute(ctx, validated) as Promise<T>;
+      return workflow.execute(null as unknown as WorkflowContext, validated) as Promise<T>;
+    },
+
+    shutdown: async () => {
+      await shutdownDBOS();
     },
   };
 }
