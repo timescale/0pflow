@@ -208,7 +208,7 @@ Return a JSON object with fields:
 - **Body:** system prompt (task, guidelines, output format)
 
 **Tools can be:**
-- Built-in tools (`web.fetch`, `http.post`, `slack.postMessage`) - ship with 0pflow
+- Built-in tools (`http.get`) - ship with 0pflow
 - User-defined tools from `src/tools/` - resolved by convention (e.g., `linkedin.getCompanyProfile` → `src/tools/linkedin/getCompanyProfile.ts`)
 - MCP server tools (post-MVP)
 
@@ -226,7 +226,7 @@ Workflows orchestrate nodes. Node types:
 
 **Tool resolution:** Tools referenced in agent specs (and workflows) are resolved by convention:
 - **User-defined tools:** `src/tools/web/scrape.ts` → referenced as `web.scrape`
-- **Built-in tools:** `web.fetch`, `http.post`, `slack.postMessage` ship with 0pflow
+- **Built-in tools:** `http.get` ship with 0pflow
 
 ## Runtime & SDK
 
@@ -421,7 +421,7 @@ For MVP, the UI is extremely minimal.
 | **SDK** | `ctx.runAgent`, `ctx.runNode`, `ctx.callTool`, `ctx.log` |
 | **Runtime** | DBOS-backed execution, local only |
 | **Agents** | Pre-packaged agent node (Vercel AI SDK, reads specs from `specs/agents/`) |
-| **Tools** | Built-in tools: `web.fetch`, `http.post`, `slack.postMessage` |
+| **Tools** | Built-in tools: `http.get` |
 | **UI** | Workflow list + trigger button |
 | **Triggers** | Manual (UI button, webhook, CLI) |
 
@@ -461,7 +461,7 @@ For MVP, the UI is extremely minimal.
 ### Phase 3: Agent Node + Tools
 - Pre-packaged agent node using Vercel AI SDK (reads agent specs, runs agentic loop)
 - Tool interface for user-defined tools (`src/tools/`)
-- Built-in tools (`web.fetch`, `http.post`, `slack.postMessage`)
+- Built-in tools (`http.get`)
 
 ### Phase 4: Compiler (Claude Code Skill)
 - Spec parser (extract structure from markdown)
@@ -496,6 +496,7 @@ For MVP, the UI is extremely minimal.
 - Multi-provider deployment (Vercel, Render, Fly.io)
 - CRM integrations (Salesforce, HubSpot)
 - MCP tool server support
+- Additional built-in tools (`http.post`, `slack.postMessage`)
 - Approval nodes with human-in-the-loop
 - MCP server to inspect workflow runs from Claude Code
 - **Non-idempotent node semantics** - Attempt ledger with start-based counting for tools like `slack.postMessage` that can't safely be re-executed
