@@ -4,9 +4,22 @@ AI-native workflow engine for GTM/RevOps automation.
 
 ## Project Status
 
-**Status:** Planning phase - see `docs/plans/` for design documents.
+**Status:** Active development - Phase 4 (Spec Author) complete.
 
-**Current Focus:** Working on developing the main 0pflow design, not the secondary design.
+**Current Focus:** Building MVP workflow engine with Claude Code skills.
+
+## Claude Code Plugin
+
+This repo is a Claude Code plugin. Load it with:
+```bash
+claude --plugin-dir /path/to/0pflow
+```
+
+### Available Skills
+
+- `/0pflow:spec-author` - Collaborative workflow design (guides you through creating workflow specs)
+- `/0pflow:compile-workflow` - Compile workflow specs to TypeScript
+- `/0pflow:validate-spec` - Validate spec structure and references
 
 ## Key Documents
 
