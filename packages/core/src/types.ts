@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { ToolExecutable } from "./tools/tool.js";
+import type { ModelConfig } from "./nodes/agent/model-config.js";
 
 /**
  * Base interface for all executable types (Node, Agent, Workflow)
@@ -30,6 +32,9 @@ export type LogLevel = "info" | "warn" | "error" | "debug";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyExecutable = Executable<any, any>;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyToolExecutable = ToolExecutable<any, any>;
+
 /**
  * Configuration for create0pflow()
  */
@@ -42,6 +47,10 @@ export interface PflowConfig {
   agents?: Record<string, AnyExecutable>;
   /** Registered function nodes */
   nodes?: Record<string, AnyExecutable>;
+  /** User-defined tools (available to agents) */
+  tools?: Record<string, AnyToolExecutable>;
+  /** Default model configuration for agents */
+  modelConfig?: ModelConfig;
 }
 
 /**

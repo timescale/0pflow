@@ -1,6 +1,10 @@
 // packages/core/src/agent.ts
 import { z } from "zod";
 import type { Executable, WorkflowContext } from "./types.js";
+import { parseAgentSpec } from "./nodes/agent/parser.js";
+import { executeAgent } from "./nodes/agent/executor.js";
+import type { ModelConfig } from "./nodes/agent/model-config.js";
+import type { ToolRegistry } from "./tools/registry.js";
 
 /**
  * Definition for creating an agent
@@ -22,7 +26,26 @@ export interface AgentExecutable<TInput = unknown, TOutput = unknown>
 }
 
 /**
- * Factory for creating agent executables (stub - Phase 3)
+ * Runtime configuration for agent execution
+ * Set by create0pflow() factory
+ */
+interface AgentRuntimeConfig {
+  toolRegistry: ToolRegistry;
+  modelConfig?: ModelConfig;
+}
+
+let agentRuntimeConfig: AgentRuntimeConfig | null = null;
+
+/**
+ * Configure the agent runtime (called by factory)
+ * @internal
+ */
+export function configureAgentRuntime(config: AgentRuntimeConfig): void {
+  agentRuntimeConfig = config;
+}
+
+/**
+ * Factory for creating agent executables
  */
 export const Agent = {
   create<TInput, TOutput = unknown>(
@@ -34,8 +57,31 @@ export const Agent = {
       inputSchema: definition.inputSchema,
       outputSchema: definition.outputSchema,
       specPath: definition.specPath,
-      execute: async (_ctx: WorkflowContext, _inputs: TInput): Promise<TOutput> => {
-        throw new Error("Agent execution not implemented (Phase 3)");
+      execute: async (_ctx: WorkflowContext, inputs: TInput): Promise<TOutput> => {
+        if (!agentRuntimeConfig) {
+          throw new Error(
+            "Agent runtime not configured. Make sure to use create0pflow() before executing agents."
+          );
+        }
+
+        // Parse the agent spec
+        const spec = await parseAgentSpec(definition.specPath);
+
+        // Convert inputs to a user message string
+        // If inputs is a string, use directly; otherwise JSON stringify
+        const userMessage =
+          typeof inputs === "string" ? inputs : JSON.stringify(inputs, null, 2);
+
+        // Execute the agent
+        const result = await executeAgent({
+          spec,
+          userMessage,
+          toolRegistry: agentRuntimeConfig.toolRegistry,
+          modelConfig: agentRuntimeConfig.modelConfig,
+          outputSchema: definition.outputSchema,
+        });
+
+        return result.output as TOutput;
       },
     };
   },

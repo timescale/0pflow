@@ -15,6 +15,28 @@ export type { WorkflowDefinition, WorkflowExecutable } from "./workflow.js";
 export { Agent } from "./agent.js";
 export type { AgentDefinition, AgentExecutable } from "./agent.js";
 
+// Tools
+export { Tool } from "./tools/tool.js";
+export type { ToolDefinition, ToolExecutable } from "./tools/tool.js";
+export { ToolRegistry } from "./tools/registry.js";
+export type { ToolRegistryConfig } from "./tools/registry.js";
+export { httpGet, builtinTools } from "./tools/builtin/index.js";
+
+// Agent internals (for advanced use cases)
+export { parseAgentSpec, parseAgentSpecContent } from "./nodes/agent/parser.js";
+export type { AgentSpec } from "./nodes/agent/parser.js";
+export {
+  getDefaultModelConfig,
+  createModel,
+  parseModelString,
+} from "./nodes/agent/model-config.js";
+export type { ModelConfig, ModelProvider } from "./nodes/agent/model-config.js";
+export { executeAgent } from "./nodes/agent/executor.js";
+export type {
+  AgentExecutionResult,
+  ExecuteAgentOptions,
+} from "./nodes/agent/executor.js";
+
 // Types
 export type {
   Executable,

@@ -18,16 +18,16 @@ describe("Agent.create()", () => {
     expect(agent.inputSchema).toBe(inputSchema);
   });
 
-  it("execute throws not implemented error", async () => {
+  it("execute throws error without runtime configured", async () => {
     const agent = Agent.create({
       name: "researcher",
       inputSchema: z.object({ query: z.string() }),
       specPath: "specs/agents/researcher.md",
     });
 
-    const mockCtx = { run: async () => {}, log: () => {} } as any;
+    const mockCtx = { run: async () => {}, log: () => {} } as never;
     await expect(agent.execute(mockCtx, { query: "test" })).rejects.toThrow(
-      "Agent execution not implemented (Phase 3)"
+      "Agent runtime not configured"
     );
   });
 });
