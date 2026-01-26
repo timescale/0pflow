@@ -334,13 +334,13 @@ Create personalized 5-email outreach sequence using research data and social pro
 ---
 name: linkedin-data-extractor
 tools:
-  - browser.navigate
-  - browser.click
-  - browser.getText
-  - browser.screenshot
-  - browser.waitForSelector
-  - linkedin.searchCompany
-  - linkedin.getCompanyPage
+  - browser_navigate
+  - browser_click
+  - browser_getText
+  - browser_screenshot
+  - browser_waitForSelector
+  - linkedin_searchCompany
+  - linkedin_getCompanyPage
 ---
 
 # LinkedIn Data Extractor
@@ -396,11 +396,11 @@ Return a JSON object:
 ---
 name: employee-location-researcher
 tools:
-  - browser.navigate
-  - browser.click
-  - browser.getText
-  - browser.waitForSelector
-  - linkedin.getEmployeeList
+  - browser_navigate
+  - browser_click
+  - browser_getText
+  - browser_waitForSelector
+  - linkedin_getEmployeeList
 ---
 
 # Employee Location Researcher
@@ -443,10 +443,10 @@ Given a company's LinkedIn URL:
 ---
 name: tech-stack-researcher
 tools:
-  - browser.navigate
-  - browser.click
-  - browser.getText
-  - browser.waitForSelector
+  - browser_navigate
+  - browser_click
+  - browser_getText
+  - browser_waitForSelector
 ---
 
 # Tech Stack Researcher
@@ -602,7 +602,7 @@ import { ToolDefinition } from '0pflow';
 import { getBrowser } from '../lib/browser-factory';
 
 export const navigate: ToolDefinition = {
-  name: 'browser.navigate',
+  name: 'browser_navigate',
   description: 'Navigate to a URL in the browser',
   parameters: {
     type: 'object',
@@ -626,7 +626,7 @@ import { ToolDefinition } from '0pflow';
 import { getBrowser } from '../lib/browser-factory';
 
 export const click: ToolDefinition = {
-  name: 'browser.click',
+  name: 'browser_click',
   description: 'Click an element matching the selector',
   parameters: {
     type: 'object',
@@ -650,7 +650,7 @@ import { ToolDefinition } from '0pflow';
 import { getBrowser } from '../lib/browser-factory';
 
 export const getText: ToolDefinition = {
-  name: 'browser.getText',
+  name: 'browser_getText',
   description: 'Get text content from the current page or a specific selector',
   parameters: {
     type: 'object',
@@ -678,7 +678,7 @@ import { ToolDefinition } from '0pflow';
 import { db } from '../lib/db';
 
 export const similaritySearch: ToolDefinition = {
-  name: 'embeddings.similaritySearch',
+  name: 'embeddings_similaritySearch',
   description: 'Find similar items using vector similarity',
   parameters: {
     type: 'object',

@@ -9,7 +9,7 @@ type AnyToolExecutable = ToolExecutable<any, any>;
  * All built-in tools indexed by name
  */
 export const builtinTools: Record<string, AnyToolExecutable> = {
-  "http.get": httpGet,
+  "http_get": httpGet,
 };
 
 export { httpGet };

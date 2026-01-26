@@ -50,7 +50,7 @@ User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, bet
 │   │   ├── src/
 │   │   │   ├── workflow.ts   ← Workflow.create(), WorkflowContext
 │   │   │   ├── agent-node.ts ← Pre-packaged agent node (Vercel AI SDK)
-│   │   │   ├── tools/        ← Built-in tools (web.fetch, etc.)
+│   │   │   ├── tools/        ← Built-in tools (http_get, etc.)
 │   │   │   ├── discovery.ts  ← Workflow discovery from generated/
 │   │   │   └── api.ts        ← Plain functions: listWorkflows, triggerWorkflow, etc.
 │   │   └── package.json
@@ -142,7 +142,7 @@ Reject others without further action.
 
 Alert the sales team about the qualified lead.
 
-**Tool:** `slack.postMessage`
+**Tool:** `slack_postMessage`
 **Input:** channel = "#sales-leads", text = "New qualified lead: {company_data.name} (score: {score_result.score})"
 
 ## Outputs
@@ -170,7 +170,7 @@ name: company-researcher
 tools:
   - web.scrape
   - web.search
-  - linkedin.getCompanyProfile
+  - linkedin_getCompanyProfile
   - clearbit.enrich
 ---
 
@@ -208,8 +208,10 @@ Return a JSON object with fields:
 - **Body:** system prompt (task, guidelines, output format)
 
 **Tools can be:**
-- Built-in tools (`http.get`) - ship with 0pflow
-- User-defined tools from `src/tools/` - resolved by convention (e.g., `linkedin.getCompanyProfile` → `src/tools/linkedin/getCompanyProfile.ts`)
+- Built-in tools (`http_get`) - ship with 0pflow
+- User-defined tools from `src/tools/` - resolved by convention (e.g., `linkedin_getCompanyProfile` → `src/tools/linkedin/getCompanyProfile.ts`)
+
+**Tool naming convention:** Tool names must use underscores, not dots (e.g., `http_get` not `http.get`). This ensures compatibility with all LLM providers.
 - MCP server tools (post-MVP)
 
 ## Node Types
@@ -225,8 +227,8 @@ Workflows orchestrate nodes. Node types:
 **Agent execution model:** Agents are not special runtime machinery. The pre-packaged agent node reads agent specs (`specs/agents/*.md`) at runtime and executes an agentic loop using the Vercel AI SDK. Users can also write custom agent nodes in `src/nodes/` if they need different behavior (e.g., different LLM providers, custom tool-calling logic).
 
 **Tool resolution:** Tools referenced in agent specs (and workflows) are resolved by convention:
-- **User-defined tools:** `src/tools/web/scrape.ts` → referenced as `web.scrape`
-- **Built-in tools:** `http.get` ship with 0pflow
+- **User-defined tools:** `src/tools/web/scrape.ts` → referenced as `web_scrape`
+- **Built-in tools:** `http_get` ships with 0pflow
 
 ## Runtime & SDK
 
@@ -256,7 +258,7 @@ export const icpScoring = Workflow.create({
     // Step 3: Decision
     if (scoreResult.score >= 80) {
       // Step 4: Notify Sales
-      await ctx.callTool('slack.postMessage', {
+      await ctx.callTool('slack_postMessage', {
         channel: '#sales-leads',
         text: `New qualified lead: ${companyData.name} (score: ${scoreResult.score})`,
       });
@@ -334,7 +336,7 @@ For each workflow run and node instance `(runId, nodeId)`:
 ### Defaults & Validation (Post-MVP)
 
 - Nodes are assumed idempotent by default
-- Built-in tools have explicit idempotency metadata (e.g., `slack.postMessage` defaults to non-idempotent)
+- Built-in tools have explicit idempotency metadata (e.g., `slack_postMessage` defaults to non-idempotent)
 - The compiler fails closed if a non-idempotent tool is used without declaring idempotency
 - `maxAttempts` applies uniformly to all nodes; only the counting semantics differ
 
@@ -421,7 +423,7 @@ For MVP, the UI is extremely minimal.
 | **SDK** | `ctx.runAgent`, `ctx.runNode`, `ctx.callTool`, `ctx.log` |
 | **Runtime** | DBOS-backed execution, local only |
 | **Agents** | Pre-packaged agent node (Vercel AI SDK, reads specs from `specs/agents/`) |
-| **Tools** | Built-in tools: `http.get` |
+| **Tools** | Built-in tools: `http_get` |
 | **UI** | Workflow list + trigger button |
 | **Triggers** | Manual (UI button, webhook, CLI) |
 
@@ -461,7 +463,7 @@ For MVP, the UI is extremely minimal.
 ### Phase 3: Agent Node + Tools
 - Pre-packaged agent node using Vercel AI SDK (reads agent specs, runs agentic loop)
 - Tool interface for user-defined tools (`src/tools/`)
-- Built-in tools (`http.get`)
+- Built-in tools (`http_get`)
 
 ### Phase 4: Compiler (Claude Code Skill)
 - Spec parser (extract structure from markdown)
@@ -496,7 +498,7 @@ For MVP, the UI is extremely minimal.
 - Multi-provider deployment (Vercel, Render, Fly.io)
 - CRM integrations (Salesforce, HubSpot)
 - MCP tool server support
-- Additional built-in tools (`http.post`, `slack.postMessage`)
+- Additional built-in tools (`http_post`, `slack_postMessage`)
 - Approval nodes with human-in-the-loop
 - MCP server to inspect workflow runs from Claude Code
-- **Non-idempotent node semantics** - Attempt ledger with start-based counting for tools like `slack.postMessage` that can't safely be re-executed
+- **Non-idempotent node semantics** - Attempt ledger with start-based counting for tools like `slack_postMessage` that can't safely be re-executed

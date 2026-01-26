@@ -6,7 +6,7 @@ import { Tool } from "../tool.js";
  * HTTP GET tool - fetches content from a URL
  */
 export const httpGet = Tool.create({
-  name: "http.get",
+  name: "http_get",
   description: "Fetch content from a URL using HTTP GET request",
   inputSchema: z.object({
     url: z.string().refine((val) => {

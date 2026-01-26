@@ -14,7 +14,7 @@ describe("httpGet tool", () => {
   });
 
   it("has correct properties", () => {
-    expect(httpGet.name).toBe("http.get");
+    expect(httpGet.name).toBe("http_get");
     expect(httpGet.type).toBe("tool");
     expect(httpGet.description).toContain("HTTP GET");
   });

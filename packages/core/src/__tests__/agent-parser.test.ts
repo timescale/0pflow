@@ -7,7 +7,7 @@ describe("parseAgentSpecContent()", () => {
     const content = `---
 name: researcher
 tools:
-  - http.get
+  - http_get
   - custom.search
 model: anthropic/claude-3-opus
 maxSteps: 5
@@ -18,7 +18,7 @@ You are a research assistant. Search for information and summarize findings.
     const spec = parseAgentSpecContent(content);
 
     expect(spec.name).toBe("researcher");
-    expect(spec.tools).toEqual(["http.get", "custom.search"]);
+    expect(spec.tools).toEqual(["http_get", "custom.search"]);
     expect(spec.model).toBe("anthropic/claude-3-opus");
     expect(spec.maxSteps).toBe(5);
     expect(spec.systemPrompt).toBe(
@@ -45,7 +45,7 @@ Do something simple.
   it("throws for missing name", () => {
     const content = `---
 tools:
-  - http.get
+  - http_get
 ---
 System prompt here.
 `;
