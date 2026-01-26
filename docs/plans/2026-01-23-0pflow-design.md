@@ -34,10 +34,11 @@ User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, bet
 ```
 
 **Flow:**
-1. User authors/edits workflow spec with Claude Code
-2. Compiler generates TypeScript orchestration code
-3. DBOS runtime executes durably
-4. User iterates by editing spec and recompiling
+1. User describes workflow intent using Claude Code skill (spec-author)
+2. Skill guides user through collaborative design → outputs workflow spec
+3. Compiler generates TypeScript orchestration code
+4. DBOS runtime executes durably
+5. User iterates by re-running spec-author or editing spec directly
 
 **Key principle:** Specs are the source of truth. Generated code is derived from specs via compilation. For MVP, only spec→code compilation is supported.
 
@@ -64,6 +65,7 @@ User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, bet
 │       └── package.json
 │
 └── skills/                   ← Claude Code skills
+    ├── spec-author/          ← Collaborative spec design
     ├── compile-workflow/
     └── validate-spec/
 ```
@@ -376,6 +378,112 @@ throw new WorkflowCompilationError('Unresolved TODOs in step 3');
 
 **One-way compilation:** For MVP, compilation is strictly spec→code. Users edit specs and recompile; direct editing of generated code is not supported. The generated code should be treated as a build artifact (though committed to git for transparency).
 
+## Spec Author Skill
+
+The spec-author skill is a Claude Code skill that guides users through collaborative workflow design. It's modeled after brainstorming workflows but focused specifically on creating 0pflow specs.
+
+**Purpose:** Turn vague workflow ideas into well-structured specs through guided dialogue, ensuring specs are complete enough to compile without ambiguity.
+
+### Process
+
+**1. Understanding the workflow intent:**
+- Review existing specs in `specs/workflows/` and `specs/agents/` for context
+- Ask questions one at a time to understand the workflow goal
+- Prefer multiple choice questions when options are clear
+- Focus on: what triggers the workflow, what's the desired outcome, what systems are involved
+
+**2. Identifying steps and nodes:**
+- Walk through the workflow step-by-step
+- For each step, determine: is this an agent task, a function, or a tool call?
+- Propose existing agents/tools that could work, or identify new ones needed
+- Clarify inputs/outputs at each step
+
+**3. Handling control flow:**
+- Identify decision points (conditionals, branches)
+- Clarify criteria for each branch
+- Ensure no ambiguous conditions (e.g., "if good fit" → "if score >= 80")
+
+**4. Presenting the spec:**
+- Once the workflow is understood, draft the spec incrementally
+- Present each section (Inputs, Steps, Outputs) for validation
+- Revise based on feedback before finalizing
+
+**5. Output:**
+- Write validated spec to `specs/workflows/<name>.md`
+- If new agents are needed, create stubs in `specs/agents/`
+- Optionally run the compiler to validate the spec compiles cleanly
+
+### Key Principles
+
+- **One question at a time** - Don't overwhelm users with multiple questions
+- **Concrete over abstract** - Ask for specific examples, not general descriptions
+- **Fail closed** - If something is ambiguous, ask rather than assume
+- **Leverage existing nodes** - Prefer reusing existing agents/tools over creating new ones
+- **Validate incrementally** - Check each section before moving on
+
+### Example Dialogue
+
+```
+User: I want to score inbound leads
+
+Skill: What triggers this workflow?
+  A) Webhook from form submission
+  B) Manual trigger with company URL
+  C) Scheduled batch from CRM
+  D) Other
+
+User: B
+
+Skill: What information do you have at trigger time?
+  A) Just the company URL
+  B) Company URL + contact email
+  C) Full lead record from CRM
+  D) Other
+
+User: A
+
+Skill: What's a "good" lead for you? Help me understand your ICP criteria.
+  A) B2B SaaS companies with $5M+ ARR
+  B) Tech companies with 50+ employees
+  C) Custom criteria (I'll describe)
+  D) Not sure yet
+
+User: A
+
+Skill: What should happen with qualified leads?
+  A) Notify sales team (Slack/email)
+  B) Create task in CRM
+  C) Add to outreach sequence
+  D) Multiple of the above
+
+User: A - Slack notification
+
+Skill: Got it. Here's the workflow structure:
+
+## Inputs
+- company_url: string (required)
+
+Does this look right so far?
+
+User: Yes
+
+Skill: ## Steps
+
+### 1. Research Company
+Gather information about the company from their website and public sources.
+**Node:** `company-researcher` (agent)
+**Output:** company_data
+
+### 2. Score Against ICP
+Evaluate against B2B SaaS $5M+ ARR criteria.
+**Node:** `icp-scorer` (agent)
+**Output:** score_result
+
+Does this look right?
+
+[continues...]
+```
+
 ## Minimal UI (MVP)
 
 For MVP, the UI is extremely minimal.
@@ -418,6 +526,7 @@ For MVP, the UI is extremely minimal.
 | Component | What's Included |
 |-----------|-----------------|
 | **Spec format** | Workflow specs + agent specs (markdown) |
+| **Spec author** | Claude Code skill that guides collaborative spec design |
 | **Compiler** | Claude Code skill that generates TypeScript from specs |
 | **Validator** | Claude Code skill that checks spec structure |
 | **SDK** | `ctx.runAgent`, `ctx.runNode`, `ctx.callTool`, `ctx.log` |
@@ -465,23 +574,30 @@ For MVP, the UI is extremely minimal.
 - Tool interface for user-defined tools (`src/tools/`)
 - Built-in tools (`http_get`)
 
-### Phase 4: Compiler (Claude Code Skill)
+### Phase 4: Spec Author (Claude Code Skill)
+- Collaborative dialogue flow for workflow design
+- Context awareness (reads existing specs/agents)
+- Incremental spec presentation and validation
+- Writes validated specs to `specs/workflows/`
+- Creates agent stubs when new agents are identified
+
+### Phase 5: Compiler (Claude Code Skill)
 - Spec parser (extract structure from markdown)
 - Code generator (emit TypeScript from parsed spec)
 - TODO emission for ambiguous specs
 
-### Phase 5: Validator (Claude Code Skill)
+### Phase 6: Validator (Claude Code Skill)
 - Structure validation (required sections present)
 - Reference validation (nodes exist, types align)
 - Human description ↔ implementation consistency check
 
-### Phase 6: Minimal UI (@0pflow/ui)
+### Phase 7: Minimal UI (@0pflow/ui)
 - React components that accept data via props (framework-agnostic)
 - WorkflowList, WorkflowTriggerButton components
 - User wires up data fetching (tRPC, SWR, etc.) in their app
 - Example integration provided in docs
 
-### Phase 7: CLI
+### Phase 8: CLI
 - `0pflow run <workflow> --input '{...}'`
 - `0pflow list`
 - `0pflow compile` (manually invoke compiler)
