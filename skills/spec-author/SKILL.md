@@ -97,6 +97,45 @@ Then determine:
 
 5. **Outputs** - What variable name holds this task's result?
 
+### For new agents:
+
+When a task requires a NEW agent (not an existing one), gather extra detail for the task description. This info will be used by compile-workflow to create a good agent stub.
+
+Ask these follow-up questions (one at a time):
+
+1. **Tools needed:** "What tools or capabilities does this agent need?"
+   - Web scraping/search?
+   - Specific APIs (LinkedIn, Clearbit, CRM)?
+   - Just reasoning over provided data (no tools)?
+
+2. **Guidelines:** "Any specific guidelines for how this agent should work?"
+   - Preferred data sources?
+   - How to handle missing/uncertain data?
+   - Quality or accuracy requirements?
+
+3. **Output format:** "What fields should the output include?"
+   - Get specific field names and types
+   - Note which fields are optional
+
+Capture this detail in the task description:
+
+```markdown
+### N. Research Company
+
+Gather comprehensive information about the company including their product,
+market position, team size, and funding status.
+
+**Tools needed:** web scraping, LinkedIn API, Clearbit enrichment
+**Guidelines:** Prefer primary sources (company website, LinkedIn) over aggregators.
+If information is unavailable, indicate "unknown" rather than guessing.
+**Output fields:** name (string), description (string), product (string),
+market (string), team_size (number, optional), funding (string, optional)
+
+**Node:** `company-researcher` (agent)
+**Input:** company_url
+**Output:** `company_data: { name: string, description: string, product: string, market: string, team_size?: number, funding?: string }`
+```
+
 ### For decision points:
 
 When the user describes branching logic, nail down the exact condition:
@@ -232,53 +271,22 @@ version: 1
 <validated outputs, or omit this section if workflow has no return value>
 ```
 
-### 4.2 Create Agent Stubs (if needed)
-
-For each NEW agent identified (not existing), create `specs/agents/<name>.md`:
-
-```markdown
----
-name: <agent-name>
-tools:
-  - http_get
----
-
-# <Agent Title>
-
-<Brief description based on the workflow task>
-
-## Task
-
-<What this agent needs to accomplish>
-
-## Guidelines
-
-- Prefer primary sources over aggregators
-- If information is unavailable, say so rather than guessing
-- Keep output structured and consistent
-
-## Output Format
-
-Return a JSON object with fields:
-- field1: description
-- field2: description
-```
-
-### 4.3 Report Results
+### 4.2 Report Results
 
 Tell the user:
 
 1. "I've written the workflow spec to `specs/workflows/<name>.md`"
 
-2. If new agents created:
-   "I've also created agent stub(s) that need to be fleshed out:
-   - `specs/agents/<agent1>.md`
-   - `specs/agents/<agent2>.md`"
+2. If new agents were identified (not existing):
+   "This workflow references new agent(s) that don't exist yet:
+   - `<agent1>` - <brief description of what it does>
+   - `<agent2>` - <brief description of what it does>
+
+   These will be created as stubs when you run compile-workflow."
 
 3. "**Next steps:**
-   - Review and flesh out any agent stubs (add specific tools, refine prompts)
-   - Validate the spec: run `/0pflow:validate-spec`
-   - Compile to TypeScript: run `/0pflow:compile-workflow`"
+   - Run `/0pflow:compile-workflow` to generate TypeScript and create any missing agent stubs
+   - Review and refine generated agent stubs in `specs/agents/`"
 
 ---
 
@@ -419,12 +427,13 @@ User: Yes
 
 Agent: I've written the workflow spec to `specs/workflows/lead-scoring.md`
 
-I've also created agent stubs that need to be fleshed out:
-- `specs/agents/company-researcher.md`
-- `specs/agents/icp-scorer.md`
+This workflow references new agents that don't exist yet:
+- `company-researcher` - researches company info from URL
+- `icp-scorer` - scores company against ICP criteria
+
+These will be created as stubs when you run compile-workflow.
 
 **Next steps:**
-- Review and flesh out the agent stubs (add specific tools, refine prompts)
-- Validate: run `/0pflow:validate-spec`
-- Compile: run `/0pflow:compile-workflow`
+- Run `/0pflow:compile-workflow` to generate TypeScript and create agent stubs
+- Review and refine the generated agent stubs in `specs/agents/`
 ```
