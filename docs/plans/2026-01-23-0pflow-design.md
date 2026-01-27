@@ -625,3 +625,4 @@ For MVP, the UI is extremely minimal.
 - Approval nodes with human-in-the-loop
 - MCP server to inspect workflow runs from Claude Code
 - **Non-idempotent node semantics** - Attempt ledger with start-based counting for tools like `slack_postMessage` that can't safely be re-executed
+- **Incremental compilation** - Only compile workflow specs that changed since last compilation (diff-based)
