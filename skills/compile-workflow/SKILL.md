@@ -96,9 +96,11 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 | Type | Location | Import Pattern |
 |------|----------|----------------|
-| `(tool)` | Built-in or `src/tools/` | `import { toolName } from "0pflow/tools"` or `import { toolName } from "../../src/tools/..."` |
-| `(agent)` | `specs/agents/<name>.md` | Generate agent executable import |
-| `(function)` | `src/nodes/<name>.ts` | `import { nodeName } from "../../src/nodes/..."` |
+| `(tool)` | Built-in or `src/tools/` | `import { toolName } from "0pflow"` or `import { toolName } from "../../src/tools/..."` |
+| `(agent)` | `agents/<name>.ts` | `import { agentName } from "../../agents/<name>.js"` |
+| `(function)` | `src/nodes/<name>.ts` | `import { nodeName } from "../../src/nodes/<name>.js"` |
+
+**Note:** Agent imports reference the executable file (`agents/<name>.ts`), not the spec file (`specs/agents/<name>.md`). The executable contains the runtime code that loads the spec.
 
 ### Resolution Steps
 
@@ -144,7 +146,12 @@ Description of what the agent does.
 
 ### Agent Stub Template
 
-Extract info from the enriched task description:
+When creating a new agent, generate TWO files:
+
+1. **Spec file:** `specs/agents/<name>.md` - The agent prompt/config
+2. **Executable file:** `agents/<name>.ts` - TypeScript executable that references the spec
+
+#### Spec File (`specs/agents/<name>.md`)
 
 ```markdown
 ---
@@ -173,6 +180,34 @@ tools:
 Return a JSON object with:
 <From **Output fields:** or parsed from **Output:** type>
 ```
+
+#### Executable File (`agents/<name>.ts`)
+
+**IMPORTANT:** Always use absolute path resolution for `specPath` to ensure the agent works regardless of the current working directory (e.g., when running tests).
+
+```typescript
+// agents/<name>.ts
+// Agent executable for <name>
+import { z } from "zod";
+import { Agent } from "0pflow";
+import { fileURLToPath } from "url";
+import path from "path";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export const <camelCaseName> = Agent.create({
+  name: "<name>",
+  inputSchema: z.object({
+    // ... from task **Input:**
+  }),
+  outputSchema: z.object({
+    // ... from task **Output:** type
+  }),
+  specPath: path.resolve(__dirname, "../specs/agents/<name>.md"),
+});
+```
+
+The `path.resolve(__dirname, ...)` pattern ensures the spec file is found relative to the executable file's location, not the current working directory.
 
 ### When Context Is Insufficient
 

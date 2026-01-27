@@ -6,6 +6,6 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 export default defineConfig({
   test: {
-    exclude: ["**/dist/**", "**/node_modules/**"],
+    exclude: ["**/dist/**", "**/node_modules/**", "**/.next/**"],
   },
 });
