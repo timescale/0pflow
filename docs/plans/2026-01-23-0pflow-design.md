@@ -12,7 +12,7 @@
 | 3 | Agent Node + Tools | Done |
 | 4 | Spec Author (Claude Code Skill) | Done |
 | 5 | Compiler (Claude Code Skill) | Done |
-| 6 | CLI | In Progress |
+| 6 | CLI | Done |
 | 7 | Validator (Claude Code Skill) | Not Started |
 | 8 | Minimal UI (@0pflow/ui) | Not Started |
 
