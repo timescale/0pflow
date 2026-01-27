@@ -105,7 +105,7 @@ Score inbound companies against our Ideal Customer Profile.
 - company_url: string (required) - The company's website URL
 - scoring_criteria: string (optional, defaults to "B2B SaaS $5M+ ARR")
 
-## Steps
+## Tasks
 
 ### 1. Research Company
 
@@ -114,7 +114,7 @@ their product, market, team size, funding, and tech stack.
 
 **Node:** `company-researcher` (agent)
 **Input:** company_url
-**Output:** `company_data`
+**Output:** `company_data: { name: string, description: string, product: string, market: string, team_size?: number, funding?: string, tech_stack?: string[] }`
 
 ---
 
@@ -125,7 +125,7 @@ based on the criteria provided.
 
 **Node:** `icp-scorer` (agent)
 **Input:** company_data, scoring_criteria
-**Output:** `score_result`
+**Output:** `score_result: { score: number, reasons: string[] }`
 
 ---
 
@@ -135,8 +135,11 @@ Route qualified leads (score >= 80) to sales notification.
 Reject others without further action.
 
 **Condition:** `score_result.score >= 80`
-**If true:** continue to step 4, set qualification = "qualified"
-**If false:** end workflow, set qualification = "not_qualified"
+**If true:** continue to task 4
+**If false:** return:
+  - qualification: "not_qualified"
+  - score: score_result.score
+  - company_data: company_data
 
 ---
 
@@ -146,20 +149,24 @@ Alert the sales team about the qualified lead.
 
 **Tool:** `slack_postMessage`
 **Input:** channel = "#sales-leads", text = "New qualified lead: {company_data.name} (score: {score_result.score})"
+**Return:**
+  - qualification: "qualified"
+  - score: score_result.score
+  - company_data: company_data
 
-## Outputs
+## Outputs (optional)
 - qualification: "qualified" | "not_qualified"
 - score: number
-- company_data: object
+- company_data: { name: string, description: string, product: string, market: string, team_size?: number, funding?: string, tech_stack?: string[] }
 ```
 
 **Structure conventions:**
 - `## Inputs` - Typed parameters
-- `## Steps` - Numbered steps, each with:
+- `## Tasks` - Numbered tasks, each with:
   - Human-readable description (intent)
   - Structured fields (implementation details)
-- `## Outputs` - What the workflow returns
-- Steps reference nodes by name (agents, functions, tools)
+- `## Outputs` (optional) - What the workflow returns (always an object with named fields)
+- Tasks reference nodes by name (agents, functions, tools)
 - Control flow expressed in natural language
 
 ## Agent Definition Format
@@ -246,28 +253,28 @@ export const icpScoring = Workflow.create({
   version: 1,
 
   async run(ctx: WorkflowContext, inputs: IcpScoringInputs) {
-    // Step 1: Research Company
+    // Task 1: Research Company
     const companyData = await ctx.runAgent('company-researcher', {
       company_url: inputs.company_url,
     });
 
-    // Step 2: Score Against ICP
+    // Task 2: Score Against ICP
     const scoreResult = await ctx.runAgent('icp-scorer', {
       company_data: companyData,
       scoring_criteria: inputs.scoring_criteria ?? 'B2B SaaS $5M+ ARR',
     });
 
-    // Step 3: Decision
+    // Task 3: Decision
     if (scoreResult.score >= 80) {
-      // Step 4: Notify Sales
+      // Task 4: Notify Sales
       await ctx.callTool('slack_postMessage', {
         channel: '#sales-leads',
         text: `New qualified lead: ${companyData.name} (score: ${scoreResult.score})`,
       });
-      return { qualification: 'qualified', score: scoreResult.score, companyData };
+      return { qualification: 'qualified', score: scoreResult.score, company_data: companyData };
     }
 
-    return { qualification: 'not_qualified', score: scoreResult.score, companyData };
+    return { qualification: 'not_qualified', score: scoreResult.score, company_data: companyData };
   },
 });
 ```
@@ -281,7 +288,7 @@ export const icpScoring = Workflow.create({
 
 DBOS handles: retries, idempotency, checkpointing, replay.
 
-**Note on caching:** DBOS provides durability (step results persisted for recovery) but not semantic caching (e.g., "don't re-research company X if we did it yesterday"). Semantic caching is user responsibility - implement in tool functions as needed.
+**Note on caching:** DBOS provides durability (task results persisted for recovery) but not semantic caching (e.g., "don't re-research company X if we did it yesterday"). Semantic caching is user responsibility - implement in tool functions as needed.
 
 ## Idempotency & Attempt Semantics (Post-MVP)
 
@@ -363,17 +370,17 @@ See if they match what we're looking for.
 Compiles to:
 
 ```typescript
-// Step 3: Check if good fit
+// Task 3: Check if good fit
 // TODO: Criteria for "good fit" not specified
 // TODO: "what we're looking for" is undefined - specify ICP criteria
-// UNRESOLVED: This step cannot be compiled until TODOs are addressed
-throw new WorkflowCompilationError('Unresolved TODOs in step 3');
+// UNRESOLVED: This task cannot be compiled until TODOs are addressed
+throw new WorkflowCompilationError('Unresolved TODOs in task 3');
 ```
 
 **Validation checks:**
 - All referenced nodes exist (`company-researcher` is defined)
-- Inputs/outputs type-align between steps
-- No unreachable steps
+- Inputs/outputs type-align between tasks
+- No unreachable tasks
 - No undefined variables
 
 **One-way compilation:** For MVP, compilation is strictly spec→code. Users edit specs and recompile; direct editing of generated code is not supported. The generated code should be treated as a build artifact (though committed to git for transparency).
@@ -392,11 +399,11 @@ The spec-author skill is a Claude Code skill that guides users through collabora
 - Prefer multiple choice questions when options are clear
 - Focus on: what triggers the workflow, what's the desired outcome, what systems are involved
 
-**2. Identifying steps and nodes:**
-- Walk through the workflow step-by-step
-- For each step, determine: is this an agent task, a function, or a tool call?
+**2. Identifying tasks and nodes:**
+- Walk through the workflow task-by-task
+- For each task, determine: is this an agent, a function, or a tool call?
 - Propose existing agents/tools that could work, or identify new ones needed
-- Clarify inputs/outputs at each step
+- Clarify inputs/outputs at each task
 
 **3. Handling control flow:**
 - Identify decision points (conditionals, branches)
@@ -405,7 +412,7 @@ The spec-author skill is a Claude Code skill that guides users through collabora
 
 **4. Presenting the spec:**
 - Once the workflow is understood, draft the spec incrementally
-- Present each section (Inputs, Steps, Outputs) for validation
+- Present each section (Inputs, Tasks, Outputs) for validation
 - Revise based on feedback before finalizing
 
 **5. Output:**
@@ -467,17 +474,17 @@ Does this look right so far?
 
 User: Yes
 
-Skill: ## Steps
+Skill: ## Tasks
 
 ### 1. Research Company
 Gather information about the company from their website and public sources.
 **Node:** `company-researcher` (agent)
-**Output:** company_data
+**Output:** `company_data: { name: string, description: string, ... }`
 
 ### 2. Score Against ICP
 Evaluate against B2B SaaS $5M+ ARR criteria.
 **Node:** `icp-scorer` (agent)
-**Output:** score_result
+**Output:** `score_result: { score: number, reasons: string[] }`
 
 Does this look right?
 
@@ -507,7 +514,7 @@ For MVP, the UI is extremely minimal.
 
 **Not in MVP:**
 - Run history
-- Step-by-step traces
+- Task-by-task traces
 - Agent conversation logs
 - Output viewer
 - Editing specs in browser
@@ -607,7 +614,7 @@ For MVP, the UI is extremely minimal.
 ## Future Considerations (Post-MVP)
 
 - **Code→spec sync** - Allow users to edit generated code directly and have Claude Code update the spec to match (bidirectional sync)
-- **Resumable/incremental workflows** - Trigger workflows from a specific step, not just start-to-finish (DBOS has `forkWorkflow` primitive)
+- **Resumable/incremental workflows** - Trigger workflows from a specific task, not just start-to-finish (DBOS has `forkWorkflow` primitive)
 - Security policies in workflow specs (tool access, PII redaction)
 - Run history and traces UI
 - Scheduled and event-driven triggers

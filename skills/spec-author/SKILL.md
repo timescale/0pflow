@@ -69,17 +69,17 @@ Based on answers, propose a name:
 
 ---
 
-## Phase 2: Identifying Steps and Nodes
+## Phase 2: Identifying Tasks and Nodes
 
-Walk through the workflow step-by-step.
+Walk through the workflow task-by-task.
 
-### For each step, ask:
+### For each task, ask:
 
-"After [previous step/trigger], what happens next?"
+"After [previous task/trigger], what happens next?"
 
 Then determine:
 
-1. **Description** - What does this step do in plain language?
+1. **Description** - What does this task do in plain language?
 
 2. **Node type** - Is this:
    - An **agent** task? (needs AI reasoning/judgment)
@@ -93,9 +93,9 @@ Then determine:
 
    If nothing fits, we'll create a new agent or function.
 
-4. **Inputs** - What data does this step need? (from workflow inputs or previous steps)
+4. **Inputs** - What data does this task need? (from workflow inputs or previous tasks)
 
-5. **Outputs** - What variable name holds this step's result?
+5. **Outputs** - What variable name holds this task's result?
 
 ### For decision points:
 
@@ -134,16 +134,16 @@ Present each section for validation. Wait for approval before proceeding.
 
 "Does this look right? Any changes?"
 
-### 3.2 Present Steps
+### 3.2 Present Tasks
 
-"Here are the **Steps**:"
+"Here are the **Tasks**:"
 
-Present each step:
+Present each task:
 
 ```markdown
-### N. Step Name
+### N. Task Name
 
-Description of what this step does.
+Description of what this task does.
 
 **Node:** `node-name` (agent|function|tool)
 **Input:** var1, var2
@@ -155,7 +155,7 @@ Description of what this step does.
 - Object: `company_data: { name: string, funding?: string }`
 - Array: `matches: { url: string, score: number }[]`
 
-For decision steps:
+For decision tasks that may terminate the workflow:
 
 ```markdown
 ### N. Decision Name
@@ -163,9 +163,14 @@ For decision steps:
 Description of the decision.
 
 **Condition:** `variable.field >= value`
-**If true:** continue to step M, set result = "value_a"
-**If false:** end workflow, set result = "value_b"
+**If true:** continue to task M
+**If false:** return:
+  - status: "rejected"
+  - score: score_result.score
+  - data: company_data
 ```
+
+**Important:** If the workflow defines outputs, every terminating path must return the same fields as the workflow outputs.
 
 "Does this look right? Any changes?"
 
@@ -180,16 +185,17 @@ If the workflow returns data, present the outputs section:
 ```markdown
 ## Outputs
 
-- output_name: type - Description
+- field_name: type - Description
+- another_field: type - Description
 ```
 
-**Type syntax:**
+Workflow outputs are always an object with named fields. Each field has a type:
 - Simple types: `string`, `number`, `boolean`
 - Union types: `"value1" | "value2"`
-- Objects: `{ field1: type, field2: type, field3?: type }` (? = optional)
-- Arrays: `string[]` or `{ name: string }[]`
+- Objects: `{ field1: type, field2?: type }` (? = optional)
+- Arrays: `string[]` or `{ id: number, name: string }[]`
 
-For object outputs, always specify the schema inline rather than using generic `object`.
+For nested objects, always specify the schema inline rather than using generic `object`.
 
 "Does this look right? Any changes?"
 
@@ -217,9 +223,9 @@ version: 1
 
 <validated inputs>
 
-## Steps
+## Tasks
 
-<validated steps with --- separators between each>
+<validated tasks with --- separators between each>
 
 ## Outputs (optional)
 
@@ -239,7 +245,7 @@ tools:
 
 # <Agent Title>
 
-<Brief description based on the workflow step>
+<Brief description based on the workflow task>
 
 ## Task
 
@@ -329,17 +335,17 @@ Agent: I'll name this workflow `lead-scoring`. Does that work?
 
 User: Yes
 
-Agent: Let's walk through the steps.
+Agent: Let's walk through the tasks.
 
 After receiving the company_url, what's the first thing that needs to happen?
 
 User: Research the company
 
-Agent: Got it. This sounds like an **agent** task since it requires judgment about what information is relevant.
+Agent: Got it. This sounds like an **agent** node since it requires judgment about what information is relevant.
 
 I don't see any existing agents that fit. I'll create a new agent called `company-researcher`.
 
-**Step 1: Research Company**
+**Task 1: Research Company**
 - Gather information about the company
 - **Node:** `company-researcher` (agent) - NEW
 - **Input:** company_url
@@ -358,7 +364,7 @@ Does this look right?
 
 User: Yes
 
-Agent: Here are the **Steps**:
+Agent: Here are the **Tasks**:
 
 ### 1. Research Company
 Gather comprehensive information about the company...
@@ -379,8 +385,11 @@ Evaluate if company matches B2B SaaS $5M+ ARR criteria...
 ### 3. Decision
 Route based on score.
 **Condition:** `score_result.score >= 80`
-**If true:** continue to step 4
-**If false:** end workflow
+**If true:** continue to task 4
+**If false:** return:
+  - qualification: "not_qualified"
+  - score: score_result.score
+  - company_data: company_data
 
 ---
 
@@ -388,6 +397,10 @@ Route based on score.
 Alert sales team about qualified lead.
 **Tool:** `slack_postMessage`
 **Input:** channel = "#sales-leads", message with company details
+**Return:**
+  - qualification: "qualified"
+  - score: score_result.score
+  - company_data: company_data
 
 Does this look right?
 
