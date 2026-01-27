@@ -1,7 +1,20 @@
 # 0pflow Design Document
 
 **Date:** 2026-01-23
-**Status:** Draft
+**Status:** In Progress
+
+## Implementation Progress
+
+| Phase | Component | Status |
+|-------|-----------|--------|
+| 1 | Project Scaffolding | Done |
+| 2 | SDK Core | Done |
+| 3 | Agent Node + Tools | Done |
+| 4 | Spec Author (Claude Code Skill) | Done |
+| 5 | Compiler (Claude Code Skill) | Done |
+| 6 | CLI | In Progress |
+| 7 | Validator (Claude Code Skill) | Not Started |
+| 8 | Minimal UI (@0pflow/ui) | Not Started |
 
 ## Overview
 
@@ -593,21 +606,22 @@ For MVP, the UI is extremely minimal.
 - Code generator (emit TypeScript from parsed spec)
 - TODO emission for ambiguous specs
 
-### Phase 6: Validator (Claude Code Skill)
+### Phase 6: CLI
+- `0pflow run <workflow> --input '{...}'` - trigger a workflow
+- `0pflow list` - list available workflows
+- `0pflow runs` - list previous workflow runs
+- `0pflow runs <run-id>` - get details of a specific run
+
+### Phase 7: Validator (Claude Code Skill)
 - Structure validation (required sections present)
 - Reference validation (nodes exist, types align)
 - Human description ↔ implementation consistency check
 
-### Phase 7: Minimal UI (@0pflow/ui)
+### Phase 8: Minimal UI (@0pflow/ui)
 - React components that accept data via props (framework-agnostic)
 - WorkflowList, WorkflowTriggerButton components
 - User wires up data fetching (tRPC, SWR, etc.) in their app
 - Example integration provided in docs
-
-### Phase 8: CLI
-- `0pflow run <workflow> --input '{...}'`
-- `0pflow list`
-- `0pflow compile` (manually invoke compiler)
 
 ---
 
