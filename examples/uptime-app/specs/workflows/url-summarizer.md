@@ -19,7 +19,7 @@ Make an HTTP GET request to fetch the page content.
 
 **Node:** `http_get` (tool)
 **Input:** url
-**Output:** `response: { status_code: number, body: string | null, error: string | null }`
+**Output:** `response: { status: number, body: string, headers: Record<string, string> }`
 
 ---
 
@@ -27,12 +27,13 @@ Make an HTTP GET request to fetch the page content.
 
 Route based on HTTP response status.
 
-**Condition:** `response.status_code == 200`
+**Condition:** `response.status == 200`
 **If true:** continue to task 3
 **If false:** return:
   - status: "error"
-  - status_code: response.status_code
-  - error: response.error
+  - status_code: response.status
+  - error: null
+  - summary: null
 
 ---
 
@@ -45,8 +46,9 @@ Generate a 1-paragraph summary of the page content.
 **Output:** `summary: string`
 **Return:**
   - status: "success"
-  - status_code: response.status_code
+  - status_code: response.status
   - summary: summary
+  - error: null
 
 ## Outputs
 
