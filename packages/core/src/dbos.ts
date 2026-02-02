@@ -21,6 +21,7 @@ export async function initializeDBOS(config: DBOSConfig): Promise<void> {
     name: config.appName ?? "opflow",
     systemDatabaseUrl: config.databaseUrl,
     systemDatabaseSchemaName: getSchemaName(config.appName),
+    logLevel: process.env.LOG_LEVEL ?? "info",
   });
   await DBOS.launch();
 }

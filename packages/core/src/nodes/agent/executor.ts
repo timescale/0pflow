@@ -1,5 +1,6 @@
 // packages/core/src/nodes/agent/executor.ts
 import { generateText, tool, Output, stepCountIs } from "ai";
+import { DBOS } from "@dbos-inc/dbos-sdk";
 import { z } from "zod";
 import type { AgentSpec } from "./parser.js";
 import { createModelAndProvider, getDefaultModelConfig, parseModelString } from "./model-config.js";
@@ -88,10 +89,30 @@ function convertNodeToAITool(executable: AnyExecutable, ctx: WorkflowContext) {
     description: executable.description,
     inputSchema: executable.inputSchema,
     execute: async (args: unknown) => {
-      const result = await executable.execute(ctx, args);
+      // Use ctx.run() to wrap in DBOS step for durability
+      const result = await ctx.run(executable, args);
       return result;
     },
   });
+}
+
+/**
+ * Wrap a tool's execute function in a DBOS step for durability.
+ * Works for both converted node tools and provider tools.
+ */
+function wrapToolInStep<T extends ProviderTool>(aiTool: T, toolName: string): T {
+  if (!aiTool.execute) {
+    return aiTool; // No execute to wrap
+  }
+
+  const originalExecute = aiTool.execute;
+  return {
+    ...aiTool,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    execute: async (...args: any[]) => {
+      return DBOS.runStep(async () => originalExecute(...args), { name: toolName });
+    },
+  };
 }
 
 /**
@@ -131,13 +152,25 @@ export async function executeAgent<TOutput = unknown>(
   // Don't annotate as ToolSet - let TypeScript infer so generateText's generics work
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tools: Record<string, any> = {};
+  // Track provider-executed tools (no client-side execute) for post-hoc recording
+  const providerExecutedTools = new Set<string>();
+
   for (const [toolName, t] of Object.entries(inputTools)) {
     if (isExecutable(t)) {
       // It's a node - convert to AI SDK tool
+      // ctx.run() already wraps in DBOS step for durability
       tools[toolName] = convertNodeToAITool(t, ctx);
     } else {
-      // It's a provider tool - use directly
-      tools[toolName] = t;
+      // It's a provider tool
+      if ((t as ProviderTool).execute) {
+        // Has execute function - wrap in DBOS step for durability
+        tools[toolName] = wrapToolInStep(t, toolName);
+      } else {
+        // No execute function - provider-executed (e.g., OpenAI webSearch)
+        // Will be recorded after generateText completes
+        providerExecutedTools.add(toolName);
+        tools[toolName] = t;
+      }
     }
   }
 
@@ -166,7 +199,76 @@ export async function executeAgent<TOutput = unknown>(
   }
 
   // Execute the agentic loop
-  const result = await generateText(generateOptions);
+  let result;
+  try {
+    result = await generateText(generateOptions);
+  } catch (error) {
+    // Debug logging for failed generations
+    ctx.log(`Agent execution failed: ${(error as Error).message}`, "error");
+    ctx.log(`Model: ${modelConfig.provider}/${modelConfig.modelId}`, "debug");
+    ctx.log(`Max steps: ${maxSteps}`, "debug");
+    ctx.log(`Has output schema: ${!!outputSchema}`, "debug");
+    ctx.log(`Tools: ${Object.keys(tools).join(", ")}`, "debug");
+    // Check if error has partial results (AI SDK sometimes includes them)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const anyError = error as any;
+    if (anyError.steps) {
+      ctx.log(`Steps completed: ${anyError.steps.length}`, "debug");
+      for (let i = 0; i < anyError.steps.length; i++) {
+        const step = anyError.steps[i];
+        ctx.log(`Step ${i}: toolCalls=${step.toolCalls?.length ?? 0}, text=${step.text?.substring(0, 100) ?? "none"}`, "debug");
+      }
+    }
+    if (anyError.text) {
+      ctx.log(`Final text: ${anyError.text.substring(0, 500)}`, "debug");
+    }
+    if (anyError.response) {
+      ctx.log(`Response: ${JSON.stringify(anyError.response).substring(0, 500)}`, "debug");
+    }
+    throw error;
+  }
+
+  // Log all tool calls for observability
+  for (const step of result.steps) {
+    for (const toolCall of step.toolCalls ?? []) {
+      const toolResult = step.toolResults?.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (r: any) => r.toolCallId === toolCall.toolCallId
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const args = (toolCall as any).input ?? (toolCall as any).args;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const resultValue = (toolResult as any)?.output ?? (toolResult as any)?.result;
+      ctx.log(
+        `Tool call: ${toolCall.toolName} args=${JSON.stringify(args)} result=${JSON.stringify(resultValue)?.substring(0, 500)}`,
+        "debug"
+      );
+    }
+  }
+
+  // Record provider-executed tool calls as DBOS steps for observability
+  // These tools (like OpenAI webSearch) run server-side, so we record after the fact
+  for (const step of result.steps) {
+    for (const toolCall of step.toolCalls ?? []) {
+      if (providerExecutedTools.has(toolCall.toolName)) {
+        const toolResult = step.toolResults?.find(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (r: any) => r.toolCallId === toolCall.toolCallId
+        );
+        // Record as a DBOS step (already executed server-side, recording for observability)
+        await DBOS.runStep(
+          async () => ({
+            toolName: toolCall.toolName,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            args: (toolCall as any).input ?? (toolCall as any).args,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            result: (toolResult as any)?.output ?? (toolResult as any)?.result,
+          }),
+          { name: `tool:${toolCall.toolName}` }
+        );
+      }
+    }
+  }
 
   // Collect all tool calls from all steps
   const allToolCalls: AgentExecutionResult["toolCalls"] = [];

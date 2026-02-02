@@ -35,13 +35,13 @@ function createDurableContext(): WorkflowContext {
       // Validate inputs against schema
       const validated = executable.inputSchema.parse(inputs);
 
-      if (executable.type === "workflow") {
-        // For workflows, call execute directly (it handles its own DBOS registration)
+      if (executable.type === "workflow" || executable.type === "agent") {
+        // For workflows and agents, call execute directly (they handle their own DBOS registration)
         // This allows proper child workflow tracking
         return executable.execute(ctx, validated);
       }
 
-      // For nodes/agents, wrap execution in DBOS step for durability
+      // For nodes, wrap execution in DBOS step for durability
       return DBOS.runStep(
         async () => executable.execute(ctx, validated),
         { name: executable.name }
