@@ -8,7 +8,6 @@ import { z } from "zod";
  */
 const AgentFrontmatterSchema = z.object({
   name: z.string(),
-  tools: z.array(z.string()).default([]),
   model: z.string().optional(),
   maxSteps: z.number().optional(),
 });
@@ -19,8 +18,6 @@ const AgentFrontmatterSchema = z.object({
 export interface AgentSpec {
   /** Agent name from frontmatter */
   name: string;
-  /** List of tool names this agent can use */
-  tools: string[];
   /** System prompt (markdown body) */
   systemPrompt: string;
   /** Optional model override (e.g., "openai/gpt-4o", "anthropic/claude-3-opus") */
@@ -62,7 +59,6 @@ export function parseAgentSpecContent(
 
   return {
     name: frontmatter.data.name,
-    tools: frontmatter.data.tools,
     systemPrompt,
     model: frontmatter.data.model,
     maxSteps: frontmatter.data.maxSteps,

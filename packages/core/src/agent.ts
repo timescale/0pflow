@@ -3,8 +3,11 @@ import { z } from "zod";
 import type { Executable, WorkflowContext } from "./types.js";
 import { parseAgentSpec } from "./nodes/agent/parser.js";
 import { executeAgent } from "./nodes/agent/executor.js";
+import type { AgentTools } from "./nodes/agent/executor.js";
 import type { ModelConfig } from "./nodes/agent/model-config.js";
 import type { NodeRegistry } from "./nodes/registry.js";
+
+export type { AgentTool, AgentTools } from "./nodes/agent/executor.js";
 
 /**
  * Definition for creating an agent
@@ -14,7 +17,9 @@ export interface AgentDefinition<TInput, TOutput> {
   description: string;
   inputSchema: z.ZodType<TInput>;
   outputSchema?: z.ZodType<TOutput>;
-  /** Path to agent spec markdown file */
+  /** Tools available to this agent, keyed by name */
+  tools?: AgentTools;
+  /** Path to agent spec markdown file (for system prompt) */
   specPath: string;
 }
 
@@ -24,6 +29,7 @@ export interface AgentDefinition<TInput, TOutput> {
 export interface AgentExecutable<TInput = unknown, TOutput = unknown>
   extends Executable<TInput, TOutput> {
   readonly specPath: string;
+  readonly tools: AgentTools;
 }
 
 /**
@@ -52,6 +58,8 @@ export const Agent = {
   create<TInput, TOutput = unknown>(
     definition: AgentDefinition<TInput, TOutput>
   ): AgentExecutable<TInput, TOutput> {
+    const tools = definition.tools ?? {};
+
     return {
       name: definition.name,
       type: "agent",
@@ -59,6 +67,7 @@ export const Agent = {
       inputSchema: definition.inputSchema,
       outputSchema: definition.outputSchema,
       specPath: definition.specPath,
+      tools,
       execute: async (ctx: WorkflowContext, inputs: TInput): Promise<TOutput> => {
         if (!agentRuntimeConfig) {
           throw new Error(
@@ -66,7 +75,7 @@ export const Agent = {
           );
         }
 
-        // Parse the agent spec
+        // Parse the agent spec (for system prompt and model override)
         const spec = await parseAgentSpec(definition.specPath);
 
         // Convert inputs to a user message string
@@ -74,11 +83,12 @@ export const Agent = {
         const userMessage =
           typeof inputs === "string" ? inputs : JSON.stringify(inputs, null, 2);
 
-        // Execute the agent
+        // Execute the agent with tools from definition
         const result = await executeAgent({
           ctx,
           spec,
           userMessage,
+          tools,
           nodeRegistry: agentRuntimeConfig.nodeRegistry,
           modelConfig: agentRuntimeConfig.modelConfig,
           outputSchema: definition.outputSchema,

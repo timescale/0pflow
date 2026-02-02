@@ -6,9 +6,6 @@ describe("parseAgentSpecContent()", () => {
   it("parses valid agent spec", () => {
     const content = `---
 name: researcher
-tools:
-  - http_get
-  - custom.search
 model: anthropic/claude-3-opus
 maxSteps: 5
 ---
@@ -18,7 +15,6 @@ You are a research assistant. Search for information and summarize findings.
     const spec = parseAgentSpecContent(content);
 
     expect(spec.name).toBe("researcher");
-    expect(spec.tools).toEqual(["http_get", "custom.search"]);
     expect(spec.model).toBe("anthropic/claude-3-opus");
     expect(spec.maxSteps).toBe(5);
     expect(spec.systemPrompt).toBe(
@@ -36,7 +32,6 @@ Do something simple.
     const spec = parseAgentSpecContent(content);
 
     expect(spec.name).toBe("simple-agent");
-    expect(spec.tools).toEqual([]);
     expect(spec.model).toBeUndefined();
     expect(spec.maxSteps).toBeUndefined();
     expect(spec.systemPrompt).toBe("Do something simple.");
@@ -44,8 +39,7 @@ Do something simple.
 
   it("throws for missing name", () => {
     const content = `---
-tools:
-  - http_get
+model: openai/gpt-4o
 ---
 System prompt here.
 `;

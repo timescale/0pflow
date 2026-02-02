@@ -125,18 +125,31 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 When an agent is referenced but doesn't exist, generate a stub using the enriched task description.
 
+### Tool Types
+
+There are three types of tools that can be used in agents:
+
+| Type | Description | Import | Example |
+|------|-------------|--------|---------|
+| **Provider tools** | Tools from AI SDK providers (OpenAI, Anthropic) | `import { createOpenAI } from "@ai-sdk/openai"` | `openai.tools.webSearch()` |
+| **Built-in nodes** | Nodes that ship with 0pflow | `import { httpGet } from "0pflow"` | `httpGet` |
+| **User nodes** | Custom nodes implemented in `src/nodes/` | `import { myNode } from "../../src/nodes/my-node.js"` | `myNode` |
+
 ### Enriched Task Format (from spec-author)
 
-Tasks for new agents include extra fields:
+Tasks for new agents include extra fields used to generate the agent executable. The spec will explicitly specify which tools to use (no mapping required):
 
 ```markdown
 ### N. Task Name
 
 Description of what the agent does.
 
-**Tools needed:** list of tools/capabilities
-**Guidelines:** specific guidelines for the agent
-**Output fields:** field names and types
+**Tools needed:**
+  - httpGet (builtin)
+  - openai.tools.webSearch() (provider)
+  - myCustomNode (user node)
+**Guidelines:** specific guidelines for the agent (becomes part of system prompt)
+**Output fields:** field names and types (used for outputSchema)
 
 **Node:** `agent-name` (agent)
 **Input:** ...
@@ -152,11 +165,13 @@ When creating a new agent, generate TWO files:
 
 #### Spec File (`specs/agents/<name>.md`)
 
+The spec contains only the system prompt and optional model/maxSteps config. **Tools are defined in code, not in the spec.**
+
 ```markdown
 ---
 name: <agent-name>
-tools:
-  - <from **Tools needed:** - map to tool names like http_get, web_search>
+model: openai/gpt-4o  # optional
+maxSteps: 10          # optional
 ---
 
 # <Agent Title>
@@ -182,31 +197,73 @@ Return a JSON object with:
 
 #### Executable File (`agents/<name>.ts`)
 
-**IMPORTANT:** Always use absolute path resolution for `specPath` to ensure the agent works regardless of the current working directory (e.g., when running tests).
+**IMPORTANT:**
+- Always use absolute path resolution for `specPath` to ensure the agent works regardless of the current working directory
+- Tools are defined as a record in `Agent.create()`, not in the spec file
 
 ```typescript
 // agents/<name>.ts
 // Agent executable for <name>
 import { z } from "zod";
-import { Agent } from "0pflow";
+import { Agent, httpGet } from "0pflow";               // Built-in nodes
+import { createOpenAI } from "@ai-sdk/openai";         // Provider tools
+// import { myNode } from "../src/nodes/my-node.js";   // User nodes
 import { fileURLToPath } from "url";
 import path from "path";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Initialize provider for provider-specific tools (only if using provider tools)
+const openai = createOpenAI({});
+
 export const <camelCaseName> = Agent.create({
   name: "<name>",
+  description: "<brief description for when this agent is used as a tool>",
   inputSchema: z.object({
     // ... from task **Input:**
   }),
   outputSchema: z.object({
     // ... from task **Output:** type
   }),
+  // Tools from **Tools needed:** - only include what the spec specifies
+  tools: {
+    http_get: httpGet,                     // (builtin)
+    web_search: openai.tools.webSearch(),  // (provider)
+    // my_node: myNode,                    // (user node)
+  },
   specPath: path.resolve(__dirname, "../specs/agents/<name>.md"),
 });
 ```
 
 The `path.resolve(__dirname, ...)` pattern ensures the spec file is found relative to the executable file's location, not the current working directory.
+
+#### Generating Tools from Spec
+
+The `**Tools needed:**` section explicitly specifies each tool with its type. Generate imports and tools record directly:
+
+```markdown
+**Tools needed:**
+  - httpGet (builtin)
+  - openai.tools.webSearch() (provider)
+  - enrichCompany (user node in src/nodes/enrich-company.ts)
+```
+
+Generates:
+
+```typescript
+import { httpGet } from "0pflow";
+import { createOpenAI } from "@ai-sdk/openai";
+import { enrichCompany } from "../../src/nodes/enrich-company.js";
+
+const openai = createOpenAI({});
+
+// In Agent.create():
+tools: {
+  http_get: httpGet,
+  web_search: openai.tools.webSearch(),
+  enrich_company: enrichCompany,
+},
+```
 
 ### When Context Is Insufficient
 

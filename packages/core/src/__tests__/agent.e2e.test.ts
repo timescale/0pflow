@@ -1,9 +1,10 @@
 // packages/core/src/__tests__/agent.e2e.test.ts
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { z } from "zod";
 import { parseAgentSpecContent } from "../nodes/agent/parser.js";
 import { executeAgent } from "../nodes/agent/executor.js";
 import { NodeRegistry } from "../nodes/registry.js";
+import { httpGet } from "../nodes/builtin/index.js";
 import { createWorkflowContext } from "../context.js";
 
 // Skip if no OpenAI API key
@@ -19,8 +20,6 @@ describe.skipIf(!hasApiKey)("Agent e2e", () => {
   it("summarizes a website using http_get and OpenAI", async () => {
     const spec = parseAgentSpecContent(`---
 name: summarizer
-tools:
-  - http_get
 maxSteps: 3
 ---
 You are a helpful assistant that summarizes web pages.
@@ -35,6 +34,7 @@ Keep your summary to 2-3 sentences.
       ctx,
       spec,
       userMessage: "Please summarize the website at https://www.example.com",
+      tools: { http_get: httpGet },
       nodeRegistry,
       modelConfig: {
         provider: "openai",
@@ -67,8 +67,6 @@ Keep your summary to 2-3 sentences.
   it("supports structured output", async () => {
     const spec = parseAgentSpecContent(`---
 name: structured-summarizer
-tools:
-  - http_get
 maxSteps: 3
 ---
 You are a helpful assistant that analyzes web pages and returns structured data.
@@ -87,6 +85,7 @@ When given a URL, fetch the page and analyze it. Return your findings in the req
       ctx,
       spec,
       userMessage: "Analyze https://www.example.com",
+      tools: { http_get: httpGet },
       nodeRegistry,
       modelConfig: {
         provider: "openai",

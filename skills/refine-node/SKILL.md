@@ -93,13 +93,62 @@ Read the current description and identify what's already clear vs. what's missin
 
 Skip this step for function and tool nodes.
 
-For agent nodes, suggest relevant tools based on the description and ask for confirmation:
+**Required: Check Provider Tool Documentation**
 
-- "Research company" → "This likely needs web scraping to gather company info. Any specific APIs? (LinkedIn, Clearbit, etc.)"
-- "Score against criteria" → "This sounds like pure reasoning over the input data - no external tools needed. Is that right?"
-- "Send notification" → "Which channel? Slack, email, or something else?"
+Before selecting tools, you **MUST** check the Vercel AI SDK documentation for available provider tools:
 
-Tailor the question to what the node actually does. Don't present a generic menu.
+- **OpenAI:** https://ai-sdk.dev/providers/ai-sdk-providers/openai
+- **Anthropic:** https://ai-sdk.dev/providers/ai-sdk-providers/anthropic
+
+Use `WebFetch` to read these pages. They list all available provider tools (e.g., `webSearch()`, `codeInterpreter()`, `computer()`) with their configuration options.
+
+---
+
+For agent nodes, explicitly select tools from three categories:
+
+**Tool Categories:**
+
+| Category | Description | Examples |
+|----------|-------------|----------|
+| **Built-in nodes** | Ships with 0pflow | `httpGet` |
+| **Provider tools** | From AI SDK providers (OpenAI, Anthropic) | `openai.tools.webSearch()`, `openai.tools.codeInterpreter()`, `anthropic.tools.computer_20250124()` |
+| **User nodes** | Custom nodes in `src/nodes/` | `enrichCompany`, `sendSlackMessage` |
+
+**Selection Process:**
+
+1. Based on the node description, identify what capabilities are needed
+2. Map each capability to a specific tool with its exact name and category
+3. Confirm with user
+
+**Common Mappings:**
+
+| Need | Tool | Category |
+|------|------|----------|
+| Fetch web pages / HTTP requests | `httpGet` | builtin |
+| Search the web | `openai.tools.webSearch()` | provider |
+| Run Python code | `openai.tools.codeInterpreter()` | provider |
+| Domain-specific operations (CRM, email, etc.) | User must implement | user node |
+
+**Example dialogue:**
+
+"For researching companies, I recommend these tools:
+- `httpGet` (builtin) - fetch company website
+- `openai.tools.webSearch()` (provider) - search for company info
+
+Does this look right? Any other tools needed?"
+
+If the user needs something not covered by builtin or provider tools:
+
+1. **Create the user node spec** - Add a new node definition to the workflow spec with:
+   - Name and description
+   - Input/output schema
+   - Note: `(user node - must implement in src/nodes/<name>.ts)`
+
+2. **Refine it** - Ask the same questions (purpose, inputs, outputs) to fully specify what the node should do
+
+3. **Add to Tools needed** - Reference it as `nodeName (user node in src/nodes/<name>.ts)`
+
+This ensures the compile-workflow skill knows to expect a user implementation and can generate the proper import.
 
 #### 2.3 Guidelines (Agent Nodes Only)
 
@@ -146,7 +195,10 @@ For **agent** nodes:
 
 <Expanded description with full context>
 
-**Tools needed:** <tools list>
+**Tools needed:**
+  - httpGet (builtin)
+  - openai.tools.webSearch() (provider)
+  - myCustomNode (user node in src/nodes/my-custom-node.ts)
 **Guidelines:** <specific guidelines>
 **Output fields:** <field descriptions>
 
@@ -154,6 +206,8 @@ For **agent** nodes:
 **Input:** <inputs>
 **Output:** `var_name: { field: type, field2?: type }`
 ```
+
+Each tool must specify its category: `(builtin)`, `(provider)`, or `(user node in <path>)`.
 
 For **function** and **tool** nodes:
 ```markdown
@@ -206,14 +260,13 @@ The purpose is clear. I see it should gather company info - what specific fields
 
 User: We need company name, what they do, how big they are, and funding if available
 
-Agent: Got it. What tools does this agent need?
-- A) Web search / scraping
-- B) Specific APIs (which ones?)
-- C) Database queries
-- D) Just reasoning over provided data
-- E) Multiple
+Agent: Got it. For gathering company info, I recommend these tools:
+- `httpGet` (builtin) - fetch the company website directly
+- `openai.tools.webSearch()` (provider) - search for additional company info
 
-User: A - web scraping
+Does this look right? Any other tools needed?
+
+User: That works
 
 Agent: Any specific guidelines for how this should work?
 
@@ -246,7 +299,9 @@ Agent: Updated. Here's the refined node definition:
 Gather comprehensive information about the company including their product,
 what market they serve, team size, and funding status.
 
-**Tools needed:** web scraping
+**Tools needed:**
+  - httpGet (builtin)
+  - openai.tools.webSearch() (provider)
 **Guidelines:** Prefer primary sources (company website, LinkedIn) over aggregators.
 If information is unavailable, indicate "unknown" rather than guessing.
 **Output fields:** name, description, product, market, team_size (optional), funding (optional)

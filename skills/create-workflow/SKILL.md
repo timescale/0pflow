@@ -149,18 +149,11 @@ For non-branching tasks, determine:
 
    If nothing fits, we'll create a new agent or node.
 
-4. **For new agents - ask about tools:**
-   "What tools or capabilities does this agent need?"
-   - A) Web scraping / HTTP requests (`http_get` - built-in)
-   - B) Web search
-   - C) CRM access (Salesforce, HubSpot)
-   - D) Other
+4. **Inputs** - What data does this task need? (from workflow inputs or previous tasks)
 
-   **IMPORTANT:** For any tool that isn't built-in and doesn't exist, you MUST immediately add a task to implement it. This task should be added to the workflow BEFORE the agent task that needs it. Do not wait until later - capture it now as a numbered task.
+5. **Outputs** - What variable name holds this task's result?
 
-5. **Inputs** - What data does this task need? (from workflow inputs or previous tasks)
-
-6. **Outputs** - What variable name holds this task's result?
+Note: Detailed tool selection for agents is handled later by `/0pflow:refine-node`.
 
 ### For new nodes:
 
@@ -175,22 +168,6 @@ Gather information about the company from their website.
 **Input:** company_url
 **Output:** `company_data: { name: string, description: string }`
 ```
-
-### For agent tools that don't exist:
-
-When an agent needs a tool that is NOT built-in (`http_get`) and doesn't exist in `src/nodes/`, add a task to implement it:
-
-```markdown
-### N. Implement web_search
-
-Create the web_search capability for searching the web.
-
-**Node:** `web_search` (node)
-**Input:** query: string
-**Output:** `results: { title: string, url: string, snippet: string }[]`
-```
-
-This is a regular task - the `(node)` type indicates it needs to be implemented in `src/nodes/`. Ask the user what inputs/outputs the node should have.
 
 ### For decision points:
 

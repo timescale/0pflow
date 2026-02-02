@@ -1,7 +1,23 @@
 // packages/core/src/nodes/agent/model-config.ts
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
+import type { OpenAIProvider } from "@ai-sdk/openai";
+import type { AnthropicProvider } from "@ai-sdk/anthropic";
 import type { LanguageModel } from "ai";
+
+/**
+ * Union type for provider instances
+ */
+export type Provider = OpenAIProvider | AnthropicProvider;
+
+/**
+ * Result of createModelAndProvider
+ */
+export interface ModelAndProvider {
+  model: LanguageModel;
+  provider: Provider;
+  providerType: ModelProvider;
+}
 
 /**
  * Supported model providers
@@ -30,21 +46,29 @@ export function getDefaultModelConfig(): ModelConfig {
 }
 
 /**
- * Create a Vercel AI SDK model instance from config
+ * Create a Vercel AI SDK model and provider instance from config
  */
-export function createModel(config: ModelConfig): LanguageModel {
+export function createModelAndProvider(config: ModelConfig): ModelAndProvider {
   switch (config.provider) {
     case "openai": {
-      const openai = createOpenAI({
+      const provider = createOpenAI({
         apiKey: config.apiKey ?? process.env.OPENAI_API_KEY,
       });
-      return openai(config.modelId);
+      return {
+        model: provider(config.modelId),
+        provider,
+        providerType: "openai",
+      };
     }
     case "anthropic": {
-      const anthropic = createAnthropic({
+      const provider = createAnthropic({
         apiKey: config.apiKey ?? process.env.ANTHROPIC_API_KEY,
       });
-      return anthropic(config.modelId);
+      return {
+        model: provider(config.modelId),
+        provider,
+        providerType: "anthropic",
+      };
     }
     default:
       throw new Error(`Unsupported model provider: ${config.provider}`);

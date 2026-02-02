@@ -1,9 +1,8 @@
 // packages/core/src/nodes/agent/executor.ts
 import { generateText, tool, Output, stepCountIs } from "ai";
-import type { ToolSet } from "ai";
 import { z } from "zod";
 import type { AgentSpec } from "./parser.js";
-import { createModel, getDefaultModelConfig, parseModelString } from "./model-config.js";
+import { createModelAndProvider, getDefaultModelConfig, parseModelString } from "./model-config.js";
 import type { ModelConfig } from "./model-config.js";
 import type { NodeRegistry } from "../registry.js";
 import type { Executable, WorkflowContext } from "../../types.js";
@@ -26,17 +25,40 @@ export interface AgentExecutionResult<TOutput = unknown> {
   }>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyExecutable = Executable<any, any>;
+
+/**
+ * A provider tool from the AI SDK (e.g., openai.tools.webSearch()).
+ * Using a minimal interface since ToolSet's type is overly restrictive.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ProviderTool = { execute?: (...args: any[]) => any; [key: string]: unknown };
+
+/**
+ * A tool that can be passed to an agent.
+ * Can be either a node (Executable) or a provider tool from AI SDK.
+ */
+export type AgentTool = AnyExecutable | ProviderTool;
+
+/**
+ * Tools available to an agent, keyed by tool name.
+ */
+export type AgentTools = Record<string, AgentTool>;
+
 /**
  * Options for agent execution
  */
 export interface ExecuteAgentOptions<TOutput = unknown> {
   /** Workflow context for tool execution */
   ctx: WorkflowContext;
-  /** Parsed agent spec */
+  /** Parsed agent spec (for system prompt and model override) */
   spec: AgentSpec;
   /** User message / input to the agent */
   userMessage: string;
-  /** Node registry for resolving nodes as tools */
+  /** Tools available to the agent, keyed by name */
+  tools: AgentTools;
+  /** Node registry (unused, kept for backward compatibility) */
   nodeRegistry: NodeRegistry;
   /** Optional model configuration override */
   modelConfig?: ModelConfig;
@@ -46,13 +68,22 @@ export interface ExecuteAgentOptions<TOutput = unknown> {
   outputSchema?: z.ZodType<TOutput>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyExecutable = Executable<any, any>;
+/**
+ * Check if a tool is an Executable (node) vs a CoreTool (provider tool).
+ * Executables have a `type` property ("node", "agent", "workflow").
+ */
+function isExecutable(t: AgentTool): t is AnyExecutable {
+  return (
+    "type" in t &&
+    typeof (t as AnyExecutable).type === "string" &&
+    ["node", "agent", "workflow"].includes((t as AnyExecutable).type)
+  );
+}
 
 /**
  * Convert an Executable to Vercel AI SDK tool format
  */
-function convertToAITool(executable: AnyExecutable, ctx: WorkflowContext) {
+function convertNodeToAITool(executable: AnyExecutable, ctx: WorkflowContext) {
   return tool({
     description: executable.description,
     inputSchema: executable.inputSchema,
@@ -76,7 +107,7 @@ export async function executeAgent<TOutput = unknown>(
     ctx,
     spec,
     userMessage,
-    nodeRegistry,
+    tools: inputTools,
     modelConfig: providedModelConfig,
     maxSteps: providedMaxSteps,
     outputSchema,
@@ -94,14 +125,19 @@ export async function executeAgent<TOutput = unknown>(
   }
 
   // Create the model instance
-  const model = createModel(modelConfig);
+  const { model } = createModelAndProvider(modelConfig);
 
-  // Resolve nodes from registry to use as tools
-  const tools: ToolSet = {};
-  if (spec.tools.length > 0) {
-    const resolvedNodes = nodeRegistry.getNodes(spec.tools);
-    for (const node of resolvedNodes) {
-      tools[node.name] = convertToAITool(node, ctx);
+  // Convert tools to AI SDK tools
+  // Don't annotate as ToolSet - let TypeScript infer so generateText's generics work
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tools: Record<string, any> = {};
+  for (const [toolName, t] of Object.entries(inputTools)) {
+    if (isExecutable(t)) {
+      // It's a node - convert to AI SDK tool
+      tools[toolName] = convertNodeToAITool(t, ctx);
+    } else {
+      // It's a provider tool - use directly
+      tools[toolName] = t;
     }
   }
 

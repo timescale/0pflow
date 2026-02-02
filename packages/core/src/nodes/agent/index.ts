@@ -4,10 +4,10 @@ export type { AgentSpec } from "./parser.js";
 
 export {
   getDefaultModelConfig,
-  createModel,
+  createModelAndProvider,
   parseModelString,
 } from "./model-config.js";
-export type { ModelConfig, ModelProvider } from "./model-config.js";
+export type { ModelConfig, ModelProvider, ModelAndProvider, Provider } from "./model-config.js";
 
 export { executeAgent } from "./executor.js";
 export type { AgentExecutionResult, ExecuteAgentOptions } from "./executor.js";

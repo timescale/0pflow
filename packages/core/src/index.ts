@@ -26,14 +26,21 @@ export { parseAgentSpec, parseAgentSpecContent } from "./nodes/agent/parser.js";
 export type { AgentSpec } from "./nodes/agent/parser.js";
 export {
   getDefaultModelConfig,
-  createModel,
+  createModelAndProvider,
   parseModelString,
 } from "./nodes/agent/model-config.js";
-export type { ModelConfig, ModelProvider } from "./nodes/agent/model-config.js";
+export type {
+  ModelConfig,
+  ModelProvider,
+  ModelAndProvider,
+  Provider,
+} from "./nodes/agent/model-config.js";
 export { executeAgent } from "./nodes/agent/executor.js";
 export type {
   AgentExecutionResult,
   ExecuteAgentOptions,
+  AgentTool,
+  AgentTools,
 } from "./nodes/agent/executor.js";
 
 // Types
