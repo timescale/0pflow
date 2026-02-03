@@ -71,14 +71,13 @@ The tools scaffold a T3 Stack application with 0pflow directories:
 ├── src/                    # Next.js app (App Router)
 │   ├── app/               # Routes and pages
 │   ├── server/            # tRPC routers, Drizzle schema
-│   └── trpc/              # tRPC client setup
+│   ├── trpc/              # tRPC client setup
+│   └── nodes/             # Custom node implementations
 ├── specs/
 │   ├── workflows/         # Workflow specifications
 │   └── agents/            # Agent definitions
 ├── generated/
 │   └── workflows/         # Compiled TypeScript workflows
-├── nodes/                 # Custom node implementations
-├── tools/                 # Custom tools for agents
 ├── agents/                # Agent implementations
 ├── package.json           # With app_name substituted
 └── ...                    # Other T3 config files

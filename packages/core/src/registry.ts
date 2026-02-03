@@ -52,4 +52,14 @@ export class Registry {
       ...this.nodes.keys(),
     ];
   }
+
+  /** Get a node by name */
+  getNode(name: string): AnyExecutable | undefined {
+    return this.nodes.get(name);
+  }
+
+  /** List all node names */
+  listNodes(): string[] {
+    return Array.from(this.nodes.keys());
+  }
 }

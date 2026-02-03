@@ -1,11 +1,11 @@
 ---
 name: cli
-description: Reference for 0pflow CLI commands - list workflows, run workflows, and view execution history.
+description: Reference for 0pflow CLI commands - manage workflows, nodes, and view execution history.
 ---
 
 # 0pflow CLI Reference
 
-The 0pflow CLI is used to manage and run workflows from the command line.
+The 0pflow CLI is used to manage and run workflows and nodes from the command line.
 
 ## Running the CLI
 
@@ -23,15 +23,28 @@ npx 0pflow <command>
 
 ---
 
-## Commands
+## Commands Overview
 
-### list
+```
+0pflow workflow list          # List all workflows
+0pflow workflow run <name>    # Run a workflow
+0pflow node list              # List all nodes
+0pflow node run <name>        # Run a node
+0pflow history [run-id]       # View execution history
+0pflow trace <run-id>         # Show execution trace
+```
+
+---
+
+## Workflow Commands
+
+### workflow list
 
 List all available workflows discovered in `generated/workflows/`.
 
 ```bash
-npm run 0pflow list
-npm run 0pflow list --json
+npx 0pflow workflow list
+npx 0pflow workflow list --json
 ```
 
 **Options:**
@@ -47,14 +60,14 @@ Available workflows:
 
 ---
 
-### run
+### workflow run
 
 Execute a workflow with optional input.
 
 ```bash
-npm run 0pflow run <workflow-name>
-npm run 0pflow run <workflow-name> -i '<json-input>'
-npm run 0pflow run <workflow-name> --json
+npx 0pflow workflow run <workflow-name>
+npx 0pflow workflow run <workflow-name> -i '<json-input>'
+npx 0pflow workflow run <workflow-name> --json
 ```
 
 **Arguments:**
@@ -68,13 +81,13 @@ npm run 0pflow run <workflow-name> --json
 
 ```bash
 # Run with no input
-npm run 0pflow run lead-scoring
+npx 0pflow workflow run lead-scoring
 
 # Run with JSON input
-npm run 0pflow run lead-scoring -i '{"company_url": "https://example.com"}'
+npx 0pflow workflow run lead-scoring -i '{"company_url": "https://example.com"}'
 
 # Run and get JSON output (for piping)
-npm run 0pflow run lead-scoring -i '{"company_url": "https://example.com"}' --json
+npx 0pflow workflow run lead-scoring -i '{"company_url": "https://example.com"}' --json
 ```
 
 **Notes:**
@@ -87,20 +100,83 @@ npm run 0pflow run lead-scoring -i '{"company_url": "https://example.com"}' --js
 
 ```bash
 # Run with debug logging
-LOG_LEVEL=debug npm run 0pflow run lead-scoring -i '{"company_url": "https://example.com"}'
+LOG_LEVEL=debug npx 0pflow workflow run lead-scoring -i '{"company_url": "https://example.com"}'
 ```
 
 ---
 
-### history
+## Node Commands
 
-View past workflow executions or details of a specific run.
+### node list
+
+List all available nodes discovered in `src/nodes/`.
 
 ```bash
-npm run 0pflow history
-npm run 0pflow history <run-id>
-npm run 0pflow history -w <workflow-name>
-npm run 0pflow history -n <limit>
+npx 0pflow node list
+npx 0pflow node list --json
+```
+
+**Options:**
+- `--json` - Output as JSON (useful for scripting)
+
+**Example output:**
+```
+Available nodes:
+
+  echo - Echoes back the input message
+  http-head - HTTP HEAD request for uptime checks
+```
+
+---
+
+### node run
+
+Execute a node with optional input. Nodes are wrapped in a workflow for full DBOS durability and history tracking.
+
+```bash
+npx 0pflow node run <node-name>
+npx 0pflow node run <node-name> -i '<json-input>'
+npx 0pflow node run <node-name> --json
+```
+
+**Arguments:**
+- `<node-name>` - Name of the node to run (required)
+
+**Options:**
+- `-i, --input <json>` - JSON input for the node (default: `{}`)
+- `--json` - Output result as JSON
+
+**Examples:**
+
+```bash
+# Run with no input
+npx 0pflow node run echo
+
+# Run with JSON input
+npx 0pflow node run echo -i '{"message": "Hello world"}'
+
+# Run and get JSON output
+npx 0pflow node run http-head -i '{"url": "https://example.com"}' --json
+```
+
+**Notes:**
+- Requires `DATABASE_URL` in `.env`
+- Validates input against the node's input schema
+- Node runs appear in history as `_node_<name>` (wrapper workflow)
+
+---
+
+## History & Trace Commands
+
+### history
+
+View past workflow/node executions or details of a specific run.
+
+```bash
+npx 0pflow history
+npx 0pflow history <run-id>
+npx 0pflow history -w <workflow-name>
+npx 0pflow history -n <limit>
 ```
 
 **Arguments:**
@@ -115,24 +191,24 @@ npm run 0pflow history -n <limit>
 
 ```bash
 # List recent runs
-npm run 0pflow history
+npx 0pflow history
 
 # List last 5 runs
-npm run 0pflow history -n 5
+npx 0pflow history -n 5
 
 # Filter by workflow
-npm run 0pflow history -w lead-scoring
+npx 0pflow history -w lead-scoring
 
 # Get details of a specific run (supports short IDs)
-npm run 0pflow history a1b2c3d4
+npx 0pflow history a1b2c3d4
 
 # Get full run details as JSON
-npm run 0pflow history a1b2c3d4-e5f6-... --json
+npx 0pflow history a1b2c3d4-e5f6-... --json
 ```
 
 **Output columns:**
 - **ID** - Short run ID (first 8 characters)
-- **Workflow** - Workflow name
+- **Workflow** - Workflow name (or `_node_<name>` for node runs)
 - **Status** - SUCCESS, ERROR, or PENDING
 - **Created** - When the run started
 
@@ -151,8 +227,8 @@ npm run 0pflow history a1b2c3d4-e5f6-... --json
 Show execution trace for a workflow run, including all operations and child workflows.
 
 ```bash
-npm run 0pflow trace <run-id>
-npm run 0pflow trace <run-id> --json
+npx 0pflow trace <run-id>
+npx 0pflow trace <run-id> --json
 ```
 
 **Arguments:**
@@ -165,10 +241,10 @@ npm run 0pflow trace <run-id> --json
 
 ```bash
 # Show trace for a run (supports short IDs)
-npm run 0pflow trace a1b2c3d4
+npx 0pflow trace a1b2c3d4
 
 # Get trace as JSON
-npm run 0pflow trace a1b2c3d4 --json
+npx 0pflow trace a1b2c3d4 --json
 ```
 
 **Example output:**
@@ -221,8 +297,13 @@ Before running workflows:
 - Check that `generated/workflows/` contains compiled workflow files
 - Run `/0pflow:compile-workflow` to compile specs
 
-**"Invalid workflow input"**
+**"No nodes found"**
+- Check that `src/nodes/` contains node files
+- Ensure nodes export using `Node.create()`
+
+**"Invalid workflow/node input"**
 - Check the workflow's input schema in `specs/workflows/<name>.md`
+- Or check the node's `inputSchema` in `src/nodes/<name>.ts`
 - Ensure JSON input matches the expected types
 
 **"DATABASE_URL not set"**

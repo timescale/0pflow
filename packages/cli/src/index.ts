@@ -51,7 +51,10 @@ program
   .description("CLI for 0pflow workflow engine")
   .version("0.1.0");
 
-program
+// ============ Workflow commands ============
+const workflow = program.command("workflow").description("Workflow commands");
+
+workflow
   .command("list")
   .description("List all available workflows")
   .option("--json", "Output as JSON")
@@ -93,8 +96,8 @@ program
     }
   });
 
-program
-  .command("run <workflow>")
+workflow
+  .command("run <name>")
   .description("Run a workflow")
   .option("-i, --input <json>", "JSON input for the workflow", "{}")
   .option("--json", "Output result as JSON")
@@ -111,9 +114,9 @@ program
         console.error(pc.yellow(`Warning: ${warning}`));
       }
 
-      const workflow = workflows.find(w => w.name === workflowName);
+      const wf = workflows.find(w => w.name === workflowName);
 
-      if (!workflow) {
+      if (!wf) {
         console.error(pc.red(`Workflow "${workflowName}" not found`));
         console.log(pc.dim(`Available: ${workflows.map(w => w.name).join(", ")}`));
         process.exit(1);
@@ -129,7 +132,7 @@ program
       }
 
       // Validate input against workflow schema
-      const validation = workflow.inputSchema.safeParse(rawInput);
+      const validation = wf.inputSchema.safeParse(rawInput);
       if (!validation.success) {
         console.error(pc.red("Invalid workflow input:"));
         for (const issue of validation.error.issues) {
@@ -166,7 +169,7 @@ program
       });
 
       try {
-        const result = await pflow.triggerWorkflow(workflow.name, inputs);
+        const result = await pflow.triggerWorkflow(wf.name, inputs);
 
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -183,6 +186,133 @@ program
     }
   });
 
+// ============ Node commands ============
+const node = program.command("node").description("Node commands");
+
+node
+  .command("list")
+  .description("List all available nodes")
+  .option("--json", "Output as JSON")
+  .action(async (options: { json?: boolean }) => {
+    try {
+      const { nodes, warnings } = await discoverNodes(process.cwd());
+
+      // Always show warnings on stderr
+      for (const warning of warnings) {
+        console.error(pc.yellow(`Warning: ${warning}`));
+      }
+
+      const nodeNames = Object.keys(nodes);
+
+      if (nodeNames.length === 0) {
+        if (options.json) {
+          console.log("[]");
+        } else {
+          console.log(pc.yellow("No nodes found in src/nodes/"));
+        }
+        return;
+      }
+
+      if (options.json) {
+        const output = nodeNames.map(name => ({
+          name,
+          description: nodes[name].description,
+        }));
+        console.log(JSON.stringify(output, null, 2));
+      } else {
+        console.log(pc.bold("\nAvailable nodes:\n"));
+        for (const name of nodeNames) {
+          const desc = nodes[name].description;
+          console.log(`  ${pc.cyan(name)}${desc ? pc.dim(` - ${desc}`) : ""}`);
+        }
+        console.log();
+      }
+    } catch (err) {
+      console.error(pc.red(`Error: ${err instanceof Error ? err.message : err}`));
+      process.exit(1);
+    }
+  });
+
+node
+  .command("run <name>")
+  .description("Run a node (wrapped in workflow for durability)")
+  .option("-i, --input <json>", "JSON input for the node", "{}")
+  .option("--json", "Output result as JSON")
+  .action(async (nodeName: string, options: { input: string; json?: boolean }) => {
+    try {
+      // Load environment
+      resolveEnv();
+
+      // Discover nodes
+      const { nodes, warnings } = await discoverNodes(process.cwd());
+
+      // Always show warnings on stderr
+      for (const warning of warnings) {
+        console.error(pc.yellow(`Warning: ${warning}`));
+      }
+
+      const nodeExecutable = nodes[nodeName];
+
+      if (!nodeExecutable) {
+        console.error(pc.red(`Node "${nodeName}" not found`));
+        const availableNodes = Object.keys(nodes);
+        if (availableNodes.length > 0) {
+          console.log(pc.dim(`Available: ${availableNodes.join(", ")}`));
+        }
+        process.exit(1);
+      }
+
+      // Parse input JSON
+      let rawInput: unknown;
+      try {
+        rawInput = JSON.parse(options.input);
+      } catch {
+        console.error(pc.red("Invalid JSON input"));
+        process.exit(1);
+      }
+
+      // Validate input against node schema
+      const validation = nodeExecutable.inputSchema.safeParse(rawInput);
+      if (!validation.success) {
+        console.error(pc.red("Invalid node input:"));
+        for (const issue of validation.error.issues) {
+          const path = issue.path.length > 0 ? issue.path.join(".") : "(root)";
+          console.error(pc.red(`  ${path}: ${issue.message}`));
+        }
+        process.exit(1);
+      }
+      const inputs = validation.data;
+
+      // Create 0pflow instance
+      if (!options.json) {
+        console.log(pc.dim(`Running node ${nodeName}...`));
+      }
+
+      const pflow = await create0pflow({
+        databaseUrl: process.env.DATABASE_URL!,
+        appName: getAppName(),
+        nodes,
+      });
+
+      try {
+        const result = await pflow.triggerNode(nodeName, inputs);
+
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          console.log(pc.green("\nResult:"));
+          console.log(JSON.stringify(result, null, 2));
+        }
+      } finally {
+        await pflow.shutdown();
+      }
+    } catch (err) {
+      console.error(pc.red(`Error: ${err instanceof Error ? err.message : err}`));
+      process.exit(1);
+    }
+  });
+
+// ============ History command (unchanged) ============
 program
   .command("history [run-id]")
   .description("List past workflow executions or get details of a specific run")
@@ -271,6 +401,7 @@ program
     }
   });
 
+// ============ Trace command (unchanged) ============
 program
   .command("trace <run-id>")
   .description("Show execution trace for a workflow run")

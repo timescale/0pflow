@@ -4,12 +4,38 @@ import { Registry } from "./registry.js";
 import { initializeDBOS, shutdownDBOS } from "./dbos.js";
 import { NodeRegistry } from "./nodes/registry.js";
 import { configureAgentRuntime } from "./agent.js";
+import { Workflow } from "./workflow.js";
 
 /**
  * Create a 0pflow instance
  */
 export async function create0pflow(config: PflowConfig): Promise<Pflow> {
-  // Initialize DBOS for durability
+  // Build registry from provided executables (before DBOS init)
+  const registry = new Registry({
+    workflows: config.workflows,
+    agents: config.agents,
+    nodes: config.nodes,
+  });
+
+  // Pre-create wrapper workflows for all nodes BEFORE DBOS.launch()
+  // This is required because DBOS doesn't allow registering workflows after launch
+  const nodeWrapperCache = new Map<string, ReturnType<typeof Workflow.create>>();
+  for (const nodeName of registry.listNodes()) {
+    const node = registry.getNode(nodeName);
+    if (node) {
+      const wrapper = Workflow.create({
+        name: `_node_${nodeName}`,
+        description: `Wrapper workflow for node ${nodeName}`,
+        version: 1,
+        inputSchema: node.inputSchema,
+        outputSchema: node.outputSchema,
+        run: async (ctx, nodeInputs) => ctx.run(node, nodeInputs),
+      });
+      nodeWrapperCache.set(nodeName, wrapper);
+    }
+  }
+
+  // Initialize DBOS for durability (after all workflows are registered)
   await initializeDBOS({ databaseUrl: config.databaseUrl, appName: config.appName });
 
   // Build node registry (includes built-in nodes + user nodes)
@@ -22,13 +48,6 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
   configureAgentRuntime({
     nodeRegistry,
     modelConfig: config.modelConfig,
-  });
-
-  // Build registry from provided executables
-  const registry = new Registry({
-    workflows: config.workflows,
-    agents: config.agents,
-    nodes: config.nodes,
   });
 
   return {
@@ -48,6 +67,30 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
       // Validate inputs and execute (workflow handles DBOS context internally)
       const validated = workflow.inputSchema.parse(inputs);
       return workflow.execute(null as unknown as WorkflowContext, validated) as Promise<T>;
+    },
+
+    listNodes: () => registry.listNodes(),
+
+    getNode: (name: string) => registry.getNode(name),
+
+    triggerNode: async <T = unknown>(
+      name: string,
+      inputs: unknown
+    ): Promise<T> => {
+      const node = registry.getNode(name);
+      if (!node) {
+        throw new Error(`Node "${name}" not found`);
+      }
+
+      // Get pre-created wrapper workflow for this node
+      const wrapper = nodeWrapperCache.get(name);
+      if (!wrapper) {
+        throw new Error(`No wrapper workflow found for node "${name}"`);
+      }
+
+      // Validate inputs and execute via wrapper workflow
+      const validated = node.inputSchema.parse(inputs);
+      return wrapper.execute(null as unknown as WorkflowContext, validated) as Promise<T>;
     },
 
     shutdown: async () => {

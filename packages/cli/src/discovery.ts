@@ -83,14 +83,14 @@ function isNode(value: unknown): value is AnyExecutable {
 }
 
 /**
- * Discover and load node executables from nodes/ directory
+ * Discover and load node executables from src/nodes/ directory
  * Uses jiti to load TypeScript files directly without compilation
  * Returns nodes indexed by name and any warnings
  */
 export async function discoverNodes(
   projectDir: string
 ): Promise<NodeDiscoveryResult> {
-  const nodesDir = path.join(projectDir, "nodes");
+  const nodesDir = path.join(projectDir, "src", "nodes");
   const nodes: Record<string, AnyExecutable> = {};
   const warnings: string[] = [];
 
