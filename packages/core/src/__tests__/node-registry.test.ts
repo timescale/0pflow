@@ -14,7 +14,7 @@ describe("NodeRegistry", () => {
 
   it("includes built-in nodes by default", () => {
     const registry = new NodeRegistry();
-    expect(registry.hasNode("http_get")).toBe(true);
+    expect(registry.hasNode("web_read")).toBe(true);
   });
 
   it("can add user-defined nodes", () => {
@@ -28,18 +28,18 @@ describe("NodeRegistry", () => {
 
   it("user nodes can override built-in nodes", () => {
     const overrideNode = Node.create({
-      name: "http_get",
-      description: "Overridden http_get",
+      name: "web_read",
+      description: "Overridden web_read",
       inputSchema: z.object({ url: z.string() }),
       execute: async () => ({ custom: true }),
     });
 
     const registry = new NodeRegistry({
-      userNodes: { "http_get": overrideNode },
+      userNodes: { "web_read": overrideNode },
     });
 
-    const node = registry.getNode("http_get");
-    expect(node?.description).toBe("Overridden http_get");
+    const node = registry.getNode("web_read");
+    expect(node?.description).toBe("Overridden web_read");
   });
 
   it("getNode returns undefined for missing nodes", () => {
@@ -52,15 +52,15 @@ describe("NodeRegistry", () => {
       userNodes: { "custom.echo": customNode },
     });
 
-    const nodes = registry.getNodes(["http_get", "custom.echo"]);
+    const nodes = registry.getNodes(["web_read", "custom.echo"]);
     expect(nodes).toHaveLength(2);
-    expect(nodes.map((n) => n.name)).toContain("http_get");
+    expect(nodes.map((n) => n.name)).toContain("web_read");
     expect(nodes.map((n) => n.name)).toContain("custom.echo");
   });
 
   it("getNodes throws for missing nodes", () => {
     const registry = new NodeRegistry();
-    expect(() => registry.getNodes(["http_get", "missing.node"])).toThrow(
+    expect(() => registry.getNodes(["web_read", "missing.node"])).toThrow(
       "Nodes not found: missing.node"
     );
   });
@@ -71,7 +71,7 @@ describe("NodeRegistry", () => {
     });
 
     const names = registry.listNodes();
-    expect(names).toContain("http_get");
+    expect(names).toContain("web_read");
     expect(names).toContain("custom.echo");
   });
 });

@@ -110,7 +110,7 @@ For agent nodes, explicitly select tools from three categories:
 
 | Category | Description | Examples |
 |----------|-------------|----------|
-| **Built-in nodes** | Ships with 0pflow | `httpGet` |
+| **Built-in nodes** | Ships with 0pflow | `webRead` |
 | **Provider tools** | From AI SDK providers (OpenAI, Anthropic) | `openai.tools.webSearch()`, `openai.tools.codeInterpreter()`, `anthropic.tools.computer_20250124()` |
 | **User nodes** | Custom nodes in `src/nodes/` | `enrichCompany`, `sendSlackMessage` |
 
@@ -124,7 +124,7 @@ For agent nodes, explicitly select tools from three categories:
 
 | Need | Tool | Category |
 |------|------|----------|
-| Fetch web pages / HTTP requests | `httpGet` | builtin |
+| Fetch web pages / HTTP requests | `webRead` | builtin |
 | Search the web | `openai.tools.webSearch()` | provider |
 | Run Python code | `openai.tools.codeInterpreter()` | provider |
 | Domain-specific operations (CRM, email, etc.) | User must implement | user node |
@@ -132,7 +132,7 @@ For agent nodes, explicitly select tools from three categories:
 **Example dialogue:**
 
 "For researching companies, I recommend these tools:
-- `httpGet` (builtin) - fetch company website
+- `webRead` (builtin) - fetch company website
 - `openai.tools.webSearch()` (provider) - search for company info
 
 Does this look right? Any other tools needed?"
@@ -196,7 +196,7 @@ For **agent** nodes:
 <Expanded description with full context>
 
 **Tools needed:**
-  - httpGet (builtin)
+  - webRead (builtin)
   - openai.tools.webSearch() (provider)
   - myCustomNode (user node in src/nodes/my-custom-node.ts)
 **Guidelines:** <specific guidelines>
@@ -261,7 +261,7 @@ The purpose is clear. I see it should gather company info - what specific fields
 User: We need company name, what they do, how big they are, and funding if available
 
 Agent: Got it. For gathering company info, I recommend these tools:
-- `httpGet` (builtin) - fetch the company website directly
+- `webRead` (builtin) - fetch the company website directly
 - `openai.tools.webSearch()` (provider) - search for additional company info
 
 Does this look right? Any other tools needed?
@@ -300,7 +300,7 @@ Gather comprehensive information about the company including their product,
 what market they serve, team size, and funding status.
 
 **Tools needed:**
-  - httpGet (builtin)
+  - webRead (builtin)
   - openai.tools.webSearch() (provider)
 **Guidelines:** Prefer primary sources (company website, LinkedIn) over aggregators.
 If information is unavailable, indicate "unknown" rather than guessing.

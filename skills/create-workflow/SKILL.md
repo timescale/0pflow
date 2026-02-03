@@ -144,7 +144,7 @@ For non-branching tasks, determine:
 
 3. **Node selection** - Check if an existing node fits:
    - Existing agents from `specs/agents/`
-   - Built-in nodes: `http_get`
+   - Built-in nodes: `web_read`
    - User-defined nodes in `src/nodes/`
 
    If nothing fits, we'll create a new agent or node.
@@ -420,14 +420,14 @@ Agent: Got it. This sounds like an **agent** node since it requires judgment abo
 I don't see any existing agents that fit. I'll create a new agent called `company-researcher`.
 
 What tools does the `company-researcher` agent need?
-- A) Web scraping / HTTP requests (http_get - built-in)
+- A) Web scraping / HTTP requests (web_read - built-in)
 - B) Web search
 - C) LinkedIn API
 - D) Multiple of the above
 
 User: A and B
 
-Agent: `http_get` is built-in. For `web_search`, I'll add an implementation task.
+Agent: `web_read` is built-in. For `web_search`, I'll add an implementation task.
 
 What inputs/outputs should `web_search` have?
 
@@ -444,7 +444,7 @@ Agent: Got it. I'm adding two tasks:
 **Task 2: Research Company**
 - Gather information about the company
 - **Node:** `company-researcher` (agent) - NEW
-- **Tools:** `http_get`, `web_search`
+- **Tools:** `web_read`, `web_search`
 - **Input:** company_url
 - **Output:** `company_data: { name: string, description: string, team_size?: number, funding?: string }`
 
@@ -476,7 +476,7 @@ Create web search capability for the company-researcher agent.
 ### 2. Research Company
 Gather comprehensive information about the company...
 **Node:** `company-researcher` (agent)
-**Tools:** `http_get`, `web_search`
+**Tools:** `web_read`, `web_search`
 **Input:** company_url
 **Output:** `company_data: { name: string, description: string, team_size?: number, funding?: string }`
 

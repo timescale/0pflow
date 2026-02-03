@@ -229,10 +229,10 @@ Return a JSON object with fields:
 - **Body:** system prompt (task, guidelines, output format)
 
 **Tools can be:**
-- Built-in nodes (`http_get`) - ship with 0pflow
+- Built-in nodes (`web_read`) - ship with 0pflow
 - User-defined nodes from `src/nodes/` - resolved by convention
 
-**Node naming convention:** Node names must use underscores, not dots (e.g., `http_get` not `http.get`). This ensures compatibility with all LLM providers.
+**Node naming convention:** Node names must use underscores, not dots (e.g., `web_read` not `http.get`). This ensures compatibility with all LLM providers.
 - MCP server tools (post-MVP)
 
 ## Node Types
@@ -245,13 +245,13 @@ Workflows orchestrate nodes. Node types:
 | **Node** | User TypeScript in `src/nodes/` | `calculateScore` |
 | **Sub-workflow** | Another workflow spec | `enrichment-pipeline` |
 
-**Unified node model:** Tools and function nodes are unified into a single concept: nodes. All nodes have a `description` field which allows them to be used as agent tools. Built-in nodes like `http_get` ship with 0pflow; user-defined nodes live in `src/nodes/`.
+**Unified node model:** Tools and function nodes are unified into a single concept: nodes. All nodes have a `description` field which allows them to be used as agent tools. Built-in nodes like `web_read` ship with 0pflow; user-defined nodes live in `src/nodes/`.
 
 **Agent execution model:** Agents are not special runtime machinery. The pre-packaged agent node reads agent specs (`specs/agents/*.md`) at runtime and executes an agentic loop using the Vercel AI SDK. Users can also write custom agent nodes in `src/nodes/` if they need different behavior (e.g., different LLM providers, custom tool-calling logic).
 
 **Node resolution:** Nodes referenced in agent specs (as tools) and workflows are resolved by convention:
 - **User-defined nodes:** `src/nodes/<name>.ts`
-- **Built-in nodes:** `http_get` ships with 0pflow
+- **Built-in nodes:** `web_read` ships with 0pflow
 
 ## Runtime & SDK
 
@@ -552,7 +552,7 @@ For MVP, the UI is extremely minimal.
 | **SDK** | `ctx.runAgent`, `ctx.runNode`, `ctx.callTool`, `ctx.log` |
 | **Runtime** | DBOS-backed execution, local only |
 | **Agents** | Pre-packaged agent node (Vercel AI SDK, reads specs from `specs/agents/`) |
-| **Nodes** | Built-in nodes: `http_get`; user-defined nodes in `src/nodes/` |
+| **Nodes** | Built-in nodes: `web_read`; user-defined nodes in `src/nodes/` |
 | **UI** | Workflow list + trigger button |
 | **Triggers** | Manual (UI button, webhook, CLI) |
 
@@ -592,7 +592,7 @@ For MVP, the UI is extremely minimal.
 ### Phase 3: Agent Node + Nodes
 - Pre-packaged agent node using Vercel AI SDK (reads agent specs, runs agentic loop)
 - Unified node interface (nodes can be used as workflow steps and agent tools)
-- Built-in nodes (`http_get`)
+- Built-in nodes (`web_read`)
 
 ### Phase 4: Spec Author (Claude Code Skill)
 - Collaborative dialogue flow for workflow design

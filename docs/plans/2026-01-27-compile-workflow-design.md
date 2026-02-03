@@ -50,7 +50,7 @@ This allows generated code to use a unified pattern:
 const companyData = await ctx.run(companyResearcher, { url: inputs.company_url });
 
 // Tool call
-const response = await ctx.run(httpGet, { url: inputs.url });
+const response = await ctx.run(webRead, { url: inputs.url });
 
 // Function node call
 const result = await ctx.run(calculateScore, { data: companyData });
@@ -80,29 +80,29 @@ version: 1
 ## Tasks
 
 ### 1. Fetch URL
-**Node:** `http_get` (tool)
+**Node:** `web_read` (node)
 **Input:** url
-**Output:** `response: { status_code: number, body: string | null, error: string | null }`
+**Output:** `response: { status: number, title: string | null, content: string | null }`
 
 ---
 
 ### 2. Check Status
-**Condition:** `response.status_code == 200`
+**Condition:** `response.status == 200`
 **If true:** continue to task 3
 **If false:** return:
   - status: "error"
-  - status_code: response.status_code
-  - error: response.error
+  - status_code: response.status
+  - error: null
 
 ---
 
 ### 3. Summarize Page
 **Node:** `page-summarizer` (agent)
-**Input:** response.body
+**Input:** response.content
 **Output:** `summary: string`
 **Return:**
   - status: "success"
-  - status_code: response.status_code
+  - status_code: response.status
   - summary: summary
 
 ## Outputs
@@ -117,7 +117,7 @@ Generated `url-summarizer.ts`:
 // generated/workflows/url-summarizer.ts
 import { z } from "zod";
 import { Workflow } from "0pflow";
-import { httpGet } from "0pflow/tools";
+import { webRead } from "0pflow";
 import { pageSummarizer } from "../../specs/agents/page-summarizer.js";
 
 // Input schema
@@ -143,25 +143,25 @@ export const urlSummarizer = Workflow.create({
 
   async run(ctx, inputs: UrlSummarizerInput): Promise<UrlSummarizerOutput> {
     // Task 1: Fetch URL
-    const response = await ctx.run(httpGet, { url: inputs.url });
+    const response = await ctx.run(webRead, { url: inputs.url });
 
     // Task 2: Check Status
-    if (response.status_code !== 200) {
+    if (response.status !== 200) {
       return {
         status: "error",
-        status_code: response.status_code,
+        status_code: response.status,
         summary: null,
-        error: response.error,
+        error: null,
       };
     }
 
     // Task 3: Summarize Page
-    const summary = await ctx.run(pageSummarizer, response.body);
+    const summary = await ctx.run(pageSummarizer, { content: response.content ?? "" });
 
     return {
       status: "success",
-      status_code: response.status_code,
-      summary,
+      status_code: response.status,
+      summary: summary.summary,
       error: null,
     };
   },

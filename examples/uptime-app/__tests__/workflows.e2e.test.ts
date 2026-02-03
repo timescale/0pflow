@@ -3,7 +3,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import pg from "pg";
-import { create0pflow, httpGet, type Pflow } from "0pflow";
+import { create0pflow, webRead, type Pflow } from "0pflow";
 import { urlCheck } from "../generated/workflows/url-check.js";
 import { urlSummarizer } from "../generated/workflows/url-summarizer.js";
 import { httpHead } from "../src/nodes/http-head.js";
@@ -41,7 +41,7 @@ describe.skipIf(!DATABASE_URL)("uptime-app workflows", () => {
         "page-summarizer": pageSummarizer,
       },
       tools: {
-        http_get: httpGet,
+        web_read: webRead,
       },
     });
   }, 30000);

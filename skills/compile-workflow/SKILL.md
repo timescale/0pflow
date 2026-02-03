@@ -96,7 +96,7 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 | Type | Location | Import Pattern |
 |------|----------|----------------|
-| `(builtin)` | Built-in nodes from 0pflow | `import { httpGet } from "0pflow"` |
+| `(builtin)` | Built-in nodes from 0pflow | `import { webRead } from "0pflow"` |
 | `(node)` | User-defined in `src/nodes/` | `import { nodeName } from "../../src/nodes/<name>.js"` |
 | `(agent)` | `agents/<name>.ts` | `import { agentName } from "../../agents/<name>.js"` |
 
@@ -107,7 +107,7 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 1. **Parse node reference:** Extract name and type from `**Node:** \`name\` (type)`
 
 2. **For builtin nodes:**
-   - Check if it's a built-in node (`http_get`, etc.)
+   - Check if it's a built-in node (`web_read`, etc.)
    - Import from `"0pflow"`
 
 3. **For user-defined nodes:**
@@ -132,7 +132,7 @@ There are three types of tools that can be used in agents:
 | Type | Description | Import | Example |
 |------|-------------|--------|---------|
 | **Provider tools** | Tools from AI SDK providers (OpenAI, Anthropic) | `import { createOpenAI } from "@ai-sdk/openai"` | `openai.tools.webSearch()` |
-| **Built-in nodes** | Nodes that ship with 0pflow | `import { httpGet } from "0pflow"` | `httpGet` |
+| **Built-in nodes** | Nodes that ship with 0pflow | `import { webRead } from "0pflow"` | `webRead` |
 | **User nodes** | Custom nodes implemented in `src/nodes/` | `import { myNode } from "../../src/nodes/my-node.js"` | `myNode` |
 
 ### Enriched Task Format (from spec-author)
@@ -145,7 +145,7 @@ Tasks for new agents include extra fields used to generate the agent executable.
 Description of what the agent does.
 
 **Tools needed:**
-  - httpGet (builtin)
+  - webRead (builtin)
   - openai.tools.webSearch() (provider)
   - myCustomNode (user node)
 **Guidelines:** specific guidelines for the agent (becomes part of system prompt)
@@ -205,7 +205,7 @@ Return a JSON object with:
 // agents/<name>.ts
 // Agent executable for <name>
 import { z } from "zod";
-import { Agent, httpGet } from "0pflow";               // Built-in nodes
+import { Agent, webRead } from "0pflow";               // Built-in nodes
 import { createOpenAI } from "@ai-sdk/openai";         // Provider tools
 // import { myNode } from "../src/nodes/my-node.js";   // User nodes
 import { fileURLToPath } from "url";
@@ -227,7 +227,7 @@ export const <camelCaseName> = Agent.create({
   }),
   // Tools from **Tools needed:** - only include what the spec specifies
   tools: {
-    http_get: httpGet,                     // (builtin)
+    web_read: webRead,                     // (builtin)
     web_search: openai.tools.webSearch(),  // (provider)
     // my_node: myNode,                    // (user node)
   },
@@ -243,7 +243,7 @@ The `**Tools needed:**` section explicitly specifies each tool with its type. Ge
 
 ```markdown
 **Tools needed:**
-  - httpGet (builtin)
+  - webRead (builtin)
   - openai.tools.webSearch() (provider)
   - enrichCompany (user node in src/nodes/enrich-company.ts)
 ```
@@ -251,7 +251,7 @@ The `**Tools needed:**` section explicitly specifies each tool with its type. Ge
 Generates:
 
 ```typescript
-import { httpGet } from "0pflow";
+import { webRead } from "0pflow";
 import { createOpenAI } from "@ai-sdk/openai";
 import { enrichCompany } from "../../src/nodes/enrich-company.js";
 
@@ -259,7 +259,7 @@ const openai = createOpenAI({});
 
 // In Agent.create():
 tools: {
-  http_get: httpGet,
+  web_read: webRead,
   web_search: openai.tools.webSearch(),
   enrich_company: enrichCompany,
 },
@@ -442,7 +442,7 @@ Tell user:
 **Process:**
 1. Parse spec - found: name=url-summarizer, version=1, 1 input, 3 tasks, 4 outputs
 2. Resolve nodes:
-   - Task 1: `http_get` (node) - built-in ✓
+   - Task 1: `web_read` (node) - built-in ✓
    - Task 2: Decision - no node needed
    - Task 3: `page-summarizer` (agent) - check specs/agents/... found ✓
 3. No ambiguities

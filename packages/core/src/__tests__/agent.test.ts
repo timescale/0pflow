@@ -22,7 +22,7 @@ describe("Agent.create()", () => {
 
   it("execute throws error without runtime configured", async () => {
     const agent = Agent.create({
-      name: "researcher",
+      name: "researcher-no-runtime",
       description: "Researches topics",
       inputSchema: z.object({ query: z.string() }),
       specPath: "specs/agents/researcher.md",
@@ -30,7 +30,7 @@ describe("Agent.create()", () => {
 
     const mockCtx = { run: async () => {}, log: () => {} } as never;
     await expect(agent.execute(mockCtx, { query: "test" })).rejects.toThrow(
-      "Agent runtime not configured"
+      "DBOS.launch()"
     );
   });
 });

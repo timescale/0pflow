@@ -118,7 +118,7 @@ Then determine:
 
 3. **Node selection** - Check if an existing node fits:
    - Existing agents from `specs/agents/`
-   - Built-in tools: `http_get`
+   - Built-in tools: `web_read`
    - User-defined functions in `src/nodes/`
 
    If nothing fits, we'll create a new agent or function.
@@ -239,7 +239,7 @@ For each NEW agent identified (not existing), create `specs/agents/<name>.md`:
 ---
 name: <agent-name>
 tools:
-  - http_get
+  - web_read
 ---
 
 # <Agent Title>

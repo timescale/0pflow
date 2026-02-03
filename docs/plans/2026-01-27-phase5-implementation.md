@@ -422,7 +422,7 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 1. **Parse node reference:** Extract name and type from `**Node:** \`name\` (type)`
 
 2. **For tools:**
-   - Check if it's a built-in tool (`http_get`)
+   - Check if it's a built-in tool (`web_read`)
    - Otherwise look for `src/tools/<name>.ts`
    - If missing: ask user if they want to create a stub
 
@@ -485,7 +485,7 @@ Extract info from the enriched task description:
 ---
 name: <agent-name>
 tools:
-  - <from **Tools needed:** - map to tool names like http_get, web_search>
+  - <from **Tools needed:** - map to tool names like web_read, web_search>
 ---
 
 # <Agent Title>
@@ -740,7 +740,7 @@ Tell user:
 **Process:**
 1. Parse spec - found: name=url-summarizer, version=1, 1 input, 3 tasks, 4 outputs
 2. Resolve nodes:
-   - Task 1: `http_get` (tool) - built-in ✓
+   - Task 1: `web_read` (tool) - built-in ✓
    - Task 2: Decision - no node needed
    - Task 3: `page-summarizer` (agent) - check specs/agents/... found ✓
 3. No ambiguities
@@ -777,7 +777,7 @@ git commit -m "feat(skills): complete compile-workflow skill implementation"
 
 Invoke `/0pflow:compile-workflow url-summarizer` in the uptime-app context and verify:
 1. Skill reads the spec correctly
-2. Resolves `http_get` tool and `page-summarizer` agent
+2. Resolves `web_read` tool and `page-summarizer` agent
 3. Generates valid TypeScript
 
 **Step 2: Verify generated code compiles**

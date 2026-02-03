@@ -4,7 +4,7 @@ import { z } from "zod";
 import { parseAgentSpecContent } from "../nodes/agent/parser.js";
 import { executeAgent } from "../nodes/agent/executor.js";
 import { NodeRegistry } from "../nodes/registry.js";
-import { httpGet } from "../nodes/builtin/index.js";
+import { webRead } from "../nodes/builtin/index.js";
 import { createWorkflowContext } from "../context.js";
 
 // Skip if no OpenAI API key
@@ -17,14 +17,14 @@ describe.skipIf(!hasApiKey)("Agent e2e", () => {
     nodeRegistry = new NodeRegistry();
   });
 
-  it("summarizes a website using http_get and OpenAI", async () => {
+  it("summarizes a website using web_read and OpenAI", async () => {
     const spec = parseAgentSpecContent(`---
 name: summarizer
 maxSteps: 3
 ---
 You are a helpful assistant that summarizes web pages.
 
-When given a URL, use the http_get tool to fetch the page content, then provide a brief summary of what the page is about.
+When given a URL, use the web_read tool to fetch the page content, then provide a brief summary of what the page is about.
 
 Keep your summary to 2-3 sentences.
 `);
@@ -34,7 +34,7 @@ Keep your summary to 2-3 sentences.
       ctx,
       spec,
       userMessage: "Please summarize the website at https://www.example.com",
-      tools: { http_get: httpGet },
+      tools: { web_read: webRead },
       nodeRegistry,
       modelConfig: {
         provider: "openai",
@@ -42,9 +42,9 @@ Keep your summary to 2-3 sentences.
       },
     });
 
-    // Should have made at least one tool call to http_get
+    // Should have made at least one tool call to web_read
     expect(result.toolCalls.length).toBeGreaterThanOrEqual(1);
-    expect(result.toolCalls[0].toolName).toBe("http_get");
+    expect(result.toolCalls[0].toolName).toBe("web_read");
 
     // Should have generated a text response
     expect(result.text).toBeTruthy();
@@ -85,7 +85,7 @@ When given a URL, fetch the page and analyze it. Return your findings in the req
       ctx,
       spec,
       userMessage: "Analyze https://www.example.com",
-      tools: { http_get: httpGet },
+      tools: { web_read: webRead },
       nodeRegistry,
       modelConfig: {
         provider: "openai",

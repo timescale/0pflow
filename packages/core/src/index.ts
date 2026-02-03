@@ -19,7 +19,7 @@ export type { AgentDefinition, AgentExecutable } from "./agent.js";
 // Node registry (for agent tool resolution)
 export { NodeRegistry } from "./nodes/registry.js";
 export type { NodeRegistryConfig } from "./nodes/registry.js";
-export { httpGet, builtinNodes } from "./nodes/builtin/index.js";
+export { webRead, builtinNodes } from "./nodes/builtin/index.js";
 
 // Agent internals (for advanced use cases)
 export { parseAgentSpec, parseAgentSpecContent } from "./nodes/agent/parser.js";

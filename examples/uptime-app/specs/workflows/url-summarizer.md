@@ -17,9 +17,9 @@ Fetch a URL and either report an error if it doesn't return 200, or return a 1-p
 
 Make an HTTP GET request to fetch the page content.
 
-**Node:** `http_get` (tool)
+**Node:** `web_read` (node)
 **Input:** url
-**Output:** `response: { status: number, body: string, headers: Record<string, string> }`
+**Output:** `response: { status: number, title: string | null, content: string | null, byline: string | null, siteName: string | null, excerpt: string | null }`
 
 ---
 
@@ -42,7 +42,7 @@ Route based on HTTP response status.
 Generate a 1-paragraph summary of the page content.
 
 **Node:** `page-summarizer` (agent)
-**Input:** response.body
+**Input:** response.content
 **Output:** `summary: string`
 **Return:**
   - status: "success"
