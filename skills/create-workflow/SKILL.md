@@ -341,18 +341,20 @@ Tell the user:
 
 1. "I've written the workflow spec to `specs/workflows/<name>.md`"
 
-2. Assess which nodes might benefit from more detail (missing tools, guidelines, or clear output schemas). If any:
-   "Some nodes could use more detail:
-   - `<node1>` - missing tools/guidelines
-   - `<node2>` - output schema is vague"
+2. Identify any NEW nodes created during this workflow design (not built-in nodes like `web_read`, and not existing nodes from `src/nodes/`). New nodes MUST be refined before compilation:
+   "The following new nodes need to be refined before compilation:
+   - `<node1>` - new node
+   - `<node2>` - new node"
 
    Ask: "Would you like to refine these nodes now?"
 
    - If yes: Invoke `/0pflow:refine-node` for the workflow
    - If no: "No problem. Run `/0pflow:refine-node <workflow-name>` later when you're ready. Then run `/0pflow:compile-workflow` to generate TypeScript."
 
-3. If all nodes already have sufficient detail:
-   "All nodes have clear definitions. **Next step:** Run `/0pflow:compile-workflow` to generate TypeScript."
+   **IMPORTANT:** New nodes MUST be refined before `/0pflow:compile-workflow` will succeed.
+
+3. If all nodes are existing (built-in or already in `src/nodes/`):
+   "All nodes use existing implementations. **Next step:** Run `/0pflow:compile-workflow` to generate TypeScript."
 
 ---
 
