@@ -32,14 +32,16 @@ export async function listRuns(
 
   await client.connect();
   try {
+    // Exclude child workflows (they have -N suffix after the 36-char UUID)
     let query = `
       SELECT workflow_uuid, name, status, created_at, updated_at, output, error
       FROM ${schema}.workflow_status
+      WHERE LENGTH(workflow_uuid) = 36
     `;
     const params: (string | number)[] = [];
 
     if (workflowName) {
-      query += ` WHERE name = $1`;
+      query += ` AND name = $1`;
       params.push(workflowName);
     }
 
@@ -85,10 +87,12 @@ export async function getRun(
     }
 
     // Try prefix match (like git short hashes)
+    // Exclude child workflows (they have -N suffix after the 36-char UUID)
     const prefix = await client.query(
       `SELECT workflow_uuid, name, status, created_at, updated_at, output, error
        FROM ${schema}.workflow_status
        WHERE workflow_uuid LIKE $1
+         AND LENGTH(workflow_uuid) = 36
        ORDER BY created_at DESC
        LIMIT 2`,
       [runId + "%"]

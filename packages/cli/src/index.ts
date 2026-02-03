@@ -6,6 +6,7 @@ import { create0pflow } from "0pflow";
 import { discoverWorkflows, discoverNodes } from "./discovery.js";
 import { resolveEnv } from "./env.js";
 import { listRuns, getRun } from "./runs.js";
+import { getTrace, printTrace } from "./trace.js";
 import { getAppName } from "./app.js";
 
 function formatStatus(status: string): string {
@@ -263,6 +264,39 @@ program
           console.log(table.toString());
           console.log();
         }
+      }
+    } catch (err) {
+      console.error(pc.red(`Error: ${err instanceof Error ? err.message : err}`));
+      process.exit(1);
+    }
+  });
+
+program
+  .command("trace <run-id>")
+  .description("Show execution trace for a workflow run")
+  .option("--json", "Output as JSON")
+  .action(async (runId: string, options: { json?: boolean }) => {
+    try {
+      resolveEnv();
+      const databaseUrl = process.env.DATABASE_URL!;
+
+      const trace = await getTrace(databaseUrl, runId);
+
+      if (trace.ambiguous) {
+        console.error(pc.red(`Ambiguous run ID prefix "${runId}" - matches multiple runs`));
+        console.error(pc.dim("Use a longer prefix or the full ID"));
+        process.exit(1);
+      }
+
+      if (!trace.workflow) {
+        console.error(pc.red(`Run "${runId}" not found`));
+        process.exit(1);
+      }
+
+      if (options.json) {
+        console.log(JSON.stringify(trace, null, 2));
+      } else {
+        printTrace(trace);
       }
     } catch (err) {
       console.error(pc.red(`Error: ${err instanceof Error ? err.message : err}`));

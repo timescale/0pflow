@@ -82,6 +82,14 @@ npm run 0pflow run lead-scoring -i '{"company_url": "https://example.com"}' --js
 - Validates input against the workflow's input schema
 - Displays result on success or error message on failure
 
+**Environment variables:**
+- `LOG_LEVEL` - Set logging verbosity: `debug`, `info` (default), `warn`, `error`
+
+```bash
+# Run with debug logging
+LOG_LEVEL=debug npm run 0pflow run lead-scoring -i '{"company_url": "https://example.com"}'
+```
+
 ---
 
 ### history
@@ -135,6 +143,65 @@ npm run 0pflow history a1b2c3d4-e5f6-... --json
 - Created/Updated timestamps
 - Output (if successful)
 - Error (if failed)
+
+---
+
+### trace
+
+Show execution trace for a workflow run, including all operations and child workflows.
+
+```bash
+npm run 0pflow trace <run-id>
+npm run 0pflow trace <run-id> --json
+```
+
+**Arguments:**
+- `<run-id>` - Run ID (full UUID or prefix, like git short hashes)
+
+**Options:**
+- `--json` - Output as JSON
+
+**Examples:**
+
+```bash
+# Show trace for a run (supports short IDs)
+npm run 0pflow trace a1b2c3d4
+
+# Get trace as JSON
+npm run 0pflow trace a1b2c3d4 --json
+```
+
+**Example output:**
+```
+Workflow: lead-qualifier (8fcfb347-cb5a-46f6-9158-5fc53915ec86)
+Status: SUCCESS | Duration: 12.3s
+
+├─ salesforce-get-lead                                1401ms
+│    → {"Id":"00Q3s...","Company":"Acme"}
+│
+├─ company-researcher                                 7355ms
+│    ├─ web_search                                     256ms
+│    │    → web_search({"query":"Acme company"})
+│    └─ result                                        7099ms
+│         → {"name":"Acme","employee_count":800}
+│
+└─ icp-evaluator                                      2102ms
+     → {"qualified":false,"reasons":["..."]}
+
+Final:
+{
+  "qualified": false,
+  "reasons": ["exceeds 50 employee maximum"]
+}
+```
+
+**Trace shows:**
+- Workflow name, ID, status, and total duration
+- All operations with their durations
+- Child workflows nested under their parent operation
+- Tool calls with inputs (e.g., `web_search({"query":"..."})`)
+- Output previews for each operation
+- Full pretty-printed final result
 
 ---
 

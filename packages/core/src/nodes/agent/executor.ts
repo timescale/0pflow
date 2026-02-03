@@ -248,6 +248,12 @@ export async function executeAgent<TOutput = unknown>(
 
   // Record provider-executed tool calls as DBOS steps for observability
   // These tools (like OpenAI webSearch) run server-side, so we record after the fact
+  //
+  // NOTE: OpenAI's web_search tool returns only URLs in sources, not titles/snippets.
+  // When using structured output (json_schema), OpenAI doesn't return URL citation
+  // annotations - the annotations array is empty. The model embeds markdown-style
+  // citations in the text instead (e.g., [title](url)).
+  // See: https://github.com/openai/openai-agents-python/issues/2051
   for (const step of result.steps) {
     for (const toolCall of step.toolCalls ?? []) {
       if (providerExecutedTools.has(toolCall.toolName)) {
