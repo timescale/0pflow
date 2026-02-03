@@ -59,6 +59,9 @@ function buildConnectionString(
   const parsed = new URL(originalUrl);
   parsed.username = user;
   parsed.password = encodeURIComponent(password);
+  if (!parsed.searchParams.has("uselibpqcompat")) {
+    parsed.searchParams.set("uselibpqcompat", "true");
+  }
   return parsed.toString();
 }
 
@@ -155,12 +158,13 @@ export const setupAppSchemaFactory: ApiFactory<
           `CREATE SCHEMA IF NOT EXISTS ${app_name} AUTHORIZATION ${app_name}`,
         );
 
-        // Revoke access to public schema
-        await sql.unsafe(`REVOKE ALL ON SCHEMA public FROM ${app_name}`);
+        // Allow using extensions in public schema, but not creating objects there
+        await sql.unsafe(`REVOKE CREATE ON SCHEMA public FROM ${app_name}`);
+        await sql.unsafe(`GRANT USAGE ON SCHEMA public TO ${app_name}`);
 
-        // Set search_path for app user
+        // Set search_path for app user (app schema first, then public for extensions)
         await sql.unsafe(
-          `ALTER ROLE ${app_name} SET search_path TO ${app_name}`,
+          `ALTER ROLE ${app_name} SET search_path TO ${app_name}, public`,
         );
 
         // Append app schema to tsdbadmin's search_path
