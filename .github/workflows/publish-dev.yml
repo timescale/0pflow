@@ -35,4 +35,4 @@ jobs:
           BASE_VERSION=$(node -p "require('./package.json').version")
           DEV_VERSION="${BASE_VERSION}-dev.${GITHUB_SHA::7}"
           pnpm version "$DEV_VERSION" --no-git-tag-version
-          pnpm publish --tag dev --access public --no-git-checks --provenance
+          npm publish --tag dev --access public --provenance
