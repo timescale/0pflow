@@ -26,6 +26,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Install latest npm
+        run: npm install -g npm@latest
+
       - name: Build
         run: pnpm --filter 0pflow build
 
