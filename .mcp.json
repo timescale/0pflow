@@ -5,8 +5,8 @@
       "url": "https://opflow.dev-us-east-1.ops.dev.timescale.com/mcp"
     },
     "0pflow-local-tools": {
-      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/run-mcp.sh",
-      "args": []
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/run-mcp.js"]
     }
   }
 }
