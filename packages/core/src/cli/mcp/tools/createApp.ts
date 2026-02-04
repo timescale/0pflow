@@ -3,9 +3,12 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
-import { monorepoRoot } from "../config.js";
+import { packageRoot } from "../config.js";
 import { writeAppTemplates, create0pflowDirectories } from "../lib/templates.js";
 import type { ServerContext } from "../types.js";
+
+// Monorepo root (only valid in dev mode when running from packages/core)
+const monorepoRoot = join(packageRoot, "..", "..");
 
 // Check if running in development mode (monorepo with packages/core exists)
 function isDevMode(): boolean {
