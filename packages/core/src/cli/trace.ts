@@ -1,7 +1,7 @@
 // packages/cli/src/trace.ts
 import pg from "pg";
 import pc from "picocolors";
-import { getSchemaName } from "0pflow";
+import { getSchemaName } from "../index.js";
 import { getAppName } from "./app.js";
 import { getRun, type WorkflowRun } from "./runs.js";
 

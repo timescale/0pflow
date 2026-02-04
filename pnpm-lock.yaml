@@ -121,17 +121,26 @@ importers:
         specifier: ^4.0.15
         version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@25.0.10)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)
 
-  packages/cli:
+  packages/core:
     dependencies:
-      0pflow:
-        specifier: workspace:*
-        version: link:../core
-      '@clack/prompts':
-        specifier: ^0.11.0
-        version: 0.11.0
+      '@ai-sdk/anthropic':
+        specifier: ^3.0.23
+        version: 3.0.23(zod@3.25.76)
+      '@ai-sdk/openai':
+        specifier: ^3.0.19
+        version: 3.0.19(zod@3.25.76)
+      '@dbos-inc/dbos-sdk':
+        specifier: ^4.7.9
+        version: 4.7.9
+      '@mozilla/readability':
+        specifier: ^0.6.0
+        version: 0.6.0
       '@tigerdata/mcp-boilerplate':
         specifier: ^0.8.0
         version: 0.8.0(@opentelemetry/core@2.5.0(@opentelemetry/api@1.9.0))(hono@4.11.7)
+      ai:
+        specifier: ^6.0.49
+        version: 6.0.49(zod@3.25.76)
       cli-table3:
         specifier: ^0.6.5
         version: 0.6.5
@@ -141,12 +150,18 @@ importers:
       dotenv:
         specifier: ^17.2.3
         version: 17.2.3
+      gray-matter:
+        specifier: ^4.0.3
+        version: 4.0.3
       handlebars:
         specifier: ^4.7.8
         version: 4.7.8
       jiti:
         specifier: ^2.6.1
         version: 2.6.1
+      linkedom:
+        specifier: ^0.18.12
+        version: 0.18.12
       pg:
         specifier: ^8.17.2
         version: 8.17.2
@@ -163,49 +178,6 @@ importers:
       '@types/pg':
         specifier: ^8.16.0
         version: 8.16.0
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.0.15
-        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@25.0.10)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)
-
-  packages/core:
-    dependencies:
-      '@ai-sdk/anthropic':
-        specifier: ^3.0.23
-        version: 3.0.23(zod@4.3.6)
-      '@ai-sdk/openai':
-        specifier: ^3.0.19
-        version: 3.0.19(zod@4.3.6)
-      '@dbos-inc/dbos-sdk':
-        specifier: ^4.7.9
-        version: 4.7.9
-      '@mozilla/readability':
-        specifier: ^0.6.0
-        version: 0.6.0
-      ai:
-        specifier: ^6.0.49
-        version: 6.0.49(zod@4.3.6)
-      gray-matter:
-        specifier: ^4.0.3
-        version: 4.0.3
-      linkedom:
-        specifier: ^0.18.12
-        version: 0.18.12
-      zod:
-        specifier: ^4.3.5
-        version: 4.3.6
-    devDependencies:
-      '@types/pg':
-        specifier: ^8.16.0
-        version: 8.16.0
-      dotenv:
-        specifier: ^17.2.3
-        version: 17.2.3
-      pg:
-        specifier: ^8.17.2
-        version: 8.17.2
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -314,12 +286,6 @@ packages:
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [win32]
-
-  '@clack/core@0.5.0':
-    resolution: {integrity: sha512-p3y0FIOwaYRUPRcMO7+dlmLh8PSRcrjuTndsiA0WAFbWES0mLZlrjVoBRZ9DzkPFJZG6KGkJmoEAY0ZcVWTkow==}
-
-  '@clack/prompts@0.11.0':
-    resolution: {integrity: sha512-pMN5FcrEw9hUkZA4f+zLlzivQSeQf5dRGJjSUbvVYDLvpKCdQx5OaknvKzgbtXOizhP+SJJJjqEbOe55uKKfAw==}
 
   '@colors/colors@1.5.0':
     resolution: {integrity: sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==}
@@ -1857,9 +1823,6 @@ packages:
   '@types/mysql@2.15.27':
     resolution: {integrity: sha512-YfWiV16IY0OeBfBCk8+hXKmdTKrKlwKN1MNKAPBu5JYxLwBEZl7QzeEpGnlZb3VMGJrrGmB84gXiH+ofs/TezA==}
 
-  '@types/node@22.19.7':
-    resolution: {integrity: sha512-MciR4AKGHWl7xwxkBa6xUGxQJ4VBOmPTF7sL+iGzuahOFaO0jHCsuEfS80pan1ef4gWId1oWOweIhrDEYLuaOw==}
-
   '@types/node@25.0.10':
     resolution: {integrity: sha512-zWW5KPngR/yvakJgGOmZ5vTBemDoSqF3AcV/LrO5u5wTWyEAVVh+IT39G4gtyAkh3CtTZs8aX/yRM82OfzHJRg==}
 
@@ -3006,9 +2969,6 @@ packages:
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
 
-  sisteransi@1.0.5:
-    resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
-
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -3145,9 +3105,6 @@ packages:
 
   uhyphen@0.2.0:
     resolution: {integrity: sha512-qz3o9CHXmJJPGBdqzab7qAYuW8kQGKNEuoHFYrBwV6hWIMcpAmxDLXojcHfFr9US1Pe6zUswEIJIbLI610fuqA==}
-
-  undici-types@6.21.0:
-    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
@@ -3315,31 +3272,31 @@ packages:
 
 snapshots:
 
-  '@ai-sdk/anthropic@3.0.23(zod@4.3.6)':
+  '@ai-sdk/anthropic@3.0.23(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 3.0.5
-      '@ai-sdk/provider-utils': 4.0.9(zod@4.3.6)
-      zod: 4.3.6
+      '@ai-sdk/provider-utils': 4.0.9(zod@3.25.76)
+      zod: 3.25.76
 
-  '@ai-sdk/gateway@3.0.22(zod@4.3.6)':
+  '@ai-sdk/gateway@3.0.22(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 3.0.5
-      '@ai-sdk/provider-utils': 4.0.9(zod@4.3.6)
+      '@ai-sdk/provider-utils': 4.0.9(zod@3.25.76)
       '@vercel/oidc': 3.1.0
-      zod: 4.3.6
+      zod: 3.25.76
 
-  '@ai-sdk/openai@3.0.19(zod@4.3.6)':
+  '@ai-sdk/openai@3.0.19(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 3.0.5
-      '@ai-sdk/provider-utils': 4.0.9(zod@4.3.6)
-      zod: 4.3.6
+      '@ai-sdk/provider-utils': 4.0.9(zod@3.25.76)
+      zod: 3.25.76
 
-  '@ai-sdk/provider-utils@4.0.9(zod@4.3.6)':
+  '@ai-sdk/provider-utils@4.0.9(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 3.0.5
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.0.6
-      zod: 4.3.6
+      zod: 3.25.76
 
   '@ai-sdk/provider@3.0.5':
     dependencies:
@@ -3381,17 +3338,6 @@ snapshots:
 
   '@biomejs/cli-win32-x64@2.3.11':
     optional: true
-
-  '@clack/core@0.5.0':
-    dependencies:
-      picocolors: 1.1.1
-      sisteransi: 1.0.5
-
-  '@clack/prompts@0.11.0':
-    dependencies:
-      '@clack/core': 0.5.0
-      picocolors: 1.1.1
-      sisteransi: 1.0.5
 
   '@colors/colors@1.5.0':
     optional: true
@@ -4778,7 +4724,7 @@ snapshots:
 
   '@types/bunyan@1.8.11':
     dependencies:
-      '@types/node': 22.19.7
+      '@types/node': 25.0.10
 
   '@types/chai@5.2.3':
     dependencies:
@@ -4787,7 +4733,7 @@ snapshots:
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 22.19.7
+      '@types/node': 25.0.10
 
   '@types/deep-eql@4.0.2': {}
 
@@ -4795,15 +4741,11 @@ snapshots:
 
   '@types/memcached@2.2.10':
     dependencies:
-      '@types/node': 22.19.7
+      '@types/node': 25.0.10
 
   '@types/mysql@2.15.27':
     dependencies:
-      '@types/node': 22.19.7
-
-  '@types/node@22.19.7':
-    dependencies:
-      undici-types: 6.21.0
+      '@types/node': 25.0.10
 
   '@types/node@25.0.10':
     dependencies:
@@ -4811,7 +4753,7 @@ snapshots:
 
   '@types/oracledb@6.5.2':
     dependencies:
-      '@types/node': 22.19.7
+      '@types/node': 25.0.10
 
   '@types/pg-pool@2.0.6':
     dependencies:
@@ -4819,7 +4761,7 @@ snapshots:
 
   '@types/pg@8.15.6':
     dependencies:
-      '@types/node': 22.19.7
+      '@types/node': 25.0.10
       pg-protocol: 1.11.0
       pg-types: 2.2.0
 
@@ -4839,7 +4781,7 @@ snapshots:
 
   '@types/tedious@4.0.14':
     dependencies:
-      '@types/node': 22.19.7
+      '@types/node': 25.0.10
 
   '@vercel/oidc@3.1.0': {}
 
@@ -4895,13 +4837,13 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  ai@6.0.49(zod@4.3.6):
+  ai@6.0.49(zod@3.25.76):
     dependencies:
-      '@ai-sdk/gateway': 3.0.22(zod@4.3.6)
+      '@ai-sdk/gateway': 3.0.22(zod@3.25.76)
       '@ai-sdk/provider': 3.0.5
-      '@ai-sdk/provider-utils': 4.0.9(zod@4.3.6)
+      '@ai-sdk/provider-utils': 4.0.9(zod@3.25.76)
       '@opentelemetry/api': 1.9.0
-      zod: 4.3.6
+      zod: 3.25.76
 
   ajv-formats@3.0.1(ajv@8.17.1):
     optionalDependencies:
@@ -5770,7 +5712,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 22.19.7
+      '@types/node': 25.0.10
       long: 5.3.2
 
   proxy-addr@2.0.7:
@@ -5983,8 +5925,6 @@ snapshots:
 
   siginfo@2.0.0: {}
 
-  sisteransi@1.0.5: {}
-
   source-map-js@1.2.1: {}
 
   source-map-support@0.5.21:
@@ -6084,8 +6024,6 @@ snapshots:
     optional: true
 
   uhyphen@0.2.0: {}
-
-  undici-types@6.21.0: {}
 
   undici-types@7.16.0: {}
 

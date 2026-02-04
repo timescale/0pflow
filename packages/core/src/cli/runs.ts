@@ -1,6 +1,6 @@
 // packages/cli/src/runs.ts
 import pg from "pg";
-import { getSchemaName } from "0pflow";
+import { getSchemaName } from "../index.js";
 import { getAppName } from "./app.js";
 
 export interface WorkflowRun {

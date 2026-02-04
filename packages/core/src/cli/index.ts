@@ -2,7 +2,7 @@
 import { Command } from "commander";
 import pc from "picocolors";
 import Table from "cli-table3";
-import { create0pflow } from "0pflow";
+import { create0pflow } from "../index.js";
 import { discoverWorkflows, discoverNodes } from "./discovery.js";
 import { resolveEnv } from "./env.js";
 import { listRuns, getRun } from "./runs.js";

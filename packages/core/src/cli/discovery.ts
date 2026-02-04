@@ -2,7 +2,7 @@
 import fs from "fs";
 import path from "path";
 import { createJiti } from "jiti";
-import type { Executable } from "0pflow";
+import type { Executable } from "../index.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyExecutable = Executable<any, any>;

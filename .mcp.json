@@ -8,7 +8,7 @@
       "command": "npx",
       "args": [
         "tsx",
-        "${CLAUDE_PLUGIN_ROOT}/packages/cli/src/index.ts",
+        "${CLAUDE_PLUGIN_ROOT}/packages/core/src/cli/index.ts",
         "mcp",
         "start"
       ],
