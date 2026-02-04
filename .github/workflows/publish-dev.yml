@@ -1,0 +1,40 @@
+name: Publish dev build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/core/**'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm --filter 0pflow build
+
+      - name: Publish dev build
+        working-directory: packages/core
+        run: |
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          DEV_VERSION="${BASE_VERSION}-dev.${GITHUB_SHA::7}"
+          pnpm version "$DEV_VERSION" --no-git-tag-version
+          pnpm publish --tag dev --access public --no-git-checks --provenance
