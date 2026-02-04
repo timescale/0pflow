@@ -42,17 +42,20 @@ export function buildMcpCommand(): McpCommandResult {
 
   // If running from npx cache or node_modules, use npx 0pflow@version
   if (scriptPath.includes(".npm/_npx") || scriptPath.includes("node_modules/0pflow")) {
-    // Try to get version from npm_lifecycle_script (e.g., "0pflow@latest")
-    const npmScript = process.env.npm_lifecycle_script;
-    if (npmScript?.startsWith("0pflow")) {
-      return {
-        command: ["npx", "-y", npmScript, "mcp", "start"],
-        isLocal: false,
-      };
+    // Read version from package.json
+    const pkgJsonPath = resolve(dirname(scriptPath), "../package.json");
+    let version = "latest";
+    try {
+      const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf-8"));
+      if (pkgJson.version) {
+        // If version contains "dev", use @dev tag, otherwise use exact version
+        version = pkgJson.version.includes("dev") ? "dev" : pkgJson.version;
+      }
+    } catch {
+      // Fallback to latest if we can't read package.json
     }
-    // Fallback to latest
     return {
-      command: ["npx", "-y", "0pflow@latest", "mcp", "start"],
+      command: ["npx", "-y", `0pflow@${version}`, "mcp", "start"],
       isLocal: false,
     };
   }
