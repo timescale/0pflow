@@ -9,6 +9,7 @@ import { listRuns, getRun } from "./runs.js";
 import { getTrace, printTrace } from "./trace.js";
 import { getAppName } from "./app.js";
 import { startMcpServer } from "./mcp/server.js";
+import { runInstall, runUninstall } from "./install.js";
 
 function formatStatus(status: string): string {
   switch (status) {
@@ -444,6 +445,22 @@ mcp
   .description("Start the MCP server for Claude Code")
   .action(async () => {
     await startMcpServer();
+  });
+
+// ============ Install/Uninstall commands ============
+program
+  .command("install")
+  .description("Install 0pflow plugin to Claude Code")
+  .option("-f, --force", "Force reinstall even if already installed")
+  .action(async (options: { force?: boolean }) => {
+    await runInstall({ force: options.force });
+  });
+
+program
+  .command("uninstall")
+  .description("Uninstall 0pflow plugin from Claude Code")
+  .action(async () => {
+    await runUninstall();
   });
 
 program.parse();

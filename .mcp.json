@@ -5,13 +5,8 @@
       "url": "https://opflow.dev-us-east-1.ops.dev.timescale.com/mcp"
     },
     "0pflow-local-tools": {
-      "command": "npx",
-      "args": [
-        "tsx",
-        "${CLAUDE_PLUGIN_ROOT}/packages/core/src/cli/index.ts",
-        "mcp",
-        "start"
-      ],
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/run-mcp.sh",
+      "args": [],
       "env": {}
     }
   }
