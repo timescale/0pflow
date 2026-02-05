@@ -19,7 +19,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "0pflow": "*",
+    "0pflow": "{{opflow_version}}",
     "@t3-oss/env-nextjs": "^0.13.10",
     "@tanstack/react-query": "^5.90.19",
     "@trpc/client": "^11.8.1",

@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
-import { packageRoot } from "../config.js";
+import { packageRoot, version } from "../config.js";
 import { writeAppTemplates, create0pflowDirectories } from "../lib/templates.js";
 import type { ServerContext } from "../types.js";
 
@@ -69,6 +69,7 @@ export const createAppFactory: ApiFactory<
         // Copy app template with Handlebars substitution
         await writeAppTemplates(appPath, {
           app_name: appName,
+          opflow_version: version,
         });
 
         // Create 0pflow-specific directories
