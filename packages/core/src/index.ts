@@ -6,6 +6,10 @@ export const VERSION = "0.1.0";
 export { create0pflow } from "./factory.js";
 export { getSchemaName } from "./dbos.js";
 
+// Discovery
+export { discover } from "./discover.js";
+export type { DiscoverResult } from "./discover.js";
+
 // Executable factories
 export { Node } from "./node.js";
 export type { NodeDefinition } from "./node.js";

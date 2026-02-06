@@ -19,6 +19,11 @@ export interface NodeDiscoveryResult {
   warnings: string[];
 }
 
+export interface AgentDiscoveryResult {
+  agents: Record<string, AnyExecutable>;
+  warnings: string[];
+}
+
 /**
  * Check if a value is a workflow executable
  */
@@ -121,4 +126,57 @@ export async function discoverNodes(
   }
 
   return { nodes, warnings };
+}
+
+/**
+ * Check if a value is an agent executable
+ */
+function isAgent(value: unknown): value is AnyExecutable {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "type" in value &&
+    (value as { type: string }).type === "agent"
+  );
+}
+
+/**
+ * Discover and load agent executables from agents/ directory
+ * Uses jiti to load TypeScript files directly without compilation
+ * Returns agents indexed by name and any warnings
+ */
+export async function discoverAgents(
+  projectDir: string
+): Promise<AgentDiscoveryResult> {
+  const agentsDir = path.join(projectDir, "agents");
+  const agents: Record<string, AnyExecutable> = {};
+  const warnings: string[] = [];
+
+  if (!fs.existsSync(agentsDir)) {
+    return { agents, warnings };
+  }
+
+  const files = fs.readdirSync(agentsDir).filter(f => f.endsWith(".ts") || f.endsWith(".js"));
+
+  for (const file of files) {
+    // Skip index files
+    if (file === "index.ts" || file === "index.js") continue;
+
+    const filePath = path.join(agentsDir, file);
+
+    try {
+      const module = await jiti.import(filePath);
+
+      // Find agent exports in the module
+      for (const value of Object.values(module as Record<string, unknown>)) {
+        if (isAgent(value)) {
+          agents[value.name] = value;
+        }
+      }
+    } catch (err) {
+      warnings.push(`Failed to load agent ${file}: ${err}`);
+    }
+  }
+
+  return { agents, warnings };
 }
