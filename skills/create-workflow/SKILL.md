@@ -164,10 +164,8 @@ Built-in nodes: `web_read`
 
 ### After Writing
 
-Tell the user:
-1. Where the spec was written
-2. List the nodes that need refinement
-3. Suggest running `/0pflow:refine-node` when ready, then `/0pflow:compile-workflow` to generate TypeScript
+1. Tell the user where the spec was written
+2. Immediately invoke `/0pflow:refine-node` for the workflow to refine all nodes
 
 ---
 
