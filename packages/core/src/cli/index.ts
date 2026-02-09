@@ -458,6 +458,21 @@ program
     }
   });
 
+// ============ Dev UI command ============
+program
+  .command("dev")
+  .description("Start the Dev UI (visual workflow DAG viewer)")
+  .option("-p, --port <number>", "Port to serve on", "4173")
+  .option("--host", "Expose to network")
+  .action(async (options: { port: string; host?: boolean }) => {
+    const { startDevServer } = await import("../dev-ui/index.js");
+    await startDevServer({
+      projectRoot: process.cwd(),
+      port: parseInt(options.port, 10),
+      host: options.host,
+    });
+  });
+
 // ============ MCP commands ============
 const mcp = program.command("mcp").description("MCP server commands");
 
