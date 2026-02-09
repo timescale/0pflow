@@ -66,10 +66,10 @@ CREATE ROLE dbosadmin WITH LOGIN CREATEDB PASSWORD '<password>';
 
 2. **Link:**
    ```bash
-   npx dbos-cloud db link <database-instance-name> -H <hostname> -p <port>
+   npx dbos-cloud db link <database-instance-name> -H <hostname> -p <port> -W <password>
    ```
    - `<database-instance-name>` must be 3-16 chars, lowercase alphanumeric + underscores
-   - When prompted for the password, use the password from `DBOS_ADMIN_URL` in `.env`
+   - Use the password from `DBOS_ADMIN_URL` in `.env`
 
 3. **Verify:**
    ```bash
