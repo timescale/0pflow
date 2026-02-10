@@ -1,7 +1,7 @@
 import { watch } from "chokidar";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, relative, extname, dirname } from "node:path";
-import { extractDAGs, extractNodeDescription } from "./dag/extractor.js";
+import { extractDAGs, extractNodeName, extractNodeDescription, extractNodeIntegrations } from "./dag/extractor.js";
 import type { ProjectDAGs } from "./dag/types.js";
 import type { WSMessage } from "./ws.js";
 
@@ -31,6 +31,9 @@ export function createWatcher(options: WatcherOptions) {
   const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const DEBOUNCE_MS = 150;
 
+  // Track in-flight processFile calls so consumers can await initial scan
+  const pendingProcesses = new Set<Promise<void>>();
+
   async function processFile(filePath: string) {
     const absPath = resolve(projectRoot, filePath);
     const relPath = relative(projectRoot, absPath);
@@ -52,9 +55,17 @@ export function createWatcher(options: WatcherOptions) {
             const resolvedPath = resolve(dirname(absPath), importFile);
             if (!existsSync(resolvedPath)) continue;
             const nodeSource = readFileSync(resolvedPath, "utf-8");
+            const name = await extractNodeName(nodeSource);
+            if (name) {
+              node.nodeName = name;
+            }
             const description = await extractNodeDescription(nodeSource);
             if (description) {
               node.description = description;
+            }
+            const integrations = await extractNodeIntegrations(nodeSource);
+            if (integrations) {
+              node.integrations = integrations;
             }
           } catch {
             // Skip nodes we can't resolve
@@ -105,7 +116,8 @@ export function createWatcher(options: WatcherOptions) {
       filePath,
       setTimeout(() => {
         debounceTimers.delete(filePath);
-        processFile(filePath);
+        const p = processFile(filePath).finally(() => pendingProcesses.delete(p));
+        pendingProcesses.add(p);
       }, DEBOUNCE_MS),
     );
   }
@@ -144,6 +156,19 @@ export function createWatcher(options: WatcherOptions) {
     return { ...state };
   }
 
+  /**
+   * Wait for all in-flight file processing (including debounced initial scans) to complete.
+   * Call this before reading state to ensure descriptions are resolved.
+   */
+  async function waitForReady(): Promise<void> {
+    // Wait for debounce timers to fire
+    await new Promise((r) => setTimeout(r, DEBOUNCE_MS + 50));
+    // Wait for all in-flight processFile calls
+    while (pendingProcesses.size > 0) {
+      await Promise.all(pendingProcesses);
+    }
+  }
+
   async function close() {
     for (const timer of debounceTimers.values()) {
       clearTimeout(timer);
@@ -152,5 +177,5 @@ export function createWatcher(options: WatcherOptions) {
     await watcher.close();
   }
 
-  return { getState, close };
+  return { getState, waitForReady, close };
 }

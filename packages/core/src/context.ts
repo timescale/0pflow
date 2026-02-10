@@ -32,6 +32,12 @@ export function createWorkflowContext(options: ContextOptions = {}): WorkflowCon
       return executable.execute(ctx, validated);
     },
 
+    getConnection: async () => {
+      throw new Error(
+        "getConnection is not available in this context. Use create0pflow() for connection management.",
+      );
+    },
+
     log: (message: string, level: LogLevel = "info") => {
       logger(message, level);
     },

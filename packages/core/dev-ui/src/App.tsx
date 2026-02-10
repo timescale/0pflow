@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useDAGSocket } from "./hooks/useDAGSocket";
+import { useConnections } from "./hooks/useConnections";
 import { WorkflowGraph } from "./components/WorkflowGraph";
 import { WorkflowSelector } from "./components/WorkflowSelector";
+import { ConnectionsPanel } from "./components/ConnectionsPanel";
 
 export function App() {
   const { state, connected } = useDAGSocket();
+  const connectionsApi = useConnections();
   const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,6 +38,10 @@ export function App() {
             selected={selectedWorkflow}
             onSelect={setSelectedWorkflow}
           />
+          <ConnectionsPanel
+            workflows={state.workflows}
+            connectionsApi={connectionsApi}
+          />
         </div>
       </div>
 
@@ -42,7 +49,7 @@ export function App() {
         {activeDag ? (
           <ReactFlowProvider key={activeDag.workflowName}>
             <div className="absolute inset-0">
-              <WorkflowGraph dag={activeDag} />
+              <WorkflowGraph dag={activeDag} connectionsApi={connectionsApi} />
             </div>
             <div className="absolute top-3 left-3 bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-border">
               <span className="text-sm font-medium text-foreground">

@@ -4,7 +4,9 @@ import { Registry } from "./registry.js";
 import { initializeDBOS, shutdownDBOS } from "./dbos.js";
 import { NodeRegistry } from "./nodes/registry.js";
 import { configureAgentRuntime } from "./agent.js";
-import { Workflow } from "./workflow.js";
+import { Workflow, configureWorkflowRuntime } from "./workflow.js";
+import { initNango, ensureConnectionsTable } from "./connections/index.js";
+import pg from "pg";
 
 /**
  * Create a 0pflow instance
@@ -38,6 +40,22 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
   // Initialize DBOS for durability (after all workflows are registered)
   await initializeDBOS({ databaseUrl: config.databaseUrl, appName: config.appName });
 
+  // Initialize Nango if secret key is available
+  const nangoSecretKey = config.nangoSecretKey ?? process.env.NANGO_SECRET_KEY;
+  if (nangoSecretKey) {
+    await initNango(nangoSecretKey);
+  }
+
+  // Create shared pg pool for connection management
+  let pool: pg.Pool | null = null;
+  if (nangoSecretKey) {
+    pool = new pg.Pool({ connectionString: config.databaseUrl });
+    await ensureConnectionsTable(config.databaseUrl);
+  }
+
+  // Configure workflow runtime with pool connection
+  configureWorkflowRuntime(pool);
+
   // Build node registry (includes built-in nodes + user nodes)
   // Nodes can be used both via ctx.run() and as agent tools
   const nodeRegistry = new NodeRegistry({
@@ -48,6 +66,7 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
   configureAgentRuntime({
     nodeRegistry,
     modelConfig: config.modelConfig,
+    pool,
   });
 
   return {
@@ -94,6 +113,9 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
     },
 
     shutdown: async () => {
+      if (pool) {
+        await pool.end();
+      }
       await shutdownDBOS();
     },
   };

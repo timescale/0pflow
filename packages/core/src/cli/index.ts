@@ -465,11 +465,20 @@ program
   .option("-p, --port <number>", "Port to serve on", "4173")
   .option("--host", "Expose to network")
   .action(async (options: { port: string; host?: boolean }) => {
+    // Load .env for DATABASE_URL and NANGO_SECRET_KEY
+    try {
+      resolveEnv();
+    } catch {
+      // Dev UI can work without env (connections API just won't be available)
+    }
+
     const { startDevServer } = await import("../dev-ui/index.js");
     await startDevServer({
       projectRoot: process.cwd(),
       port: parseInt(options.port, 10),
       host: options.host,
+      databaseUrl: process.env.DATABASE_URL,
+      nangoSecretKey: process.env.NANGO_SECRET_KEY,
     });
   });
 

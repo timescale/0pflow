@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DAGNode } from "../types";
+import { IntegrationSection } from "./IntegrationSection";
+import type { useConnections } from "../hooks/useConnections";
 
 type NodeType = DAGNode["type"];
 
@@ -34,9 +36,11 @@ interface NodeDetailPopoverProps {
   node: DAGNode;
   position: { x: number; y: number };
   onClose: () => void;
+  workflowName?: string;
+  connectionsApi?: ReturnType<typeof useConnections>;
 }
 
-export function NodeDetailPopover({ node, position, onClose }: NodeDetailPopoverProps) {
+export function NodeDetailPopover({ node, position, onClose, workflowName, connectionsApi }: NodeDetailPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
   const icon = typeIcons[node.type] ?? "fn";
   const style = typeStyles[node.type] ?? typeStyles.node;
@@ -88,6 +92,8 @@ export function NodeDetailPopover({ node, position, onClose }: NodeDetailPopover
     });
   }, [position.x, position.y]);
 
+  const hasIntegrations = node.integrations && node.integrations.length > 0 && node.nodeName && workflowName && connectionsApi;
+
   return (
     <div
       ref={popoverRef}
@@ -135,6 +141,26 @@ export function NodeDetailPopover({ node, position, onClose }: NodeDetailPopover
           </p>
         )}
       </div>
+
+      {/* Integrations */}
+      {hasIntegrations && (
+        <div className="px-4 py-3 border-t border-accent">
+          <p className="text-[11px] uppercase tracking-wider text-[#a8a099] mb-2">
+            Integrations
+          </p>
+          <div className="flex flex-col gap-3">
+            {node.integrations!.map((integrationId) => (
+              <IntegrationSection
+                key={integrationId}
+                integrationId={integrationId}
+                workflowName={workflowName!}
+                nodeName={node.nodeName!}
+                connectionsApi={connectionsApi!}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

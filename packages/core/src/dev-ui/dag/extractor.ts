@@ -119,6 +119,84 @@ function extractStringProperty(obj: SyntaxNode, propName: string): string | null
 }
 
 /**
+ * Extract a string array property (e.g. integrations: ["salesforce", "hubspot"]) from an object node.
+ */
+function extractStringArrayProperty(obj: SyntaxNode, propName: string): string[] | null {
+  for (const prop of obj.namedChildren) {
+    if (prop.type === "pair" || prop.type === "property_assignment") {
+      const key = prop.namedChildren[0];
+      const value = prop.namedChildren[1];
+      if (key?.text === propName && value?.type === "array") {
+        const items: string[] = [];
+        for (const elem of value.namedChildren) {
+          if (elem.type === "string") {
+            items.push(elem.text.replace(/^['"]|['"]$/g, ""));
+          }
+        }
+        return items.length > 0 ? items : null;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Parse a node source file and extract the integrations array from its .create() config.
+ */
+export async function extractNodeIntegrations(source: string): Promise<string[] | undefined> {
+  const parser = await getParser();
+  const tree = parser.parse(source);
+  const root = tree.rootNode;
+
+  const calls = root.descendantsOfType("call_expression");
+  for (const call of calls) {
+    const fn = call.namedChildren[0];
+    if (!fn || fn.type !== "member_expression") continue;
+    const prop = fn.namedChildren[1];
+    if (prop?.text !== "create") continue;
+
+    const args = call.descendantsOfType("arguments")[0];
+    if (!args) continue;
+
+    const obj = args.descendantsOfType("object")[0];
+    if (!obj) continue;
+
+    const integrations = extractStringArrayProperty(obj, "integrations");
+    if (integrations) return integrations;
+  }
+
+  return undefined;
+}
+
+/**
+ * Parse a node source file and extract the name from its .create() config.
+ */
+export async function extractNodeName(source: string): Promise<string | undefined> {
+  const parser = await getParser();
+  const tree = parser.parse(source);
+  const root = tree.rootNode;
+
+  const calls = root.descendantsOfType("call_expression");
+  for (const call of calls) {
+    const fn = call.namedChildren[0];
+    if (!fn || fn.type !== "member_expression") continue;
+    const prop = fn.namedChildren[1];
+    if (prop?.text !== "create") continue;
+
+    const args = call.descendantsOfType("arguments")[0];
+    if (!args) continue;
+
+    const obj = args.descendantsOfType("object")[0];
+    if (!obj) continue;
+
+    const name = extractStringProperty(obj, "name");
+    if (name) return name;
+  }
+
+  return undefined;
+}
+
+/**
  * Parse a node source file and extract the description from its .create() config.
  */
 export async function extractNodeDescription(source: string): Promise<string | undefined> {

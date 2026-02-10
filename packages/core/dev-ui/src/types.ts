@@ -3,11 +3,14 @@ export interface DAGNode {
   label: string;
   type: "node" | "agent" | "workflow" | "input" | "output" | "condition";
   executableName?: string;
+  /** The name from .create() config (kebab-case), used for runtime resolution */
+  nodeName?: string;
   importPath?: string;
   lineNumber?: number;
   /** Schema field names for input/output nodes */
   fields?: string[];
   description?: string;
+  integrations?: string[];
 }
 
 export interface LoopGroup {

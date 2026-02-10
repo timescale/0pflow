@@ -27,9 +27,10 @@ const nodeTypes: NodeTypes = {
 
 interface WorkflowGraphProps {
   dag: WorkflowDAG;
+  connectionsApi?: ReturnType<typeof import("../hooks/useConnections").useConnections>;
 }
 
-export function WorkflowGraph({ dag }: WorkflowGraphProps) {
+export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
   const { fitView } = useReactFlow();
   const [selectedNode, setSelectedNode] = useState<DAGNode | null>(null);
   const [popoverPosition, setPopoverPosition] = useState<{ x: number; y: number } | null>(null);
@@ -179,6 +180,8 @@ export function WorkflowGraph({ dag }: WorkflowGraphProps) {
           node={selectedNode}
           position={popoverPosition}
           onClose={closePopover}
+          workflowName={dag.workflowName}
+          connectionsApi={connectionsApi}
         />
       )}
     </div>

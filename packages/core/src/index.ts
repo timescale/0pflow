@@ -47,10 +47,24 @@ export type {
   AgentTools,
 } from "./nodes/agent/executor.js";
 
+// Connection management
+export {
+  ensureConnectionsTable,
+  resolveConnectionId,
+  upsertConnection,
+  listConnections,
+  deleteConnection,
+  initNango,
+  getNango,
+  fetchCredentials,
+} from "./connections/index.js";
+export type { ConnectionMapping } from "./connections/index.js";
+
 // Types
 export type {
   Executable,
   WorkflowContext,
+  ConnectionCredentials,
   LogLevel,
   PflowConfig,
   Pflow,

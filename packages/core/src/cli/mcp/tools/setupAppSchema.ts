@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import * as dotenv from "dotenv";
-import postgres from "postgres";
+import pg from "pg";
 import { z } from "zod";
 import type { ServerContext } from "../types.js";
 
@@ -127,17 +127,18 @@ export const setupAppSchemaFactory: ApiFactory<
         };
       }
 
-      // Connect using postgres.js as admin
-      const sql = postgres(adminConnectionString);
+      // Connect using pg as admin
+      const pool = new pg.Pool({ connectionString: adminConnectionString, max: 1 });
 
       try {
         // Check if user already exists
-        const existingUser = await sql`
-          SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = ${app_name}
-        `;
+        const existingUser = await pool.query(
+          `SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = $1`,
+          [app_name],
+        );
 
-        if (existingUser.length > 0) {
-          await sql.end();
+        if (existingUser.rows.length > 0) {
+          await pool.end();
           return {
             success: false,
             message: `User '${app_name}' already exists. Choose a different app name or delete the existing user.`,
@@ -146,59 +147,59 @@ export const setupAppSchemaFactory: ApiFactory<
 
         // Create new user
         const appPassword = generatePassword();
-        await sql.unsafe(
+        await pool.query(
           `CREATE ROLE ${app_name} WITH LOGIN PASSWORD '${appPassword}'`,
         );
 
         // Grant app role to tsdbadmin so admin can access app objects
-        await sql.unsafe(`GRANT ${app_name} TO tsdbadmin WITH INHERIT TRUE`);
+        await pool.query(`GRANT ${app_name} TO tsdbadmin WITH INHERIT TRUE`);
 
         // Create app schema owned by the app user
-        await sql.unsafe(
+        await pool.query(
           `CREATE SCHEMA IF NOT EXISTS ${app_name} AUTHORIZATION ${app_name}`,
         );
-        await sql.unsafe(
+        await pool.query(
           `CREATE SCHEMA IF NOT EXISTS ${app_name}_dbos AUTHORIZATION ${app_name}`,
         );
 
         //annoyingly, dbos seems to need this. TODO: find a better way to do this.
-        await sql.unsafe(
+        await pool.query(
           `GRANT CREATE ON DATABASE tsdb TO ${app_name}`,
         );
 
         // Allow using extensions in public schema, but not creating objects there
-        await sql.unsafe(`REVOKE CREATE ON SCHEMA public FROM ${app_name}`);
-        await sql.unsafe(`GRANT USAGE ON SCHEMA public TO ${app_name}`);
+        await pool.query(`REVOKE CREATE ON SCHEMA public FROM ${app_name}`);
+        await pool.query(`GRANT USAGE ON SCHEMA public TO ${app_name}`);
 
         // Set search_path for app user (app schema first, then public for extensions)
-        await sql.unsafe(
+        await pool.query(
           `ALTER ROLE ${app_name} SET search_path TO ${app_name}, ${app_name}_dbos, public`,
         );
 
         // Append app schema to tsdbadmin's search_path
-        const currentPath = await sql`
-          SELECT setting FROM pg_settings WHERE name = 'search_path'
-        `;
-        const existingPath = currentPath[0]?.setting ?? "public";
+        const currentPath = await pool.query(
+          `SELECT setting FROM pg_settings WHERE name = 'search_path'`,
+        );
+        const existingPath = currentPath.rows[0]?.setting ?? "public";
         if (!existingPath.includes(app_name)) {
-          await sql.unsafe(
+          await pool.query(
             `ALTER ROLE tsdbadmin SET search_path TO ${existingPath}, ${app_name}, ${app_name}_dbos`,
           );
         }
 
         // Create dbosadmin role for DBOS Cloud BYOD (Bring Your Own Database)
-        const existingAdmin = await sql`
-          SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'dbosadmin'
-        `;
+        const existingAdmin = await pool.query(
+          `SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'dbosadmin'`,
+        );
         let dbosAdminPassword: string | undefined;
-        if (existingAdmin.length === 0) {
+        if (existingAdmin.rows.length === 0) {
           dbosAdminPassword = generatePassword();
-          await sql.unsafe(
+          await pool.query(
             `CREATE ROLE dbosadmin WITH LOGIN CREATEDB PASSWORD '${dbosAdminPassword}'`,
           );
         }
 
-        await sql.end();
+        await pool.end();
 
         // Build app connection string
         const appDatabaseUrl = buildConnectionString(
@@ -232,7 +233,7 @@ export const setupAppSchemaFactory: ApiFactory<
 
         await writeFile(envPath, `${newEnvContent}\n`);
       } catch (err) {
-        await sql.end();
+        await pool.end();
         const error = err as Error;
         return {
           success: false,

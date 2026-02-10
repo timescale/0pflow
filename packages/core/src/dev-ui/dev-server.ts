@@ -4,6 +4,9 @@ import { resolve, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createWSServer } from "./ws.js";
 import { createWatcher } from "./watcher.js";
+import { handleApiRequest } from "./api.js";
+import { ensureConnectionsTable } from "../connections/index.js";
+import pg from "pg";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -21,6 +24,8 @@ export interface DevServerOptions {
   projectRoot: string;
   port?: number;
   host?: boolean;
+  databaseUrl?: string;
+  nangoSecretKey?: string;
 }
 
 export async function startDevServer(options: DevServerOptions) {
@@ -30,11 +35,36 @@ export async function startDevServer(options: DevServerOptions) {
   const __dir = dirname(fileURLToPath(import.meta.url));
   const clientDir = resolve(__dir, "../dev-ui-client");
 
+  // Set up API context if database and Nango are configured
+  const hasApi = !!(options.databaseUrl && options.nangoSecretKey);
+  let pool: pg.Pool | null = null;
+
+  if (hasApi) {
+    await ensureConnectionsTable(options.databaseUrl!);
+    pool = new pg.Pool({ connectionString: options.databaseUrl! });
+  }
+
   const httpServer = createHttpServer(async (req, res) => {
     // Skip WebSocket upgrade requests
     if (req.headers.upgrade) return;
 
     const url = (req.url ?? "/").split("?")[0];
+
+    // Route /api/* to API handler
+    if (url.startsWith("/api/") && hasApi && pool) {
+      try {
+        const handled = await handleApiRequest(req, res, {
+          pool,
+          nangoSecretKey: options.nangoSecretKey!,
+        });
+        if (handled) return;
+      } catch (err) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }));
+        return;
+      }
+    }
+
     const filePath = url === "/" ? "index.html" : url.slice(1);
     const absPath = resolve(clientDir, filePath);
 
@@ -64,11 +94,10 @@ export async function startDevServer(options: DevServerOptions) {
     onMessage: (msg) => broadcast(msg),
   });
 
-  // On new WS connection, send full state
-  wss.on("connection", (ws) => {
-    setTimeout(() => {
-      sendTo(ws, { type: "full-sync", data: watcher.getState() });
-    }, 500);
+  // On new WS connection, wait for initial scan then send full state
+  wss.on("connection", async (ws) => {
+    await watcher.waitForReady();
+    sendTo(ws, { type: "full-sync", data: watcher.getState() });
   });
 
   const hostname = host ? "0.0.0.0" : "localhost";
@@ -84,8 +113,16 @@ export async function startDevServer(options: DevServerOptions) {
   console.log(`  Watching for workflow changes in:`);
   console.log(`    ${resolve(projectRoot, "generated/workflows/")}`);
   console.log(`    ${resolve(projectRoot, "src/workflows/")}\n`);
+  if (hasApi) {
+    console.log(`  Connections API enabled (Nango + DB configured)\n`);
+  } else {
+    console.log(`  Connections API disabled (set DATABASE_URL and NANGO_SECRET_KEY to enable)\n`);
+  }
 
   const cleanup = async () => {
+    if (pool) {
+      await pool.end();
+    }
     await watcher.close();
     httpServer.close();
   };

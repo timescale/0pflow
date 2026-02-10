@@ -217,6 +217,7 @@ const openai = createOpenAI({});
 
 export const <camelCaseName> = Agent.create({
   name: "<name>",
+  // integrations: ["salesforce"],  // declare if this agent needs external credentials
   description: `
 <What this agent does.>
 

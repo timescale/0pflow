@@ -41,12 +41,41 @@ export function buildMcpCommand(): McpCommandResult {
   const scriptPath = baseArgs[1] || "";
 
   // If we're running a .ts file, tsx hides itself from argv
-  // so we see "node file.ts" but need "npx tsx file.ts" to actually run it
+  // so we see "node file.ts" but need tsx to actually run it.
+  // We resolve the full path to tsx because npx spawns via sh which
+  // may not have nvm/fnm PATH entries (causes "sh: tsx: command not found").
   if (scriptPath.endsWith(".ts")) {
     // Script is at packages/core/src/cli/index.ts, repo root is 4 levels up
     const packageRoot = resolve(dirname(scriptPath), "../../../..");
+
+    // Try to find tsx: check npx cache, then fall back to npx -y tsx
+    let tsxPath = "tsx";
+    try {
+      const resolved = execSync("npx -y tsx --which 2>/dev/null || which tsx 2>/dev/null", {
+        encoding: "utf-8",
+        timeout: 10000,
+      }).trim();
+      if (resolved) tsxPath = resolved;
+    } catch {
+      // If we can't resolve tsx, try the npx cache directly
+      const home = process.env.HOME || "~";
+      const { readdirSync } = require("node:fs");
+      try {
+        const npxCacheDir = join(home, ".npm", "_npx");
+        for (const entry of readdirSync(npxCacheDir)) {
+          const candidate = join(npxCacheDir, entry, "node_modules", ".bin", "tsx");
+          if (existsSync(candidate)) {
+            tsxPath = candidate;
+            break;
+          }
+        }
+      } catch {
+        // Fall through with bare "tsx"
+      }
+    }
+
     return {
-      command: ["npx", "tsx", scriptPath, "mcp", "start"],
+      command: [tsxPath, scriptPath, "mcp", "start"],
       isLocal: true,
       packageRoot,
     };

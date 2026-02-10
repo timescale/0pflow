@@ -9,9 +9,20 @@ export interface Executable<TInput = unknown, TOutput = unknown> {
   readonly type: "node" | "agent" | "workflow";
   readonly description: string;
   readonly version?: number;
+  readonly integrations?: string[];
   readonly inputSchema: z.ZodType<TInput>;
   readonly outputSchema?: z.ZodType<TOutput>;
   readonly execute: (ctx: WorkflowContext, inputs: TInput) => Promise<TOutput>;
+}
+
+/**
+ * Credentials returned from a Nango connection
+ */
+export interface ConnectionCredentials {
+  token: string;
+  /** Provider-specific config (e.g., instance_url for Salesforce) */
+  connectionConfig?: Record<string, unknown>;
+  raw?: Record<string, unknown>;
 }
 
 /**
@@ -23,6 +34,9 @@ export interface WorkflowContext {
     executable: Executable<TInput, TOutput>,
     inputs: TInput
   ) => Promise<TOutput>;
+
+  /** Get credentials for a configured integration connection */
+  getConnection: (integrationId: string) => Promise<ConnectionCredentials>;
 
   /** Structured logging */
   log: (message: string, level?: LogLevel) => void;
@@ -49,6 +63,8 @@ export interface PflowConfig {
   nodes?: Record<string, AnyExecutable>;
   /** Default model configuration for agents */
   modelConfig?: ModelConfig;
+  /** Nango secret key for connection management */
+  nangoSecretKey?: string;
 }
 
 /**

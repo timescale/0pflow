@@ -1,12 +1,14 @@
 // packages/core/src/agent.ts
 import { z } from "zod";
 import { DBOS } from "@dbos-inc/dbos-sdk";
-import type { Executable, WorkflowContext, LogLevel } from "./types.js";
+import type { Executable, WorkflowContext, LogLevel, ConnectionCredentials } from "./types.js";
 import { parseAgentSpec } from "./nodes/agent/parser.js";
 import { executeAgent } from "./nodes/agent/executor.js";
 import type { AgentTools } from "./nodes/agent/executor.js";
 import type { ModelConfig } from "./nodes/agent/model-config.js";
 import type { NodeRegistry } from "./nodes/registry.js";
+import { resolveConnectionId, fetchCredentials } from "./connections/index.js";
+import type pg from "pg";
 
 export type { AgentTool, AgentTools } from "./nodes/agent/executor.js";
 
@@ -40,6 +42,7 @@ export interface AgentExecutable<TInput = unknown, TOutput = unknown>
 interface AgentRuntimeConfig {
   nodeRegistry: NodeRegistry;
   modelConfig?: ModelConfig;
+  pool: pg.Pool | null;
 }
 
 let agentRuntimeConfig: AgentRuntimeConfig | null = null;
@@ -55,7 +58,10 @@ export function configureAgentRuntime(config: AgentRuntimeConfig): void {
 /**
  * Create a WorkflowContext for agent execution that wraps tool calls in DBOS steps
  */
-function createAgentContext(): WorkflowContext {
+function createAgentContext(workflowName: string): WorkflowContext {
+  let _currentNodeName = "*";
+  let _currentIntegrations: string[] | undefined;
+
   const ctx: WorkflowContext = {
     run: async <TInput, TOutput>(
       executable: Executable<TInput, TOutput>,
@@ -64,11 +70,50 @@ function createAgentContext(): WorkflowContext {
       // Validate inputs against schema
       const validated = executable.inputSchema.parse(inputs);
 
+      // Track current node for connection resolution
+      _currentNodeName = executable.name;
+      _currentIntegrations = executable.integrations;
+
       // Wrap execution in DBOS step for durability
       return DBOS.runStep(
         async () => executable.execute(ctx, validated),
         { name: executable.name }
       );
+    },
+
+    getConnection: async (integrationId: string): Promise<ConnectionCredentials> => {
+      if (!agentRuntimeConfig?.pool) {
+        throw new Error(
+          "Connection management not configured. Set NANGO_SECRET_KEY and DATABASE_URL.",
+        );
+      }
+
+      // Validate that the integration was declared on the current node
+      if (_currentIntegrations && !_currentIntegrations.includes(integrationId)) {
+        const declared = _currentIntegrations.map(i => `"${i}"`).join(", ");
+        throw new Error(
+          `Integration "${integrationId}" is not declared on node "${_currentNodeName}". ` +
+          `Declared integrations: [${declared}]. ` +
+          `Add "${integrationId}" to the node's integrations array.`,
+        );
+      }
+
+      const connectionId = await resolveConnectionId(
+        agentRuntimeConfig.pool,
+        workflowName,
+        _currentNodeName,
+        integrationId,
+      );
+
+      if (!connectionId) {
+        throw new Error(
+          `No connection configured for integration "${integrationId}" ` +
+          `(workflow="${workflowName}", node="${_currentNodeName}"). ` +
+          `Configure it in the Dev UI or set a global default.`,
+        );
+      }
+
+      return fetchCredentials(integrationId, connectionId);
     },
 
     log: (message: string, level: LogLevel = "info") => {
@@ -96,7 +141,7 @@ export const Agent = {
         );
       }
 
-      const ctx = createAgentContext();
+      const ctx = createAgentContext(definition.name);
 
       // Parse the agent spec (for system prompt and model override)
       const spec = await parseAgentSpec(definition.specPath);

@@ -1,9 +1,5 @@
 {
   "mcpServers": {
-    "0pflow": {
-      "type": "http",
-      "url": "https://opflow.dev-us-east-1.ops.dev.timescale.com/mcp"
-    },
     "0pflow-local-tools": {
       "command": "node",
       "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/run-mcp.cjs"]

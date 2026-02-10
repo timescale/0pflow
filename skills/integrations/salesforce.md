@@ -29,21 +29,26 @@ Look for `src/integrations/salesforce/generated/graphql.ts`. If it exists, the t
 
 If not: "I don't see a Salesforce SDK in your project. Would you like me to set it up?"
 
-### 2. Check for Credentials
+### 2. Get Credentials from Nango
 
-Required environment variable in `.env`:
+**Use the `get_connection_info` tool** to look up the Salesforce connection:
+
+```
+get_connection_info({ integration_id: "salesforce", workflow_name: "lead-enrichment", node_name: "query-salesforce-leads" })
+```
+
+This returns:
+- `connection_id` → pass to fetch-schema via `--nango-connection-id`
+- `connection_config.instance_url` → confirms the Salesforce instance
+
+**Do NOT write access tokens to `.env`.** Tokens are short-lived and fetched on the fly by the fetch-schema script via Nango.
+
+**If `get_connection_info` fails** (no connection configured), tell the user:
+"No Salesforce connection found. Use the Dev UI to connect your Salesforce account first, then re-run this."
+
+**Fallback (no Nango):** If NANGO_SECRET_KEY is not set, fall back to asking for credentials manually:
 - `SALESFORCE_DOMAIN` (e.g., `https://yourcompany.my.salesforce.com`)
-
-Plus ONE of the following authentication methods:
-
-**Option A: Direct Access Token** (from Nango or other OAuth provider)
-- `SALESFORCE_ACCESS_TOKEN` - OAuth access token
-
-**Option B: Client Credentials Flow** (for server-to-server auth)
-- `SALESFORCE_CLIENT_ID`
-- `SALESFORCE_CLIENT_SECRET`
-
-If both are set, the direct access token takes priority.
+- `SALESFORCE_ACCESS_TOKEN` or `SALESFORCE_CLIENT_ID` + `SALESFORCE_CLIENT_SECRET`
 
 ### 3. Check for Dependencies
 
@@ -82,16 +87,13 @@ src/integrations/salesforce/
 
 ## Schema Setup
 
-### Step 1: Get Salesforce Domain
+### Step 1: Resolve Salesforce Domain
 
-Ask: "What is your Salesforce domain?"
+The domain should already be in `.env` from the pre-flight checks (via `get_connection_info`).
+
+If not present, ask: "What is your Salesforce domain?"
 - Production: `https://yourcompany.my.salesforce.com`
 - Sandbox: `https://yourcompany--sandbox.sandbox.my.salesforce.com`
-
-Add to `.env`:
-```
-SALESFORCE_DOMAIN=https://yourcompany.my.salesforce.com
-```
 
 ### Step 2: Create Directory Structure
 
@@ -104,11 +106,11 @@ mkdir -p src/integrations/salesforce/{scripts,schemas,graphql/operations,generat
 Copy from this skill's `scripts/fetch-schema.ts` to `src/integrations/salesforce/scripts/fetch-schema.ts`.
 
 This single script handles everything:
-1. Authenticates via direct token (`SALESFORCE_ACCESS_TOKEN`) or client credentials flow
+1. Authenticates via Nango connection (`--nango-connection-id`), direct token, or client credentials
 2. Fetches the full GraphQL schema via introspection
 3. Decodes HTML entities (`&quot;` → `"`, etc.)
 4. Fixes empty enums that break codegen
-5. Saves to `schemas/schema-clean.json`
+5. Saves to the `--output` path
 
 ### Step 4: Copy Codegen Config
 
@@ -118,14 +120,23 @@ This TypeScript config generates a fully typed SDK using `graphql-request`.
 
 ### Step 5: Add Package Scripts
 
+Use the `connection_id` from `get_connection_info` in the fetch-schema command:
+
 ```json
 {
   "scripts": {
-    "salesforce:fetch-schema": "tsx src/integrations/salesforce/scripts/fetch-schema.ts '' src/integrations/salesforce/schemas/schema-clean.json",
+    "salesforce:fetch-schema": "tsx src/integrations/salesforce/scripts/fetch-schema.ts --nango-connection-id <CONNECTION_ID> --output src/integrations/salesforce/schemas/schema-clean.json",
     "salesforce:codegen": "graphql-codegen --config src/integrations/salesforce/scripts/codegen.ts",
     "salesforce:refresh": "npm run salesforce:fetch-schema && npm run salesforce:codegen"
   }
 }
+```
+
+Replace `<CONNECTION_ID>` with the actual `connection_id` returned by `get_connection_info`.
+
+For projects without Nango, use `--domain` instead:
+```json
+"salesforce:fetch-schema": "tsx src/integrations/salesforce/scripts/fetch-schema.ts --domain https://yourcompany.my.salesforce.com --output src/integrations/salesforce/schemas/schema-clean.json"
 ```
 
 ### Step 6: Fetch Schema
@@ -194,77 +205,19 @@ Create `src/integrations/salesforce/client.ts`:
 ```typescript
 import { GraphQLClient } from "graphql-request";
 import { getSdk, type Sdk } from "./generated/graphql.js";
-import { config } from "dotenv";
-import findConfig from "find-config";
+import type { WorkflowContext } from "0pflow";
 
-const envPath = findConfig(".env");
-if (envPath) config({ path: envPath });
-
-const SALESFORCE_DOMAIN = process.env.SALESFORCE_DOMAIN!;
 const API_VERSION = "v59.0";
 
-async function getAccessTokenViaClientCredentials(): Promise<string> {
-  const clientId = process.env.SALESFORCE_CLIENT_ID;
-  const clientSecret = process.env.SALESFORCE_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error(
-      "No authentication method available. " +
-      "Set SALESFORCE_ACCESS_TOKEN or SALESFORCE_CLIENT_ID + SALESFORCE_CLIENT_SECRET"
-    );
+export async function makeSalesforceSdk(ctx: WorkflowContext): Promise<Sdk> {
+  const conn = await ctx.getConnection("salesforce");
+  const instanceUrl = conn.connectionConfig?.instance_url as string;
+  if (!instanceUrl) {
+    throw new Error("No instance_url in Salesforce connection config");
   }
-
-  const response = await fetch(`${SALESFORCE_DOMAIN}/services/oauth2/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "client_credentials",
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Salesforce OAuth failed: ${await response.text()}`);
-  }
-
-  return (await response.json()).access_token;
-}
-
-async function getAccessToken(): Promise<string> {
-  // Method 1: Direct access token (from Nango or other OAuth provider)
-  const directToken = process.env.SALESFORCE_ACCESS_TOKEN;
-  if (directToken) {
-    return directToken;
-  }
-
-  // Method 2: Client credentials OAuth flow
-  return getAccessTokenViaClientCredentials();
-}
-
-// Token cache (only used for client credentials flow)
-let cachedToken: { token: string; expiresAt: number } | null = null;
-
-async function getCachedAccessToken(): Promise<string> {
-  // Direct tokens are managed externally, don't cache them
-  if (process.env.SALESFORCE_ACCESS_TOKEN) {
-    return process.env.SALESFORCE_ACCESS_TOKEN;
-  }
-
-  const now = Date.now();
-  if (cachedToken && cachedToken.expiresAt > now + 5 * 60 * 1000) {
-    return cachedToken.token;
-  }
-  const token = await getAccessToken();
-  cachedToken = { token, expiresAt: now + 115 * 60 * 1000 };
-  return token;
-}
-
-export async function makeSalesforceSdk(): Promise<Sdk> {
-  const token = await getCachedAccessToken();
   const client = new GraphQLClient(
-    `${SALESFORCE_DOMAIN}/services/data/${API_VERSION}/graphql`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    `${instanceUrl}/services/data/${API_VERSION}/graphql`,
+    { headers: { Authorization: `Bearer ${conn.token}` } }
   );
   return getSdk(client);
 }
@@ -305,12 +258,13 @@ function flatten<Object>Node(node: <Object>Node): Record<string, unknown> {
 
 export const salesforceGet<Object> = Node.create({
   name: "salesforce-get-<object>",
+  integrations: ["salesforce"],
   inputSchema: z.object({
     id: z.string().describe("Salesforce <Object> ID"),
   }),
   outputSchema: z.record(z.string(), z.unknown()),
-  execute: async (_ctx, inputs) => {
-    const sdk = await makeSalesforceSdk();
+  execute: async (ctx, inputs) => {
+    const sdk = await makeSalesforceSdk(ctx);
     const result = await sdk.Get<Object>({ id: inputs.id });
 
     const edges = result.uiapi.query.<Object>?.edges;
@@ -418,18 +372,16 @@ Agent: I'm using the Salesforce integration skill.
 
 [Pre-flight] No Salesforce SDK found. Setting up...
 
-**Question 1:** What is your Salesforce domain?
-
-User: https://mycompany.my.salesforce.com
-
-Agent: I'll add that to your .env file.
+[Calls get_connection_info({ integration_id: "salesforce", workflow_name: "lead-enrichment", node_name: "salesforce-get-lead" })]
+→ Got connection_id: acc5892d-...
+→ Confirmed instance_url: https://mycompany.my.salesforce.com
 
 Setting up schema and SDK...
 - Created directory structure
 - Fetched and cleaned schema (460 types, 1 empty enum fixed)
 - Generated typed SDK
 
-**Question 2:** Which fields do you need from Lead?
+**Question:** Which fields do you need from Lead?
 
 User: Name, Email, Company, Status, and any custom scoring fields
 
@@ -439,7 +391,7 @@ Agent: I'll create `src/integrations/salesforce/graphql/operations/lead.graphql`
 
 Running codegen... Done.
 
-**Question 3:** Should I create the node at `src/nodes/salesforce-get-lead.ts`?
+**Question:** Should I create the node at `src/nodes/salesforce-get-lead.ts`?
 
 User: Yes
 

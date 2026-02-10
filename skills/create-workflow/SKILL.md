@@ -28,7 +28,21 @@ Check the current working directory and handle one of three cases:
 
 ### 2. Discover Integrations
 
-Call `mcp__plugin_0pflow_0pflow__list_integrations` to see what external systems are available (Slack, Salesforce, etc.).
+Call `mcp__plugin_0pflow_0pflow-local-tools__list_integrations` to see what external integrations are available (Salesforce, Slack, HubSpot, etc.). This reads the project's `NANGO_SECRET_KEY` from `.env` and queries Nango.
+
+**CRITICAL: If the tool returns an error about a missing `NANGO_SECRET_KEY`, you MUST stop immediately. Do NOT continue with any further steps. Do NOT offer to create the workflow without integrations. Do NOT skip this step.**
+
+Tell the user:
+
+> Nango is required for 0pflow workflows. Please set it up before we continue:
+> 1. Create a Nango account at https://nango.dev
+> 2. Add `NANGO_SECRET_KEY=<key>` to this project's `.env` file
+> 3. Configure the integrations you need in the Nango dashboard
+> 4. Then run `/0pflow:create-workflow` again.
+
+Then stop. Do not proceed to any subsequent steps.
+
+Once the tool succeeds, the returned integration IDs are what nodes declare in their `integrations: [...]` arrays.
 
 ### 3. Read Existing Context
 
@@ -220,6 +234,7 @@ import { Node } from "0pflow";
 
 export const <camelCaseName> = Node.create({
   name: "<kebab-case-name>",
+  // integrations: ["salesforce"],  // declare if this node needs external credentials
   description: `
 <What this node does.>
 
@@ -248,6 +263,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const <camelCaseName> = Agent.create({
   name: "<kebab-case-name>",
+  // integrations: ["salesforce"],  // declare if this agent needs external credentials
   description: `
 <What this agent does.>
 
