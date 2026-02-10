@@ -3,13 +3,13 @@ import type { DAGNode } from "../types";
 
 type NodeType = DAGNode["type"];
 
-const typeStyles: Record<NodeType, { bg: string; border: string; badge?: string; badgeText?: string }> = {
-  node: { bg: "bg-blue-50", border: "border-blue-200", badge: "bg-blue-500", badgeText: "text-white" },
-  agent: { bg: "bg-purple-50", border: "border-purple-200", badge: "bg-purple-500", badgeText: "text-white" },
-  workflow: { bg: "bg-green-50", border: "border-green-200", badge: "bg-green-500", badgeText: "text-white" },
-  input: { bg: "bg-slate-50", border: "border-slate-200" },
-  output: { bg: "bg-slate-50", border: "border-slate-200" },
-  condition: { bg: "bg-amber-50", border: "border-amber-300" },
+const typeStyles: Record<NodeType, { accent: string; iconBg: string }> = {
+  node:      { accent: "bg-emerald-500", iconBg: "bg-emerald-50 text-emerald-600" },
+  agent:     { accent: "bg-purple-500",  iconBg: "bg-purple-50 text-purple-600" },
+  workflow:  { accent: "bg-emerald-500", iconBg: "bg-emerald-50 text-emerald-600" },
+  input:     { accent: "bg-[#d4cfc8]",   iconBg: "bg-[#f5f3f0] text-[#a8a099]" },
+  output:    { accent: "bg-[#d4cfc8]",   iconBg: "bg-[#f5f3f0] text-[#a8a099]" },
+  condition: { accent: "bg-amber-400",   iconBg: "bg-amber-50 text-amber-600" },
 };
 
 const typeIcons: Record<NodeType, string> = {
@@ -33,32 +33,27 @@ export function WorkflowNode({ data }: NodeProps) {
   return (
     <div
       className={`
-        border rounded-lg shadow-sm relative
-        ${style.bg} ${style.border}
-        ${isCondition ? "border-dashed border-2" : ""}
+        bg-card border border-border rounded-lg shadow-sm relative
+        ${isCondition ? "border-amber-200 border-dashed border-2" : ""}
       `}
       style={{ minWidth: isIO ? 120 : 160, maxWidth: 260 }}
     >
-      <div className="flex items-center gap-2 px-3 py-2">
-        {style.badge ? (
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${style.badge} ${style.badgeText}`}>
-            {icon}
-          </span>
-        ) : (
-          <span className="text-[10px] font-bold text-slate-400 shrink-0">
-            {icon}
-          </span>
-        )}
+      <div className={`absolute left-0 top-2 bottom-2 w-[3px] rounded-full ${style.accent}`} />
 
-        <span className={`font-medium ${isIO ? "text-xs text-slate-500" : "text-sm text-slate-800"}`}>
+      <div className="flex items-center gap-2 px-3 py-2 pl-4">
+        <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${style.iconBg}`}>
+          <span className="text-[10px] font-bold">{icon}</span>
+        </div>
+
+        <span className={`font-medium ${isIO ? "text-xs text-muted-foreground" : "text-sm text-card-foreground"}`}>
           {label}
         </span>
       </div>
 
       {isIO && fields && fields.length > 0 && (
-        <div className="border-t border-slate-200 px-3 py-1.5 flex flex-wrap gap-x-2 gap-y-0.5">
+        <div className="border-t border-border px-3 py-1.5 pl-4 flex flex-wrap gap-x-2 gap-y-0.5">
           {fields.map((field) => (
-            <span key={field} className="text-[10px] text-slate-400 font-mono">
+            <span key={field} className="text-[10px] text-[#a8a099] font-mono">
               {field}
             </span>
           ))}
@@ -69,14 +64,14 @@ export function WorkflowNode({ data }: NodeProps) {
         <Handle
           type="target"
           position={Position.Left}
-          className="!bg-slate-400 !w-2 !h-2 !border-0"
+          className="!bg-[#d4cfc8] !w-2 !h-2 !border-0"
         />
       )}
       {nodeType !== "output" && (
         <Handle
           type="source"
           position={Position.Right}
-          className="!bg-slate-400 !w-2 !h-2 !border-0"
+          className="!bg-[#d4cfc8] !w-2 !h-2 !border-0"
         />
       )}
     </div>

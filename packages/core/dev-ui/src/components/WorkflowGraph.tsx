@@ -2,6 +2,7 @@ import { useMemo, useCallback, useEffect, useState } from "react";
 import {
   ReactFlow,
   Background,
+  BackgroundVariant,
   Controls,
   MiniMap,
   useNodesState,
@@ -106,8 +107,8 @@ export function WorkflowGraph({ dag }: WorkflowGraphProps) {
       label: edge.label,
       type: "smoothstep",
       animated: false,
-      style: { stroke: "#94a3b8", strokeWidth: 1.5 },
-      labelStyle: { fontSize: 10, fill: "#64748b" },
+      style: { stroke: "#d4cfc8", strokeWidth: 1.5 },
+      labelStyle: { fontSize: 10, fill: "#787068" },
     }));
 
     return { flowNodes, flowEdges };
@@ -164,7 +165,7 @@ export function WorkflowGraph({ dag }: WorkflowGraphProps) {
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#e2e8f0" gap={16} />
+        <Background variant={BackgroundVariant.Dots} color="#d4cfc8" gap={20} size={1.5} />
         <Controls showInteractive={false} />
         <MiniMap
           nodeStrokeWidth={3}

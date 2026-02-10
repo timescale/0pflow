@@ -19,10 +19,10 @@ export function App() {
   );
 
   return (
-    <div className="h-screen w-screen flex bg-white">
-      <div className="w-56 border-r border-gray-200 flex flex-col">
-        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-          <h1 className="text-sm font-bold text-gray-800">0pflow</h1>
+    <div className="h-screen w-screen flex bg-background">
+      <div className="w-56 border-r border-border flex flex-col">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <h1 className="text-sm font-bold text-foreground font-serif">0pflow</h1>
           <span
             className={`w-2 h-2 rounded-full ${connected ? "bg-green-400" : "bg-red-400"}`}
             title={connected ? "Connected" : "Disconnected"}
@@ -44,17 +44,17 @@ export function App() {
             <div className="absolute inset-0">
               <WorkflowGraph dag={activeDag} />
             </div>
-            <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-gray-200">
-              <span className="text-sm font-medium text-gray-700">
+            <div className="absolute top-3 left-3 bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-border">
+              <span className="text-sm font-medium text-foreground">
                 {activeDag.workflowName}
               </span>
-              <span className="text-xs text-gray-400 ml-2">
+              <span className="text-xs text-muted-foreground ml-2">
                 v{activeDag.version}
               </span>
             </div>
           </ReactFlowProvider>
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
             {state.workflows.length === 0
               ? "No workflow files found. Create a workflow to get started."
               : "Select a workflow from the sidebar."}

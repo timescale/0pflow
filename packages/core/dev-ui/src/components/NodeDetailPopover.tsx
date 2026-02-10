@@ -12,13 +12,13 @@ const typeIcons: Record<NodeType, string> = {
   condition: "?",
 };
 
-const typeStyles: Record<NodeType, { badge?: string; badgeText?: string }> = {
-  node: { badge: "bg-blue-500", badgeText: "text-white" },
-  agent: { badge: "bg-purple-500", badgeText: "text-white" },
-  workflow: { badge: "bg-green-500", badgeText: "text-white" },
-  input: {},
-  output: {},
-  condition: {},
+const typeStyles: Record<NodeType, { iconBg: string }> = {
+  node: { iconBg: "bg-emerald-50 text-emerald-600" },
+  agent: { iconBg: "bg-purple-50 text-purple-600" },
+  workflow: { iconBg: "bg-emerald-50 text-emerald-600" },
+  input: { iconBg: "bg-[#f5f3f0] text-[#a8a099]" },
+  output: { iconBg: "bg-[#f5f3f0] text-[#a8a099]" },
+  condition: { iconBg: "bg-amber-50 text-amber-600" },
 };
 
 const typeLabels: Record<NodeType, string> = {
@@ -92,25 +92,19 @@ export function NodeDetailPopover({ node, position, onClose }: NodeDetailPopover
     <div
       ref={popoverRef}
       style={{ left: clampedPos.left, top: clampedPos.top }}
-      className="absolute z-50 w-[300px] bg-white rounded-xl border border-slate-200 shadow-lg"
+      className="absolute z-50 w-[300px] bg-popover rounded-xl border border-border shadow-lg"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-accent">
         <div className="flex items-center gap-2.5 min-w-0">
-          {style.badge ? (
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${style.badge} ${style.badgeText}`}>
-              {icon}
-            </span>
-          ) : (
-            <span className="text-[10px] font-bold text-slate-400 shrink-0">
-              {icon}
-            </span>
-          )}
+          <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${style.iconBg}`}>
+            <span className="text-[10px] font-bold">{icon}</span>
+          </div>
           <div className="min-w-0">
-            <p className="text-[13px] font-medium text-slate-800 truncate">
+            <p className="text-[13px] font-medium text-popover-foreground truncate">
               {node.label}
             </p>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wide">
+            <p className="text-[10px] text-[#a8a099] uppercase tracking-wide">
               {typeLabel}
             </p>
           </div>
@@ -118,7 +112,7 @@ export function NodeDetailPopover({ node, position, onClose }: NodeDetailPopover
         <button
           onClick={onClose}
           aria-label="Close node details"
-          className="p-1 rounded-md text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+          className="p-1 rounded-md text-[#a8a099] hover:text-popover-foreground hover:bg-accent transition-colors cursor-pointer"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -128,15 +122,15 @@ export function NodeDetailPopover({ node, position, onClose }: NodeDetailPopover
 
       {/* Description */}
       <div className="px-4 py-3">
-        <p className="text-[11px] uppercase tracking-wider text-slate-400 mb-1.5">
+        <p className="text-[11px] uppercase tracking-wider text-[#a8a099] mb-1.5">
           Description
         </p>
         {node.description ? (
-          <p className="text-[13px] text-slate-600 whitespace-pre-line leading-relaxed">
+          <p className="text-[13px] text-muted-foreground whitespace-pre-line leading-relaxed">
             {node.description}
           </p>
         ) : (
-          <p className="text-[13px] text-slate-400 italic">
+          <p className="text-[13px] text-[#a8a099] italic">
             No description available
           </p>
         )}

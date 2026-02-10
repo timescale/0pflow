@@ -5,19 +5,19 @@ export function LoopGroupNode({ data }: NodeProps) {
 
   return (
     <div
-      className="rounded-lg border-2 border-dashed border-slate-300 bg-slate-100/50 relative"
+      className="rounded-lg border-2 border-dashed border-[#d4cfc8] bg-background/50 relative"
       style={{
         width: data.width as number,
         height: data.height as number,
       }}
     >
-      <div className="flex items-center gap-1.5 px-3 py-1 border-b border-dashed border-slate-200">
+      <div className="flex items-center gap-1.5 px-3 py-1 border-b border-dashed border-border">
         <svg
           width="14"
           height="14"
           viewBox="0 0 14 14"
           fill="none"
-          className="shrink-0 text-slate-400"
+          className="shrink-0 text-[#a8a099]"
         >
           <path
             d="M3 4C2 4 1 5 1 6.5C1 8 2 9 3 9H11C12 9 13 8 13 6.5C13 5 12 4 11 4"
@@ -27,7 +27,7 @@ export function LoopGroupNode({ data }: NodeProps) {
           />
           <path d="M9.5 3L11 4L9.5 5" fill="currentColor" />
         </svg>
-        <span className="text-[11px] font-medium text-slate-500 truncate">
+        <span className="text-[11px] font-medium text-muted-foreground truncate">
           {label}
         </span>
       </div>
