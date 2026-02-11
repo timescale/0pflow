@@ -118,7 +118,11 @@ export const setupAppSchemaFactory: ApiFactory<
             message: "connection_string not found in service details",
           };
         }
-        adminConnectionString = serviceDetails.connection_string;
+        const parsed = new URL(serviceDetails.connection_string);
+        if (!parsed.searchParams.has("uselibpqcompat")) {
+          parsed.searchParams.set("uselibpqcompat", "true");
+        }
+        adminConnectionString = parsed.toString();
       } catch (err) {
         const error = err as Error;
         return {

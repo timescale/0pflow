@@ -217,7 +217,7 @@ const openai = createOpenAI({});
 
 export const <camelCaseName> = Agent.create({
   name: "<name>",
-  // integrations: ["salesforce"],  // declare if this agent needs external credentials
+  // integrations: ["openai"],  // declare to fetch API keys from Nango (e.g. "openai", "anthropic", "salesforce")
   description: `
 <What this agent does.>
 

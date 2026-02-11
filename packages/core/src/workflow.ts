@@ -41,6 +41,8 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
   let _currentIntegrations: string[] | undefined;
 
   const ctx: WorkflowContext = {
+    workflowName: config?.workflowName ?? "*",
+
     run: async <TInput, TOutput>(
       executable: Executable<TInput, TOutput>,
       inputs: TInput

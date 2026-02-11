@@ -27,20 +27,17 @@ export function ConnectionsPanel({ workflows, connectionsApi }: ConnectionsPanel
     return ids;
   }, [workflows]);
 
-  // Show Nango integrations that are either used by nodes or available to configure
+  // Show all integrations: merge Nango-configured + DAG-declared, used ones first
   const availableIntegrations = useMemo(() => {
-    if (nangoIntegrations.length === 0) {
-      // Nango not configured or no integrations — fall back to DAG-declared ones
-      return Array.from(usedIntegrationIds).sort();
+    const allIds = new Set(usedIntegrationIds);
+    for (const i of nangoIntegrations) {
+      allIds.add(i.id);
     }
-    // Show all Nango integrations, with used ones first
-    return nangoIntegrations
-      .map((i) => i.id)
-      .sort((a, b) => {
-        const aUsed = usedIntegrationIds.has(a) ? 0 : 1;
-        const bUsed = usedIntegrationIds.has(b) ? 0 : 1;
-        return aUsed - bUsed || a.localeCompare(b);
-      });
+    return Array.from(allIds).sort((a, b) => {
+      const aUsed = usedIntegrationIds.has(a) ? 0 : 1;
+      const bUsed = usedIntegrationIds.has(b) ? 0 : 1;
+      return aUsed - bUsed || a.localeCompare(b);
+    });
   }, [nangoIntegrations, usedIntegrationIds]);
 
   if (loading) return null;

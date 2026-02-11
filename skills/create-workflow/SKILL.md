@@ -9,9 +9,7 @@ Design and write a workflow with embedded description fields for 0pflow.
 
 ---
 
-## Context Gathering (do silently)
-
-Before drafting, gather context without reporting it to the user:
+## Pre-flight check
 
 ### 1. Detect Project Type
 
@@ -27,6 +25,8 @@ Check the current working directory and handle one of three cases:
 → Tell the user this directory already contains a project and ask them to provide a subdirectory name for the new 0pflow app. Then scaffold inside that subdirectory using `app-scaffolding.md`. Continue from there.
 
 ### 2. Discover Integrations
+
+**IMPORTANT** Do this step only after step 1 (scaffolding) is done.
 
 Call `mcp__plugin_0pflow_0pflow-local-tools__list_integrations` to see what external integrations are available (Salesforce, Slack, HubSpot, etc.). This reads the project's `NANGO_SECRET_KEY` from `.env` and queries Nango.
 
@@ -55,7 +55,7 @@ Once the tool succeeds, the returned integration IDs are what nodes declare in t
 Start the Dev UI in the background so the user can see the workflow graph as it's built:
 
 ```bash
-npx 0pflow dev &
+npx 0pflow dev
 ```
 
 Then open the browser:
@@ -65,58 +65,6 @@ open http://localhost:4173
 ```
 
 If port 4173 is already in use (Dev UI already running), skip this step.
-
----
-
-## Designing the Workflow
-
-Based on the user's description and the context you gathered, **draft a complete workflow design**. Use your judgment to fill in reasonable defaults. Only ask clarifying questions if something is genuinely ambiguous — prefer making a good guess and letting the user correct it.
-
-Think through:
-- **Trigger:** What starts the workflow? (webhook, manual input, schedule)
-- **Tasks:** What steps are needed? In what order?
-- **Decisions:** Are there branching points? What are the conditions?
-- **Node types:** Does each task need AI judgment (agent) or is it a function/API call (node)?
-- **Existing nodes:** Can any existing agents or built-in nodes (`web_read`, etc.) be reused?
-- **Integrations:** Do any connected integrations apply?
-
-### Present an ASCII Diagram
-
-Present the workflow as an ASCII diagram for the user to review:
-
-```
-┌─────────────┐
-│   Trigger   │
-│ (inputs)    │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  Task 1     │
-│ node-name   │
-└──────┬──────┘
-       │
-       ▼
-   ◇ Decision?
-  ╱           ╲
-YES             NO
- │               │
- ▼               ▼
-┌─────┐      ┌──────┐
-│Task2│      │Return│
-└──┬──┘      └──────┘
-   │
-   ▼
-┌─────────────┐
-│   Return    │
-└─────────────┘
-```
-
-Use boxes for tasks, diamonds for decisions, arrows for flow. Adapt to the actual workflow.
-
-Ask: **"Does this flow look right?"**
-
-Iterate on the diagram based on feedback until the user is happy.
 
 ---
 
@@ -136,7 +84,7 @@ This phase focuses on **WHAT** each node does, not **HOW**. Capture purpose and 
    c. Add the `ctx.run()` call to the workflow's `run()` method — the Dev UI graph gains a new node immediately
 
 3. After all tasks are written, invoke `/0pflow:refine-node` to add typed schemas and implementation details.
-
+       
 ### Workflow Scaffold Template
 
 ```typescript
@@ -243,7 +191,7 @@ export const <camelCaseName> = Node.create({
 `,
   inputSchema: z.object({}),
   outputSchema: z.object({}),
-  async run(ctx, input) {
+  async execute(ctx, input) {
     // TODO: implement
     return {} as any;
   },

@@ -67,6 +67,8 @@ export interface ExecuteAgentOptions<TOutput = unknown> {
   maxSteps?: number;
   /** Optional output schema for structured outputs */
   outputSchema?: z.ZodType<TOutput>;
+  /** Integrations declared by the agent (e.g. ["openai"] to fetch API key from Nango) */
+  integrations?: string[];
 }
 
 /**
@@ -132,6 +134,7 @@ export async function executeAgent<TOutput = unknown>(
     modelConfig: providedModelConfig,
     maxSteps: providedMaxSteps,
     outputSchema,
+    integrations,
   } = options;
 
   // Resolve model configuration
@@ -143,6 +146,16 @@ export async function executeAgent<TOutput = unknown>(
       ...modelConfig,
       ...parsed,
     };
+  }
+
+  // If the agent declares its model provider as an integration, fetch the API key from Nango
+  if (integrations?.includes(modelConfig.provider) && !modelConfig.apiKey) {
+    try {
+      const credentials = await ctx.getConnection(modelConfig.provider);
+      modelConfig = { ...modelConfig, apiKey: credentials.token };
+    } catch {
+      // Fall back to env var silently — keeps backward compatibility
+    }
   }
 
   // Create the model instance

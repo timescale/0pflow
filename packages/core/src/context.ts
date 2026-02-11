@@ -21,6 +21,8 @@ export function createWorkflowContext(options: ContextOptions = {}): WorkflowCon
   const logger = options.logger ?? defaultLogger;
 
   const ctx: WorkflowContext = {
+    workflowName: "*",
+
     run: async <TInput, TOutput>(
       executable: Executable<TInput, TOutput>,
       inputs: TInput

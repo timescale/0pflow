@@ -24,6 +24,8 @@ export interface AgentDefinition<TInput, TOutput> {
   tools?: AgentTools;
   /** Path to agent spec markdown file (for system prompt) */
   specPath: string;
+  /** Integrations this agent needs (e.g. ["openai"] to fetch API key from Nango) */
+  integrations?: string[];
 }
 
 /**
@@ -57,12 +59,22 @@ export function configureAgentRuntime(config: AgentRuntimeConfig): void {
 
 /**
  * Create a WorkflowContext for agent execution that wraps tool calls in DBOS steps
+ *
+ * @param agentName - The agent's own name (used as workflowName for DBOS child workflow)
+ * @param parentWorkflowName - The parent workflow name (for connection resolution)
+ * @param parentNodeName - The agent's node name within the parent workflow (for connection resolution)
  */
-function createAgentContext(workflowName: string): WorkflowContext {
+function createAgentContext(
+  agentName: string,
+  parentWorkflowName?: string,
+  parentNodeName?: string,
+): WorkflowContext {
   let _currentNodeName = "*";
   let _currentIntegrations: string[] | undefined;
 
   const ctx: WorkflowContext = {
+    workflowName: agentName,
+
     run: async <TInput, TOutput>(
       executable: Executable<TInput, TOutput>,
       inputs: TInput
@@ -98,17 +110,24 @@ function createAgentContext(workflowName: string): WorkflowContext {
         );
       }
 
+      // If the agent was called from a parent workflow, use the parent's
+      // workflow name and the agent's node name within that workflow for
+      // connection resolution. This matches how connections are configured
+      // in the DB (workflow_name + node_name).
+      const resolveWorkflow = parentWorkflowName ?? agentName;
+      const resolveNode = parentNodeName ?? _currentNodeName;
+
       const connectionId = await resolveConnectionId(
         agentRuntimeConfig.pool,
-        workflowName,
-        _currentNodeName,
+        resolveWorkflow,
+        resolveNode,
         integrationId,
       );
 
       if (!connectionId) {
         throw new Error(
           `No connection configured for integration "${integrationId}" ` +
-          `(workflow="${workflowName}", node="${_currentNodeName}"). ` +
+          `(workflow="${resolveWorkflow}", node="${resolveNode}"). ` +
           `Configure it in the Dev UI or set a global default.`,
         );
       }
@@ -133,6 +152,10 @@ export const Agent = {
   ): AgentExecutable<TInput, TOutput> {
     const tools = definition.tools ?? {};
 
+    // Parent workflow context info, captured before DBOS child workflow starts
+    let _parentWorkflowName: string | undefined;
+    let _parentNodeName: string | undefined;
+
     // Create the DBOS-registered workflow function for this agent
     async function agentWorkflowImpl(inputs: TInput): Promise<TOutput> {
       if (!agentRuntimeConfig) {
@@ -141,7 +164,11 @@ export const Agent = {
         );
       }
 
-      const ctx = createAgentContext(definition.name);
+      const ctx = createAgentContext(
+        definition.name,
+        _parentWorkflowName,
+        _parentNodeName,
+      );
 
       // Parse the agent spec (for system prompt and model override)
       const spec = await parseAgentSpec(definition.specPath);
@@ -160,6 +187,7 @@ export const Agent = {
         nodeRegistry: agentRuntimeConfig.nodeRegistry,
         modelConfig: agentRuntimeConfig.modelConfig,
         outputSchema: definition.outputSchema,
+        integrations: definition.integrations,
       });
 
       return result.output as TOutput;
@@ -178,8 +206,13 @@ export const Agent = {
       outputSchema: definition.outputSchema,
       specPath: definition.specPath,
       tools,
-      // execute ignores the ctx param and uses DBOS context instead
-      execute: (_ctx: WorkflowContext, inputs: TInput) => durableAgentWorkflow(inputs),
+      integrations: definition.integrations,
+      // Capture parent workflow context for connection resolution, then run as DBOS child workflow
+      execute: (parentCtx: WorkflowContext, inputs: TInput) => {
+        _parentWorkflowName = parentCtx.workflowName;
+        _parentNodeName = definition.name;
+        return durableAgentWorkflow(inputs);
+      },
     };
   },
 };

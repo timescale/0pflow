@@ -40,6 +40,7 @@ export async function fetchCredentials(
   const token =
     creds.access_token ??
     creds.api_key ??
+    creds.apiKey ??
     creds.token ??
     "";
 

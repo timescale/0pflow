@@ -29,6 +29,9 @@ export interface ConnectionCredentials {
  * Context passed to workflow/node run functions
  */
 export interface WorkflowContext {
+  /** The name of the workflow this context belongs to */
+  readonly workflowName: string;
+
   /** Run any executable (node, agent, workflow) as a durable step */
   run: <TInput, TOutput>(
     executable: Executable<TInput, TOutput>,
