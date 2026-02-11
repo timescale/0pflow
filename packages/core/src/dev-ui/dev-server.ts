@@ -1,4 +1,5 @@
 import { createServer as createHttpServer } from "node:http";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,6 +25,7 @@ export interface DevServerOptions {
   projectRoot: string;
   port?: number;
   host?: boolean;
+  quiet?: boolean;
   databaseUrl?: string;
   nangoSecretKey?: string;
 }
@@ -31,9 +33,14 @@ export interface DevServerOptions {
 export async function startDevServer(options: DevServerOptions) {
   const { projectRoot, port = 4173, host = false } = options;
 
-  // Pre-built client lives at dist/dev-ui-client/ relative to this file's dist location
-  const __dir = dirname(fileURLToPath(import.meta.url));
-  const clientDir = resolve(__dir, "../dev-ui-client");
+  // Find package root (works from both src/ and dist/)
+  let pkgRoot = dirname(fileURLToPath(import.meta.url));
+  while (!existsSync(resolve(pkgRoot, "package.json"))) {
+    const parent = dirname(pkgRoot);
+    if (parent === pkgRoot) break;
+    pkgRoot = parent;
+  }
+  const clientDir = resolve(pkgRoot, "dist/dev-ui-client");
 
   // Set up API context if database and Nango are configured
   const hasApi = !!(options.databaseUrl && options.nangoSecretKey);
@@ -102,21 +109,39 @@ export async function startDevServer(options: DevServerOptions) {
 
   const hostname = host ? "0.0.0.0" : "localhost";
 
-  await new Promise<void>((resolvePromise) => {
+  // Try the requested port; fall back to OS-assigned port if taken
+  const actualPort = await new Promise<number>((resolvePromise, rejectPromise) => {
+    httpServer.once("error", (err: NodeJS.ErrnoException) => {
+      if (err.code === "EADDRINUSE") {
+        httpServer.listen(0, hostname, () => {
+          const addr = httpServer.address();
+          resolvePromise(typeof addr === "object" && addr ? addr.port : 0);
+        });
+      } else {
+        rejectPromise(err);
+      }
+    });
     httpServer.listen(port, hostname, () => {
-      resolvePromise();
+      resolvePromise(port);
     });
   });
 
-  console.log(`\n  0pflow Dev UI running at:`);
-  console.log(`  → http://localhost:${port}\n`);
-  console.log(`  Watching for workflow changes in:`);
-  console.log(`    ${resolve(projectRoot, "generated/workflows/")}`);
-  console.log(`    ${resolve(projectRoot, "src/workflows/")}\n`);
-  if (hasApi) {
-    console.log(`  Connections API enabled (Nango + DB configured)\n`);
-  } else {
-    console.log(`  Connections API disabled (set DATABASE_URL and NANGO_SECRET_KEY to enable)\n`);
+  const url = `http://localhost:${actualPort}`;
+
+  if (!options.quiet) {
+    console.log(`\n  0pflow Dev UI running at:`);
+    console.log(`  → ${url}\n`);
+    if (actualPort !== port) {
+      console.log(`  (port ${port} was in use, using ${actualPort} instead)\n`);
+    }
+    console.log(`  Watching for workflow changes in:`);
+    console.log(`    ${resolve(projectRoot, "generated/workflows/")}`);
+    console.log(`    ${resolve(projectRoot, "src/workflows/")}\n`);
+    if (hasApi) {
+      console.log(`  Connections API enabled (Nango + DB configured)\n`);
+    } else {
+      console.log(`  Connections API disabled (set DATABASE_URL and NANGO_SECRET_KEY to enable)\n`);
+    }
   }
 
   const cleanup = async () => {
@@ -137,5 +162,5 @@ export async function startDevServer(options: DevServerOptions) {
     process.exit(0);
   });
 
-  return { cleanup };
+  return { cleanup, port: actualPort, url };
 }

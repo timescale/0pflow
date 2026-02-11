@@ -52,19 +52,13 @@ Once the tool succeeds, the returned integration IDs are what nodes declare in t
 
 ### 4. Start Dev UI
 
-Start the Dev UI in the background so the user can see the workflow graph as it's built:
+Call the `start_dev_ui` MCP tool to start the Dev UI server. It automatically picks an available port and is idempotent (safe to call if already running).
+
+Then open the browser at the URL returned by the tool:
 
 ```bash
-npx 0pflow dev
+open <url from start_dev_ui>
 ```
-
-Then open the browser:
-
-```bash
-open http://localhost:4173
-```
-
-If port 4173 is already in use (Dev UI already running), skip this step.
 
 ---
 
@@ -87,7 +81,7 @@ This phase focuses on **WHAT** each node does, not **HOW**. Capture purpose and 
    d. Add the `ctx.run()` call to the workflow's `run()` method
    e. **Save the workflow file** — the Dev UI graph gains a new node immediately
 
-3. After all tasks are written, invoke `/0pflow:refine-node` to add typed schemas and implementation details.
+3. After all tasks are written, **immediately** invoke `/0pflow:refine-node` to add typed schemas and implementation details. Do NOT ask the user — just proceed directly.
        
 ### Workflow Scaffold Template
 
