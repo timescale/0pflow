@@ -211,7 +211,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const <camelCaseName> = Agent.create({
   name: "<kebab-case-name>",
-  // integrations: ["salesforce"],  // declare if this agent needs external credentials
+  integrations: ["openai"],  // declare AI provider + any external services; keys fetched from Nango at runtime
   description: `
 <What this agent does.>
 

@@ -47,6 +47,7 @@ Before drafting, gather the information needed:
    - **OpenAI:** https://ai-sdk.dev/providers/ai-sdk-providers/openai
    - **Anthropic:** https://ai-sdk.dev/providers/ai-sdk-providers/anthropic
    - Use `WebFetch` to read these pages for provider tool options
+   - **IMPORTANT:** When an agent uses a provider (OpenAI, Anthropic, etc.), declare it in `integrations: ["openai"]` so the framework fetches the API key from Nango at runtime. Do NOT rely on env vars like `OPENAI_API_KEY`. The agent executor automatically detects the model provider in the integrations list and calls `ctx.getConnection()` to get the key.
 
 3. **For simple compute nodes**: determine if any libraries are needed
 
@@ -118,9 +119,11 @@ For each node/agent file (`src/nodes/<name>.ts` or `agents/<name>.ts`), update:
 
 2. **The `inputSchema` and `outputSchema`** — replace empty `z.object({})` with proper Zod types
 
-3. **For agents: the `tools` record** — add tool imports and entries based on `**Tools needed:**`
+3. **For agents: the `integrations` array** — add the model provider (e.g. `"openai"`, `"anthropic"`) and any external services the agent needs. This is how the framework knows to fetch API keys from Nango at runtime.
 
-4. **For agents: the spec file** (`specs/agents/<name>.md`) — update guidelines and output format sections
+4. **For agents: the `tools` record** — add tool imports and entries based on `**Tools needed:**`
+
+5. **For agents: the spec file** (`specs/agents/<name>.md`) — update guidelines and output format sections
 
 ### Type Syntax
 

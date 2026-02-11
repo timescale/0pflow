@@ -164,8 +164,8 @@ bun install
 
 **Required for deployment:**
 - `DATABASE_URL` — Application database connection string
-- `OPENAI_API_KEY` — If using AI agents
-- Any other secrets your workflows need (API tokens, etc.)
+- `NANGO_SECRET_KEY` — For fetching integration credentials (AI providers, external APIs) at runtime
+- Any other secrets your workflows need that aren't managed by Nango
 
 **Setup only (do not import to DBOS Cloud):**
 - `DBOS_ADMIN_URL` — Connection string for the `dbosadmin` role, used for `dbos-cloud db link`
