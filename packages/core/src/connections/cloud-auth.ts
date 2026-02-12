@@ -20,7 +20,7 @@ const CREDENTIALS_DIR = join(homedir(), ".0pflow");
 const CREDENTIALS_FILE = join(CREDENTIALS_DIR, "credentials");
 const PENDING_AUTH_FILE = join(CREDENTIALS_DIR, "pending_auth");
 const DEFAULT_SERVER_URL =
-  process.env.OPFLOW_SERVER_URL ?? "http://localhost:3000";
+  process.env.OPFLOW_SERVER_URL ?? "https://auth-server-vert.vercel.app";
 
 const POLL_INTERVAL_MS = 2000;
 const QUICK_POLL_ATTEMPTS = 8; // ~16 seconds

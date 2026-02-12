@@ -75,9 +75,21 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/integrations
 
 ## Deploying to Vercel
 
-1. Import the repo in Vercel, set **Root Directory** to `packages/auth-server`
-2. Set environment variables in Vercel dashboard (same as `.env.local`)
-3. Update GitHub OAuth App callback URL to `https://<your-domain>/api/auth/github/callback`
+```bash
+# 1. Link the project (first time only — set Root Directory to packages/auth-server)
+cd packages/auth-server
+vercel link
+
+# 2. Upload env vars from .env.local as sensitive secrets
+./deploy-env.sh
+
+# 3. Deploy to production
+vercel --prod
+```
+
+After deploying, update your GitHub OAuth App at https://github.com/settings/developers:
+- **Homepage URL:** `https://<your-domain>`
+- **Authorization callback URL:** `https://<your-domain>/api/auth/github/callback`
 
 ## API Routes
 
