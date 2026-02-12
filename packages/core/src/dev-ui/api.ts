@@ -5,10 +5,12 @@ import {
   upsertConnection,
   deleteConnection,
 } from "../connections/index.js";
+import { parseOutput } from "../cli/trace.js";
 
 export interface ApiContext {
   pool: pg.Pool;
   nangoSecretKey: string;
+  schema: string;
 }
 
 function jsonResponse(res: ServerResponse, status: number, data: unknown): void {
@@ -172,6 +174,135 @@ export async function handleApiRequest(
       });
     }
     return true;
+  }
+
+  // ---- Run History endpoints ----
+
+  /** Unwrap a superjson-wrapped error into a clean string (stack trace if available, else message) */
+  function parseError(raw: unknown): string | null {
+    if (!raw) return null;
+    const parsed = parseOutput(raw);
+    if (parsed && typeof parsed === "object") {
+      const obj = parsed as Record<string, unknown>;
+      // Stack already includes the message as its first line
+      if (typeof obj.stack === "string") return obj.stack;
+      if (typeof obj.message === "string") return obj.message;
+    }
+    if (typeof parsed === "string") return parsed;
+    if (typeof raw === "string") return raw;
+    return null;
+  }
+
+  // GET /api/runs?workflow=NAME&limit=N
+  if (url.startsWith("/api/runs") && method === "GET") {
+    const fullUrl = req.url ?? "";
+
+    // GET /api/runs/:runId/trace
+    const traceMatch = fullUrl.match(/^\/api\/runs\/([^/]+)\/trace/);
+    if (traceMatch) {
+      const runId = decodeURIComponent(traceMatch[1]);
+      try {
+        // Get workflow metadata
+        const workflowResult = await ctx.pool.query(
+          `SELECT
+            workflow_uuid, name, status, created_at, updated_at,
+            (updated_at - created_at) as duration_ms,
+            output::text, error
+          FROM ${ctx.schema}.workflow_status
+          WHERE workflow_uuid = $1`,
+          [runId],
+        );
+
+        if (workflowResult.rows.length === 0) {
+          jsonResponse(res, 404, { error: "Run not found" });
+          return true;
+        }
+
+        const workflow = workflowResult.rows[0];
+        workflow.output = parseOutput(workflow.output);
+        workflow.error = parseError(workflow.error);
+
+        // Get operations with hierarchy using recursive CTE
+        const opsResult = await ctx.pool.query(
+          `WITH RECURSIVE workflow_tree AS (
+            SELECT workflow_uuid, workflow_uuid as root_uuid, 0 as depth
+            FROM ${ctx.schema}.workflow_status
+            WHERE workflow_uuid = $1
+            UNION
+            SELECT ws.workflow_uuid, wt.root_uuid, wt.depth + 1
+            FROM ${ctx.schema}.workflow_status ws
+            JOIN ${ctx.schema}.operation_outputs oo ON oo.child_workflow_id = ws.workflow_uuid
+            JOIN workflow_tree wt ON oo.workflow_uuid = wt.workflow_uuid
+          )
+          SELECT
+            oo.workflow_uuid, wt.depth, oo.function_id, oo.function_name,
+            oo.child_workflow_id, oo.started_at_epoch_ms, oo.completed_at_epoch_ms,
+            (oo.completed_at_epoch_ms - oo.started_at_epoch_ms) as duration_ms,
+            oo.output::text as output_preview, oo.error
+          FROM workflow_tree wt
+          JOIN ${ctx.schema}.operation_outputs oo ON oo.workflow_uuid = wt.workflow_uuid
+          ORDER BY oo.started_at_epoch_ms, wt.depth, oo.function_id`,
+          [runId],
+        );
+
+        // Unwrap superjson in operation output previews and errors
+        const operations = opsResult.rows.map((op: Record<string, unknown>) => {
+          if (op.output_preview) {
+            const parsed = parseOutput(op.output_preview);
+            op.output_preview = parsed !== null ? JSON.stringify(parsed) : null;
+          }
+          op.error = parseError(op.error);
+          return op;
+        });
+
+        jsonResponse(res, 200, { workflow, operations });
+      } catch (err) {
+        jsonResponse(res, 500, {
+          error: err instanceof Error ? err.message : "Failed to get trace",
+        });
+      }
+      return true;
+    }
+
+    // GET /api/runs (list)
+    if (fullUrl.match(/^\/api\/runs(\?|$)/)) {
+      try {
+        const params = new URL(fullUrl, "http://localhost").searchParams;
+        const workflowName = params.get("workflow");
+        const limit = Math.min(parseInt(params.get("limit") ?? "50", 10), 200);
+
+        const queryParams: (string | number)[] = [];
+        let query = `
+          SELECT workflow_uuid, name, status, created_at, updated_at, output::text, error
+          FROM ${ctx.schema}.workflow_status
+          WHERE LENGTH(workflow_uuid) = 36
+        `;
+
+        if (workflowName) {
+          queryParams.push(workflowName);
+          query += ` AND name = $${queryParams.length}`;
+        }
+
+        queryParams.push(limit);
+        query += ` ORDER BY created_at DESC LIMIT $${queryParams.length}`;
+
+        const result = await ctx.pool.query(query, queryParams);
+
+        // Unwrap superjson output and errors for each run
+        const runs = result.rows.map((row: Record<string, unknown>) => {
+          row.output = parseOutput(row.output);
+          row.error = parseError(row.error);
+          return row;
+        });
+
+        jsonResponse(res, 200, runs);
+      } catch (err) {
+        jsonResponse(res, 500, {
+          error: err instanceof Error ? err.message : "Failed to list runs",
+        });
+      }
+      return true;
+    }
   }
 
   return false;

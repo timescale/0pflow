@@ -1,5 +1,5 @@
 import { createServer as createHttpServer } from "node:http";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +7,7 @@ import { createWSServer } from "./ws.js";
 import { createWatcher } from "./watcher.js";
 import { handleApiRequest } from "./api.js";
 import { ensureConnectionsTable } from "../connections/index.js";
+import { getSchemaName } from "../dbos.js";
 import pg from "pg";
 
 const MIME: Record<string, string> = {
@@ -42,6 +43,14 @@ export async function startDevServer(options: DevServerOptions) {
   }
   const clientDir = resolve(pkgRoot, "dist/dev-ui-client");
 
+  // Resolve DBOS schema name from project's package.json
+  const projectPkgPath = resolve(projectRoot, "package.json");
+  let appName: string | undefined;
+  try {
+    appName = JSON.parse(readFileSync(projectPkgPath, "utf-8")).name;
+  } catch { /* use default */ }
+  const dbosSchema = getSchemaName(appName);
+
   // Set up API context if database and Nango are configured
   const hasApi = !!(options.databaseUrl && options.nangoSecretKey);
   let pool: pg.Pool | null = null;
@@ -63,6 +72,7 @@ export async function startDevServer(options: DevServerOptions) {
         const handled = await handleApiRequest(req, res, {
           pool,
           nangoSecretKey: options.nangoSecretKey!,
+          schema: dbosSchema,
         });
         if (handled) return;
       } catch (err) {

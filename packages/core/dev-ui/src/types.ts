@@ -45,3 +45,33 @@ export type WSMessage =
   | { type: "workflow-updated"; data: WorkflowDAG }
   | { type: "workflow-removed"; data: { filePath: string } }
   | { type: "parse-error"; data: { filePath: string; error: string } };
+
+// ---- Run History types ----
+
+export interface WorkflowRun {
+  workflow_uuid: string;
+  name: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  output: unknown;
+  error: string | null;
+}
+
+export interface OperationTrace {
+  workflow_uuid: string;
+  depth: number;
+  function_id: number;
+  function_name: string;
+  child_workflow_id: string | null;
+  started_at_epoch_ms: number;
+  completed_at_epoch_ms: number | null;
+  duration_ms: number | null;
+  output_preview: string | null;
+  error: string | null;
+}
+
+export interface TraceResult {
+  workflow: WorkflowRun & { duration_ms: number | null };
+  operations: OperationTrace[];
+}
