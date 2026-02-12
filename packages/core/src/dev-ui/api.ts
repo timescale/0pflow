@@ -5,11 +5,12 @@ import {
   upsertConnection,
   deleteConnection,
 } from "../connections/index.js";
+import type { IntegrationProvider } from "../connections/integration-provider.js";
 import { parseOutput } from "../cli/trace.js";
 
 export interface ApiContext {
   pool: pg.Pool;
-  nangoSecretKey: string;
+  integrationProvider: IntegrationProvider;
   schema: string;
 }
 
@@ -109,22 +110,14 @@ export async function handleApiRequest(
     return true;
   }
 
-  // GET /api/nango/integrations — list available integrations from Nango
+  // GET /api/nango/integrations — list available integrations
   if (url === "/api/nango/integrations" && method === "GET") {
     try {
-      const { Nango } = await import("@nangohq/node");
-      const nango = new Nango({ secretKey: ctx.nangoSecretKey });
-      const result = await nango.listIntegrations();
-      const integrations = (result.configs ?? []).map(
-        (c: { unique_key: string; provider: string }) => ({
-          id: c.unique_key,
-          provider: c.provider,
-        }),
-      );
+      const integrations = await ctx.integrationProvider.listIntegrations();
       jsonResponse(res, 200, integrations);
     } catch (err) {
       jsonResponse(res, 500, {
-        error: err instanceof Error ? err.message : "Failed to list Nango integrations",
+        error: err instanceof Error ? err.message : "Failed to list integrations",
       });
     }
     return true;
@@ -135,16 +128,11 @@ export async function handleApiRequest(
   if (nangoConnectionsMatch && method === "GET") {
     const integrationId = decodeURIComponent(nangoConnectionsMatch[1]);
     try {
-      const { Nango } = await import("@nangohq/node");
-      const nango = new Nango({ secretKey: ctx.nangoSecretKey });
-      const result = await nango.listConnections();
-      const filtered = (result.connections ?? []).filter(
-        (c: { provider_config_key: string }) => c.provider_config_key === integrationId,
-      );
-      jsonResponse(res, 200, filtered);
+      const connections = await ctx.integrationProvider.listConnections(integrationId);
+      jsonResponse(res, 200, connections);
     } catch (err) {
       jsonResponse(res, 500, {
-        error: err instanceof Error ? err.message : "Failed to list Nango connections",
+        error: err instanceof Error ? err.message : "Failed to list connections",
       });
     }
     return true;
@@ -154,20 +142,14 @@ export async function handleApiRequest(
   if (url === "/api/nango/connect-session" && method === "POST") {
     const body = (await parseBody(req)) as {
       integration_id?: string;
-      connection_id?: string;
     };
     if (!body.integration_id) {
       jsonResponse(res, 400, { error: "integration_id is required" });
       return true;
     }
     try {
-      const { Nango } = await import("@nangohq/node");
-      const nango = new Nango({ secretKey: ctx.nangoSecretKey });
-      const session = await nango.createConnectSession({
-        end_user: { id: "dev-ui-user" },
-        allowed_integrations: [body.integration_id],
-      });
-      jsonResponse(res, 200, { token: session.data.token });
+      const session = await ctx.integrationProvider.createConnectSession(body.integration_id);
+      jsonResponse(res, 200, session);
     } catch (err) {
       jsonResponse(res, 500, {
         error: err instanceof Error ? err.message : "Failed to create connect session",

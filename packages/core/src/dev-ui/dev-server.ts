@@ -7,6 +7,8 @@ import { createWSServer } from "./ws.js";
 import { createWatcher } from "./watcher.js";
 import { handleApiRequest } from "./api.js";
 import { ensureConnectionsTable } from "../connections/index.js";
+import { createLocalIntegrationProvider } from "../connections/local-integration-provider.js";
+import type { IntegrationProvider } from "../connections/integration-provider.js";
 import { getSchemaName } from "../dbos.js";
 import pg from "pg";
 
@@ -54,10 +56,12 @@ export async function startDevServer(options: DevServerOptions) {
   // Set up API context if database and Nango are configured
   const hasApi = !!(options.databaseUrl && options.nangoSecretKey);
   let pool: pg.Pool | null = null;
+  let integrationProvider: IntegrationProvider | null = null;
 
   if (hasApi) {
     await ensureConnectionsTable(options.databaseUrl!);
     pool = new pg.Pool({ connectionString: options.databaseUrl! });
+    integrationProvider = await createLocalIntegrationProvider(options.nangoSecretKey!);
   }
 
   const httpServer = createHttpServer(async (req, res) => {
@@ -71,7 +75,7 @@ export async function startDevServer(options: DevServerOptions) {
       try {
         const handled = await handleApiRequest(req, res, {
           pool,
-          nangoSecretKey: options.nangoSecretKey!,
+          integrationProvider: integrationProvider!,
           schema: dbosSchema,
         });
         if (handled) return;

@@ -7,7 +7,8 @@ import { executeAgent } from "./nodes/agent/executor.js";
 import type { AgentTools } from "./nodes/agent/executor.js";
 import type { ModelConfig } from "./nodes/agent/model-config.js";
 import type { NodeRegistry } from "./nodes/registry.js";
-import { resolveConnectionId, fetchCredentials } from "./connections/index.js";
+import { resolveConnectionId } from "./connections/index.js";
+import type { IntegrationProvider } from "./connections/integration-provider.js";
 import type pg from "pg";
 
 export type { AgentTool, AgentTools } from "./nodes/agent/executor.js";
@@ -45,6 +46,7 @@ interface AgentRuntimeConfig {
   nodeRegistry: NodeRegistry;
   modelConfig?: ModelConfig;
   pool: pg.Pool | null;
+  integrationProvider: IntegrationProvider | null;
 }
 
 const AGENT_CONFIG_KEY = Symbol.for("opflow.getAgentRuntimeConfig()");
@@ -99,7 +101,7 @@ function createAgentContext(
 
     getConnection: async (integrationId: string): Promise<ConnectionCredentials> => {
       const runtimeConfig = getAgentRuntimeConfig();
-      if (!runtimeConfig?.pool) {
+      if (!runtimeConfig?.pool || !runtimeConfig?.integrationProvider) {
         throw new Error(
           "Connection management not configured. Set NANGO_SECRET_KEY and DATABASE_URL.",
         );
@@ -137,7 +139,7 @@ function createAgentContext(
         );
       }
 
-      return fetchCredentials(integrationId, connectionId);
+      return runtimeConfig.integrationProvider.fetchCredentials(integrationId, connectionId);
     },
 
     log: (message: string, level: LogLevel = "info") => {

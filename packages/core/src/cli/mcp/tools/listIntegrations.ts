@@ -4,6 +4,7 @@ import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
 import * as dotenv from "dotenv";
 import type { ServerContext } from "../types.js";
+import type { IntegrationProvider } from "../../../connections/integration-provider.js";
 
 const inputSchema = {} as const;
 
@@ -13,7 +14,7 @@ const outputSchema = {
       id: z.string().describe("Integration unique key (use this in node integrations arrays)"),
       provider: z.string().describe("Provider name (e.g., salesforce, slack)"),
     }),
-  ).describe("Available Nango integrations"),
+  ).describe("Available integrations"),
   error: z.string().optional().describe("Error message if listing failed"),
 } as const;
 
@@ -23,16 +24,27 @@ type OutputSchema = {
 };
 
 /**
- * Find and load NANGO_SECRET_KEY from the project's .env file
+ * Create an IntegrationProvider based on available env vars.
+ * NANGO_SECRET_KEY → local, otherwise → cloud (auto-auth).
  */
-function loadNangoSecretKey(): string | null {
-  // Walk up from cwd looking for .env
+async function createProvider(): Promise<IntegrationProvider> {
+  // Check .env file for NANGO_SECRET_KEY
   const envPath = join(process.cwd(), ".env");
-  if (!existsSync(envPath)) return null;
+  let nangoSecretKey: string | undefined;
+  if (existsSync(envPath)) {
+    const content = readFileSync(envPath, "utf-8");
+    const env = dotenv.parse(content);
+    nangoSecretKey = env.NANGO_SECRET_KEY;
+  }
+  nangoSecretKey = nangoSecretKey ?? process.env.NANGO_SECRET_KEY;
 
-  const content = readFileSync(envPath, "utf-8");
-  const env = dotenv.parse(content);
-  return env.NANGO_SECRET_KEY ?? null;
+  if (nangoSecretKey) {
+    const { createLocalIntegrationProvider } = await import("../../../connections/local-integration-provider.js");
+    return createLocalIntegrationProvider(nangoSecretKey);
+  } else {
+    const { CloudIntegrationProvider } = await import("../../../connections/cloud-integration-provider.js");
+    return new CloudIntegrationProvider();
+  }
 }
 
 export const listIntegrationsFactory: ApiFactory<
@@ -45,37 +57,19 @@ export const listIntegrationsFactory: ApiFactory<
     config: {
       title: "List Integrations",
       description:
-        "List available Nango integrations configured for this project. Reads NANGO_SECRET_KEY from the project's .env file and queries Nango for configured integrations.",
+        "List available integrations. Uses NANGO_SECRET_KEY for local mode, or 0pflow cloud (auto-authenticates via browser if needed).",
       inputSchema,
       outputSchema,
     },
     fn: async (): Promise<OutputSchema> => {
-      const secretKey = loadNangoSecretKey();
-
-      if (!secretKey) {
-        return {
-          integrations: [],
-          error:
-            "NANGO_SECRET_KEY not found in .env file. " +
-            "Set up Nango (https://nango.dev) and add NANGO_SECRET_KEY to your .env file to use integrations.",
-        };
-      }
-
       try {
-        const { Nango } = await import("@nangohq/node");
-        const nango = new Nango({ secretKey });
-        const result = await nango.listIntegrations();
-        const integrations = (result.configs ?? []).map(
-          (c: { unique_key: string; provider: string }) => ({
-            id: c.unique_key,
-            provider: c.provider,
-          }),
-        );
+        const provider = await createProvider();
+        const integrations = await provider.listIntegrations();
         return { integrations };
       } catch (err) {
         return {
           integrations: [],
-          error: `Failed to list Nango integrations: ${err instanceof Error ? err.message : String(err)}`,
+          error: `Failed to list integrations: ${err instanceof Error ? err.message : String(err)}`,
         };
       }
     },

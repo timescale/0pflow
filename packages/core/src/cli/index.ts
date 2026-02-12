@@ -544,4 +544,51 @@ program
     await runUninstall({ verbose: options.verbose });
   });
 
+// ============ Auth commands ============
+program
+  .command("login")
+  .description("Authenticate with 0pflow cloud (opens browser)")
+  .action(async () => {
+    const { authenticate, isAuthenticated, AuthRequiredError } = await import(
+      "../connections/cloud-auth.js"
+    );
+
+    if (isAuthenticated()) {
+      console.log(pc.green("Already logged in."));
+      return;
+    }
+
+    try {
+      console.log(pc.dim("Opening browser for authentication..."));
+      await authenticate();
+      console.log(pc.green("Logged in successfully."));
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        console.log(
+          `\n${pc.yellow("Waiting for browser approval...")}\n\n` +
+            `If the browser didn't open, visit:\n${pc.cyan(err.authUrl)}\n\n` +
+            `Then run ${pc.bold("0pflow login")} again.`,
+        );
+      } else {
+        console.error(pc.red(`Login failed: ${err instanceof Error ? err.message : err}`));
+        process.exit(1);
+      }
+    }
+  });
+
+program
+  .command("logout")
+  .description("Remove stored 0pflow cloud credentials")
+  .action(async () => {
+    const { logout, isAuthenticated } = await import("../connections/cloud-auth.js");
+
+    if (!isAuthenticated()) {
+      console.log(pc.dim("Not logged in."));
+      return;
+    }
+
+    logout();
+    console.log(pc.green("Logged out. Credentials removed from ~/.0pflow/credentials"));
+  });
+
 program.parse();

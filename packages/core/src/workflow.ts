@@ -2,7 +2,8 @@
 import { z } from "zod";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { Executable, WorkflowContext, LogLevel, ConnectionCredentials } from "./types.js";
-import { resolveConnectionId, fetchCredentials } from "./connections/index.js";
+import { resolveConnectionId } from "./connections/index.js";
+import type { IntegrationProvider } from "./connections/integration-provider.js";
 import type pg from "pg";
 
 /**
@@ -30,6 +31,7 @@ export interface WorkflowExecutable<TInput = unknown, TOutput = unknown>
  */
 interface WorkflowRuntimeConfig {
   sql: pg.Pool | null;
+  integrationProvider: IntegrationProvider | null;
   workflowName: string;
 }
 
@@ -68,7 +70,7 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
     },
 
     getConnection: async (integrationId: string): Promise<ConnectionCredentials> => {
-      if (!config?.sql) {
+      if (!config?.sql || !config?.integrationProvider) {
         throw new Error(
           "Connection management not configured. Set NANGO_SECRET_KEY and DATABASE_URL.",
         );
@@ -99,7 +101,7 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
         );
       }
 
-      return fetchCredentials(integrationId, connectionId);
+      return config.integrationProvider.fetchCredentials(integrationId, connectionId);
     },
 
     log: (message: string, level: LogLevel = "info") => {
@@ -111,24 +113,33 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
 }
 
 /**
- * Runtime pool stored on globalThis so it's shared across module instances.
+ * Runtime config stored on globalThis so it's shared across module instances.
  * This is necessary because jiti-loaded workflow files may import a different
  * copy of this module than the compiled MCP server code that calls
  * configureWorkflowRuntime().
  * @internal
  */
 const POOL_KEY = Symbol.for("opflow.getWorkflowPool()");
+const PROVIDER_KEY = Symbol.for("opflow.getWorkflowIntegrationProvider()");
 
 function getWorkflowPool(): pg.Pool | null {
   return (globalThis as Record<symbol, pg.Pool | null>)[POOL_KEY] ?? null;
 }
 
+function getWorkflowIntegrationProvider(): IntegrationProvider | null {
+  return (globalThis as Record<symbol, IntegrationProvider | null>)[PROVIDER_KEY] ?? null;
+}
+
 /**
- * Configure the workflow runtime SQL connection (called by factory)
+ * Configure the workflow runtime (called by factory)
  * @internal
  */
-export function configureWorkflowRuntime(sql: pg.Pool | null): void {
+export function configureWorkflowRuntime(
+  sql: pg.Pool | null,
+  integrationProvider: IntegrationProvider | null,
+): void {
   (globalThis as Record<symbol, pg.Pool | null>)[POOL_KEY] = sql;
+  (globalThis as Record<symbol, IntegrationProvider | null>)[PROVIDER_KEY] = integrationProvider;
 }
 
 /**
@@ -151,6 +162,7 @@ export const Workflow = {
     async function workflowImpl(inputs: TInput): Promise<TOutput> {
       const ctx = createDurableContext({
         sql: getWorkflowPool(),
+        integrationProvider: getWorkflowIntegrationProvider(),
         workflowName: definition.name,
       });
       return definition.run(ctx, inputs);
@@ -191,6 +203,7 @@ export const Workflow = {
     async function wrapperImpl(inputs: TInput): Promise<TOutput> {
       const ctx = createDurableContext({
         sql: getWorkflowPool(),
+        integrationProvider: getWorkflowIntegrationProvider(),
         workflowName: _parentWorkflowName ?? wrapperName,
       });
       _parentWorkflowName = undefined;

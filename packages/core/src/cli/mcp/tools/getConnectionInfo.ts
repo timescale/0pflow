@@ -5,6 +5,7 @@ import { z } from "zod";
 import * as dotenv from "dotenv";
 import pg from "pg";
 import type { ServerContext } from "../types.js";
+import type { IntegrationProvider } from "../../../connections/integration-provider.js";
 
 const inputSchema = {
   integration_id: z
@@ -58,6 +59,22 @@ function loadEnv(): Record<string, string> {
   return dotenv.parse(content);
 }
 
+/**
+ * Create an IntegrationProvider based on available env vars.
+ * NANGO_SECRET_KEY → local, otherwise → cloud (auto-auth).
+ */
+async function createProvider(env: Record<string, string>): Promise<IntegrationProvider> {
+  const nangoSecretKey = env.NANGO_SECRET_KEY ?? process.env.NANGO_SECRET_KEY;
+
+  if (nangoSecretKey) {
+    const { createLocalIntegrationProvider } = await import("../../../connections/local-integration-provider.js");
+    return createLocalIntegrationProvider(nangoSecretKey);
+  } else {
+    const { CloudIntegrationProvider } = await import("../../../connections/cloud-integration-provider.js");
+    return new CloudIntegrationProvider();
+  }
+}
+
 export const getConnectionInfoFactory: ApiFactory<
   ServerContext,
   typeof inputSchema,
@@ -70,22 +87,13 @@ export const getConnectionInfoFactory: ApiFactory<
       description:
         "Get metadata for a configured integration connection. " +
         "Resolves the connection ID from the opflow_connections table, " +
-        "then fetches connection details from Nango (instance_url, provider config, etc.).",
+        "then fetches connection details via IntegrationProvider (local Nango or cloud).",
       inputSchema,
       outputSchema,
     },
     fn: async ({ integration_id, workflow_name, node_name }): Promise<OutputSchema> => {
       const env = loadEnv();
-      const secretKey = env.NANGO_SECRET_KEY;
-      const databaseUrl = env.DATABASE_URL;
-
-      if (!secretKey) {
-        return {
-          error:
-            "NANGO_SECRET_KEY not found in .env file. " +
-            "Set up Nango and add NANGO_SECRET_KEY to your .env to use integrations.",
-        };
-      }
+      const databaseUrl = env.DATABASE_URL ?? process.env.DATABASE_URL;
 
       if (!databaseUrl) {
         return {
@@ -97,8 +105,6 @@ export const getConnectionInfoFactory: ApiFactory<
 
       // Look up connection_id using the same resolution as runtime:
       // exact (workflow_name, node_name) match first, then global (* / *) fallback
-      const wf = workflow_name;
-      const nd = node_name;
       let connectionId: string | null = null;
       const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
       try {
@@ -112,7 +118,7 @@ export const getConnectionInfoFactory: ApiFactory<
           ORDER BY
             CASE WHEN workflow_name = '*' AND node_name = '*' THEN 1 ELSE 0 END
           LIMIT 1`,
-          [integration_id, wf, nd],
+          [integration_id, workflow_name, node_name],
         );
         connectionId = result.rows.length > 0 ? result.rows[0].connection_id : null;
       } finally {
@@ -127,27 +133,19 @@ export const getConnectionInfoFactory: ApiFactory<
         };
       }
 
-      // Fetch full connection details from Nango
       try {
-        const { Nango } = await import("@nangohq/node");
-        const nango = new Nango({ secretKey });
-        const connection = await nango.getConnection(integration_id, connectionId);
-
-        // Extract access token from credentials (union type, so use indexing)
-        const creds = (connection.credentials ?? {}) as Record<string, unknown>;
-        const accessToken =
-          (creds.access_token ?? creds.api_key ?? creds.token ?? undefined) as string | undefined;
+        const provider = await createProvider(env);
+        const credentials = await provider.fetchCredentials(integration_id, connectionId);
 
         return {
           connection_id: connectionId,
-          provider: connection.provider_config_key ?? integration_id,
-          connection_config: connection.connection_config ?? {},
-          metadata: connection.metadata ?? {},
-          access_token: accessToken,
+          provider: integration_id,
+          connection_config: credentials.connectionConfig ?? {},
+          access_token: credentials.token,
         };
       } catch (err) {
         return {
-          error: `Failed to fetch connection from Nango: ${err instanceof Error ? err.message : String(err)}`,
+          error: `Failed to fetch connection: ${err instanceof Error ? err.message : String(err)}`,
         };
       }
     },

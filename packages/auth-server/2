@@ -1,0 +1,14 @@
+# 0pflow Auth Server Environment Variables
+
+# Nango secret key (0pflow's shared Nango account)
+NANGO_SECRET_KEY=c07d385e-4cd4-4e1b-bd0a-ac2af4f8492e
+
+# Tiger Cloud PostgreSQL connection string
+DATABASE_URL=postgresql://tsdbadmin:eb5qrszop3adj1ap@bkkaxs2m5f.do7kjn6lf8.tsdb.cloud.timescale.com:38579/tsdb?sslmode=require&uselibpqcompat=true
+
+# GitHub OAuth app credentials
+GITHUB_CLIENT_ID=Ov23liSRt3zwGSbluKs5
+GITHUB_CLIENT_SECRET=0a1cbb74444e1ab915437719ff4cda07a8897897
+
+# Public GitHub client ID (for browser-side OAuth redirect)
+NEXT_PUBLIC_GITHUB_CLIENT_ID=Ov23liSRt3zwGSbluKs5

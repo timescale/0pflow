@@ -5,7 +5,10 @@ import { initializeDBOS, shutdownDBOS } from "./dbos.js";
 import { NodeRegistry } from "./nodes/registry.js";
 import { configureAgentRuntime } from "./agent.js";
 import { Workflow, configureWorkflowRuntime, type NodeWrapper } from "./workflow.js";
-import { initNango, ensureConnectionsTable } from "./connections/index.js";
+import { ensureConnectionsTable } from "./connections/index.js";
+import { createLocalIntegrationProvider } from "./connections/local-integration-provider.js";
+import { CloudIntegrationProvider } from "./connections/cloud-integration-provider.js";
+import type { IntegrationProvider } from "./connections/integration-provider.js";
 import pg from "pg";
 
 /**
@@ -32,21 +35,23 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
   // Initialize DBOS for durability (after all workflows are registered)
   await initializeDBOS({ databaseUrl: config.databaseUrl, appName: config.appName });
 
-  // Initialize Nango if secret key is available
+  // Initialize integration provider:
+  // NANGO_SECRET_KEY set → local/self-hosted (direct Nango)
+  // Otherwise → cloud mode (proxies through auth server)
   const nangoSecretKey = config.nangoSecretKey ?? process.env.NANGO_SECRET_KEY;
+  let integrationProvider: IntegrationProvider;
   if (nangoSecretKey) {
-    await initNango(nangoSecretKey);
+    integrationProvider = await createLocalIntegrationProvider(nangoSecretKey);
+  } else {
+    integrationProvider = new CloudIntegrationProvider();
   }
 
-  // Create shared pg pool for connection management
-  let pool: pg.Pool | null = null;
-  if (nangoSecretKey) {
-    pool = new pg.Pool({ connectionString: config.databaseUrl });
-    await ensureConnectionsTable(config.databaseUrl);
-  }
+  // Create shared pg pool for connection management (needed for local connection mapping)
+  const pool = new pg.Pool({ connectionString: config.databaseUrl });
+  await ensureConnectionsTable(config.databaseUrl);
 
-  // Configure workflow runtime with pool connection
-  configureWorkflowRuntime(pool);
+  // Configure workflow runtime with pool + integration provider
+  configureWorkflowRuntime(pool, integrationProvider);
 
   // Build node registry (includes built-in nodes + user nodes)
   // Nodes can be used both via ctx.run() and as agent tools
@@ -59,6 +64,7 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
     nodeRegistry,
     modelConfig: config.modelConfig,
     pool,
+    integrationProvider,
   });
 
   return {
