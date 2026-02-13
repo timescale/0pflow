@@ -1,4 +1,4 @@
-import { execSync, spawn } from "node:child_process";
+import { execSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import * as p from "@clack/prompts";
@@ -8,14 +8,14 @@ import {
   createDatabase,
   setupAppSchema,
 } from "./mcp/lib/scaffolding.js";
-import { packageRoot } from "./mcp/config.js";
 
-// Monorepo root (only valid in dev mode)
-const monorepoRoot = join(packageRoot, "..", "..");
-
-function isDevMode(): boolean {
-  const corePath = join(monorepoRoot, "packages", "core");
-  return existsSync(corePath);
+function isClaudeAvailable(): boolean {
+  try {
+    execSync("claude --version", { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function isCwdEmpty(): boolean {
@@ -25,15 +25,6 @@ function isCwdEmpty(): boolean {
     return entries.filter((e) => !e.startsWith(".")).length === 0;
   } catch {
     return true;
-  }
-}
-
-function isClaudeAvailable(): boolean {
-  try {
-    execSync("claude --version", { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
   }
 }
 
@@ -79,37 +70,62 @@ function isExisting0pflow(): boolean {
   }
 }
 
-function launchClaude(cwd: string, { yolo = false }: { yolo?: boolean } = {}): void {
-  const prompt =
-    "Welcome to your 0pflow project! What workflow would you like to create? Here are some ideas:\n\n" +
-    '- "Enrich leads from a CSV file with company data"\n' +
-    '- "Monitor website uptime and send Slack alerts"\n' +
-    '- "Sync Salesforce contacts to our database nightly"\n' +
-    '- "Score and route inbound leads based on firmographics"\n\n' +
-    "Describe what you'd like to automate and I'll help you build it with /create-workflow.";
+const WELCOME_PROMPT =
+  "Welcome to your 0pflow project! What workflow would you like to create? Here are some ideas:\n\n" +
+  '- "Enrich leads from a CSV file with company data"\n' +
+  '- "Monitor website uptime and send Slack alerts"\n' +
+  '- "Sync Salesforce contacts to our database nightly"\n' +
+  '- "Score and route inbound leads based on firmographics"\n\n' +
+  "Describe what you'd like to automate and I'll help you build it with /create-workflow.";
 
-  const claudeArgs: string[] = [];
-  if (isDevMode()) claudeArgs.push("--plugin-dir", monorepoRoot);
-  if (yolo) claudeArgs.push("--dangerously-skip-permissions");
-  claudeArgs.push(prompt);
+async function launchDevServer(cwd: string, { yolo = false }: { yolo?: boolean } = {}): Promise<void> {
+  // Load .env for DATABASE_URL and NANGO_SECRET_KEY
+  try {
+    const { resolveEnv } = await import("./env.js");
+    resolveEnv();
+  } catch {
+    // Dev UI can work without env
+  }
 
-  const child = spawn("claude", claudeArgs, {
-    cwd,
-    stdio: "inherit",
+  // Detect dev mode (running from monorepo source) for --plugin-dir
+  const { packageRoot } = await import("./mcp/config.js");
+  const monorepoRoot = resolve(packageRoot, "..", "..");
+  const pluginDir = existsSync(resolve(monorepoRoot, "packages", "core")) ? monorepoRoot : undefined;
+
+  const { startDevServer } = await import("../dev-ui/index.js");
+  const { url } = await startDevServer({
+    projectRoot: cwd,
+    databaseUrl: process.env.DATABASE_URL,
+    nangoSecretKey: process.env.NANGO_SECRET_KEY,
+    claudePluginDir: pluginDir,
+    claudeSkipPermissions: yolo,
+    claudePrompt: WELCOME_PROMPT,
   });
-  child.on("exit", (code) => process.exit(code ?? 0));
+
+  // Open browser
+  try {
+    const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+    execSync(`${cmd} ${url}`, { stdio: "ignore" });
+  } catch {
+    // Non-fatal — user can open manually
+  }
 }
 
 export async function runInit(): Promise<void> {
   p.intro(pc.red("0pflow") + pc.dim(" — create a new project"));
+
+  if (!isClaudeAvailable()) {
+    p.log.error("Claude Code CLI not found. Install it from https://claude.ai/code");
+    process.exit(1);
+  }
 
   // ── Existing project check ──────────────────────────────────────────
   if (isExisting0pflow()) {
     const action = await p.select({
       message: "This directory is already an 0pflow project.",
       options: [
-        { value: "claude" as const, label: "Launch Claude Code" },
-        { value: "claude-yolo" as const, label: "Launch Claude Code with --dangerously-skip-permissions" },
+        { value: "claude" as const, label: "Launch Dev UI" },
+        { value: "claude-yolo" as const, label: "Launch Dev UI with --dangerously-skip-permissions" },
         { value: "new" as const, label: "Create a new project in a subdirectory" },
       ],
     });
@@ -120,12 +136,8 @@ export async function runInit(): Promise<void> {
     }
 
     if (action === "claude" || action === "claude-yolo") {
-      if (!isClaudeAvailable()) {
-        p.log.error("Claude Code CLI not found. Install it from https://claude.ai/code");
-        process.exit(1);
-      }
-      p.outro(pc.green("Launching Claude Code..."));
-      launchClaude(process.cwd(), { yolo: action === "claude-yolo" });
+      p.outro(pc.green("Launching Dev UI..."));
+      await launchDevServer(process.cwd(), { yolo: action === "claude-yolo" });
       return;
     }
     // fall through to normal wizard (cwdEmpty will be false, so directory defaults to ./<name>)
@@ -388,39 +400,28 @@ export async function runInit(): Promise<void> {
     }
   }
 
-  // ── Launch Claude? ──────────────────────────────────────────────────
-  const hasClaude = isClaudeAvailable();
+  // ── Launch Dev UI? ──────────────────────────────────────────────────
+  const launchChoice = await p.select({
+    message: "Launch Dev UI to design your first workflow?",
+    options: [
+      { value: "claude" as const, label: "Yes" },
+      { value: "claude-yolo" as const, label: "Yes, with --dangerously-skip-permissions" },
+      { value: "no" as const, label: "No, I'll do it later" },
+    ],
+  });
 
-  if (hasClaude) {
-    const launchChoice = await p.select({
-      message: "Launch Claude Code to design your first workflow?",
-      options: [
-        { value: "claude" as const, label: "Yes" },
-        { value: "claude-yolo" as const, label: "Yes, with --dangerously-skip-permissions" },
-        { value: "no" as const, label: "No, I'll do it later" },
-      ],
-    });
-
-    if (!p.isCancel(launchChoice) && launchChoice !== "no") {
-      p.outro(pc.green("Launching Claude Code..."));
-      launchClaude(resolve(appPath), { yolo: launchChoice === "claude-yolo" });
-      return;
-    }
+  if (!p.isCancel(launchChoice) && launchChoice !== "no") {
+    p.outro(pc.green("Launching Dev UI..."));
+    await launchDevServer(resolve(appPath), { yolo: launchChoice === "claude-yolo" });
+    return;
   }
 
   // ── Done ────────────────────────────────────────────────────────────
   const cdCmd = directory === "." ? "" : `cd ${directory} && `;
-  const pluginFlag = isDevMode() ? ` --plugin-dir ${monorepoRoot}` : "";
-  const claudeCmd = `${cdCmd}claude${pluginFlag}`;
 
   p.outro(pc.green("Project created!"));
   console.log();
-  console.log(pc.bold("  To launch Claude Code later:"));
-  console.log(pc.cyan(`  ${claudeCmd}`));
-  console.log();
-  console.log(pc.bold("  Example prompts to get started:"));
-  console.log(pc.dim('  "Create a workflow that enriches leads from a CSV file"'));
-  console.log(pc.dim('  "Build a workflow that monitors website uptime and sends Slack alerts"'));
-  console.log(pc.dim('  "Create a data pipeline that syncs Salesforce contacts to our database"'));
+  console.log(pc.bold("  To launch the Dev UI later:"));
+  console.log(pc.cyan(`  ${cdCmd}0pflow dev`));
   console.log();
 }

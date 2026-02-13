@@ -29,10 +29,12 @@ export interface DevServerOptions {
   port?: number;
   host?: boolean;
   quiet?: boolean;
+  verbose?: boolean;
   databaseUrl?: string;
   nangoSecretKey?: string;
   claudePluginDir?: string;
   claudeSkipPermissions?: boolean;
+  claudePrompt?: string;
 }
 
 export async function startDevServer(options: DevServerOptions) {
@@ -140,6 +142,7 @@ export async function startDevServer(options: DevServerOptions) {
       claudeArgs: [
         ...(options.claudePluginDir ? ["--plugin-dir", options.claudePluginDir] : []),
         ...(options.claudeSkipPermissions ? ["--dangerously-skip-permissions"] : []),
+        ...(options.claudePrompt ? ["--", options.claudePrompt] : []),
       ],
       onData: (data) => broadcast({ type: "pty-data", data }),
       onExit: (code) => broadcast({ type: "pty-exit", data: { code } }),
@@ -160,7 +163,7 @@ export async function startDevServer(options: DevServerOptions) {
   if (ptyManager) {
     try {
       const pid = ptyManager.spawn();
-      if (!options.quiet) {
+      if (options.verbose) {
         console.log(`  Terminal: Claude Code running (PID ${pid})\n`);
       }
     } catch (err) {
@@ -208,18 +211,19 @@ export async function startDevServer(options: DevServerOptions) {
   const url = `http://localhost:${actualPort}`;
 
   if (!options.quiet) {
-    console.log(`\n  0pflow Dev UI running at:`);
-    console.log(`  → ${url}\n`);
+    console.log(`\n  Open your browser to ${url}\n`);
     if (actualPort !== port) {
       console.log(`  (port ${port} was in use, using ${actualPort} instead)\n`);
     }
-    console.log(`  Watching for workflow changes in:`);
-    console.log(`    ${resolve(projectRoot, "generated/workflows/")}`);
-    console.log(`    ${resolve(projectRoot, "src/workflows/")}\n`);
-    if (hasApi) {
-      console.log(`  Connections API enabled (Nango + DB configured)\n`);
-    } else {
-      console.log(`  Connections API disabled (set DATABASE_URL and NANGO_SECRET_KEY to enable)\n`);
+    if (options.verbose) {
+      console.log(`  Watching for workflow changes in:`);
+      console.log(`    ${resolve(projectRoot, "generated/workflows/")}`);
+      console.log(`    ${resolve(projectRoot, "src/workflows/")}\n`);
+      if (hasApi) {
+        console.log(`  Connections API enabled (Nango + DB configured)\n`);
+      } else {
+        console.log(`  Connections API disabled (set DATABASE_URL and NANGO_SECRET_KEY to enable)\n`);
+      }
     }
   }
 

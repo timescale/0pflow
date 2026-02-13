@@ -122,7 +122,7 @@ When an agent's description contains a `**Tools needed:**` section (added by `/0
 | Tool Type | Import Pattern | tools record entry |
 |-----------|----------------|--------------------|
 | `(builtin)` | `import { webRead } from "0pflow"` | `web_read: webRead` |
-| `(provider)` | `import { createOpenAI } from "@ai-sdk/openai"` | `web_search: openai.tools.webSearch()` |
+| `(provider)` | `import { createOpenAI } from "@ai-sdk/openai"; const openai = createOpenAI();` | `web_search: openai.tools.webSearch()` |
 | `(user node in src/nodes/<file>.ts)` | `import { name } from "../../src/nodes/<file>.js"` | `enrich_company: enrichCompany` |
 
 ---

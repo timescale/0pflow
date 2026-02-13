@@ -5,10 +5,11 @@ interface ClaudeTerminalProps {
   attachTo: (el: HTMLDivElement | null) => void;
   fit: () => void;
   ptyAlive: boolean;
+  hasData: boolean;
   restart: () => void;
 }
 
-export function ClaudeTerminal({ attachTo, fit, ptyAlive, restart }: ClaudeTerminalProps) {
+export function ClaudeTerminal({ attachTo, fit, ptyAlive, hasData, restart }: ClaudeTerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Attach terminal to the container div
@@ -52,8 +53,19 @@ export function ClaudeTerminal({ attachTo, fit, ptyAlive, restart }: ClaudeTermi
   }, [ptyAlive, restart]);
 
   return (
-    <div className="h-full w-full overflow-hidden bg-[#1a1a1a] px-4 py-2">
+    <div className="relative h-full w-full overflow-hidden bg-[#1a1a1a] px-4 py-2">
       <div ref={containerRef} className="h-full w-full" />
+      {!hasData && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex items-center gap-3 text-zinc-500">
+            <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span>Starting Claude Code...</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

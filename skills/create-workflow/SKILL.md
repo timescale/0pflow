@@ -44,27 +44,17 @@ Once the tool succeeds, the returned integration IDs are what nodes declare in t
 - Read `specs/agents/*.md` — existing agents that could be reused
 - Ensure `generated/workflows/` and `specs/agents/` directories exist
 
-### 4. Start Dev UI
-
-Call the `start_dev_ui` MCP tool to start the Dev UI server. It automatically picks an available port and is idempotent (safe to call if already running).
-
-Then open the browser at the URL returned by the tool:
-
-```bash
-open <url from start_dev_ui>
-```
-
 ---
 
-## Writing the Workflow (Incremental — Dev UI updates live)
+## Writing the Workflow (Incremental — file watcher updates live)
 
-Once the flow is approved, write the workflow **incrementally** as TypeScript with embedded description fields. The Dev UI (`npx 0pflow dev`) picks up file changes via file watching — no compile step needed per-task.
+Once the flow is approved, write the workflow **incrementally** as TypeScript with embedded description fields. The file watcher picks up changes automatically — no compile step needed per-task.
 
 This phase focuses on **WHAT** each node does, not **HOW**. Capture purpose and intent in plain language. Implementation details (exact fields, API schemas, tool configs) are handled later by `/0pflow:refine-node`.
 
 ### Step-by-step
 
-**IMPORTANT: Write one node at a time, not all at once.** The Dev UI watches for file changes — each save updates the graph live. Batch-writing all nodes defeats this and gives the user no chance to see the workflow take shape.
+**IMPORTANT: Write one node at a time, not all at once.** The file watcher picks up changes — each save updates the graph live. Batch-writing all nodes defeats this and gives the user no chance to see the workflow take shape.
 
 1. **Write the workflow file** — create `generated/workflows/<name>.ts` with the scaffold template below, including a flow-only `description` field and an empty `run()` method. Import nothing yet.
 
@@ -73,7 +63,7 @@ This phase focuses on **WHAT** each node does, not **HOW**. Capture purpose and 
    b. Add the import to the workflow file
    c. Add the task to the workflow's `description` field
    d. Add the `ctx.run()` call to the workflow's `run()` method
-   e. **Save the workflow file** — the Dev UI graph gains a new node immediately
+   e. **Save the workflow file** — the graph gains a new node immediately
 
 3. After all tasks are written, **immediately** invoke `/0pflow:refine-node` to add typed schemas and implementation details. Do NOT ask the user — just proceed directly.
        

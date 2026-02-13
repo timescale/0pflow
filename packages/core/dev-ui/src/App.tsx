@@ -40,6 +40,7 @@ export function App() {
             attachTo={terminal.attachTo}
             fit={terminal.fit}
             ptyAlive={terminal.ptyAlive}
+            hasData={terminal.hasData}
             restart={terminal.restart}
           />
         ),

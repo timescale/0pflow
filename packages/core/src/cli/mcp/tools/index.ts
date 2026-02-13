@@ -3,7 +3,7 @@ import { createDatabaseFactory } from "./createDatabase.js";
 import { setupAppSchemaFactory } from "./setupAppSchema.js";
 import { listIntegrationsFactory } from "./listIntegrations.js";
 import { getConnectionInfoFactory } from "./getConnectionInfo.js";
-import { startDevUiFactory } from "./startDevUi.js";
+
 import { listWorkflowsFactory } from "./listWorkflows.js";
 import { runWorkflowFactory } from "./runWorkflow.js";
 import { runNodeFactory } from "./runNode.js";
@@ -18,7 +18,7 @@ export async function getApiFactories() {
     setupAppSchemaFactory,
     listIntegrationsFactory,
     getConnectionInfoFactory,
-    startDevUiFactory,
+
     listWorkflowsFactory,
     runWorkflowFactory,
     runNodeFactory,

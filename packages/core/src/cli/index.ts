@@ -508,7 +508,9 @@ program
   .option("-p, --port <number>", "Port to serve on", "4173")
   .option("--host", "Expose to network")
   .option("--dangerously-skip-permissions", "Pass --dangerously-skip-permissions to Claude Code")
-  .action(async (options: { port: string; host?: boolean; dangerouslySkipPermissions?: boolean }) => {
+  .option("--claude-prompt <text>", "Initial prompt to send to Claude Code")
+  .option("--verbose", "Show detailed startup information")
+  .action(async (options: { port: string; host?: boolean; dangerouslySkipPermissions?: boolean; claudePrompt?: string; verbose?: boolean }) => {
     // Load .env for DATABASE_URL and NANGO_SECRET_KEY
     try {
       resolveEnv();
@@ -531,6 +533,8 @@ program
       nangoSecretKey: process.env.NANGO_SECRET_KEY,
       claudePluginDir: pluginDir,
       claudeSkipPermissions: options.dangerouslySkipPermissions,
+      claudePrompt: options.claudePrompt,
+      verbose: options.verbose,
     });
   });
 

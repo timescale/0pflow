@@ -71,7 +71,7 @@ Use your judgment to propose reasonable schemas and tool selections based on the
 | Category | Description | Examples |
 |----------|-------------|---------|
 | **Built-in nodes** | Ships with 0pflow | `webRead` |
-| **Provider tools** | From AI SDK providers | `openai.tools.webSearch()`, `openai.tools.codeInterpreter()` |
+| **Provider tools** | From AI SDK providers (see import below) | `openai.tools.webSearch()`, `openai.tools.codeInterpreter()` |
 | **User nodes** | Custom nodes in `src/nodes/` | `enrichCompany`, `sendSlackMessage` |
 
 Common mappings:
@@ -82,6 +82,13 @@ Common mappings:
 | Search the web | `openai.tools.webSearch()` | provider |
 | Run Python code | `openai.tools.codeInterpreter()` | provider |
 | Domain-specific (CRM, email) | User must implement | user node |
+
+**Provider tool imports:** Provider tools require creating a provider instance from `@ai-sdk/openai` (NOT from `0pflow` or `openai`):
+```typescript
+import { createOpenAI } from "@ai-sdk/openai";
+const openai = createOpenAI();
+// Then use: openai.tools.webSearch(), openai.tools.codeInterpreter(), etc.
+```
 
 ### What to Update in Node Files
 
@@ -157,6 +164,9 @@ Searches the web to find additional professional info about a lead.
 
 **After refinement** — schemas filled, description enriched, tools added:
 ```typescript
+import { createOpenAI } from "@ai-sdk/openai";
+const openai = createOpenAI();
+
 export const enrichLead = Agent.create({
   name: "enrich-lead",
   integrations: ["openai"],

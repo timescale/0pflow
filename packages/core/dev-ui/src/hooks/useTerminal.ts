@@ -55,6 +55,7 @@ function createTerminal(sendRef: React.MutableRefObject<(msg: object) => void>) 
 
 export function useTerminal({ sendMessage, ptyEvents }: UseTerminalOptions) {
   const [ptyAlive, setPtyAlive] = useState(false);
+  const [hasData, setHasData] = useState(false);
 
   // Stable ref for sendMessage so Terminal.onData doesn't recreate
   const sendRef = useRef(sendMessage);
@@ -88,6 +89,7 @@ export function useTerminal({ sendMessage, ptyEvents }: UseTerminalOptions) {
       const data = (e as CustomEvent).detail as string;
       if (openedRef.current) {
         term.write(data);
+        setHasData(true);
       } else {
         bufferRef.current.push(data);
       }
@@ -125,10 +127,13 @@ export function useTerminal({ sendMessage, ptyEvents }: UseTerminalOptions) {
         openedRef.current = true;
 
         // Flush any data buffered before the terminal was opened
-        for (const chunk of bufferRef.current) {
-          term.write(chunk);
+        if (bufferRef.current.length > 0) {
+          for (const chunk of bufferRef.current) {
+            term.write(chunk);
+          }
+          bufferRef.current = [];
+          setHasData(true);
         }
-        bufferRef.current = [];
       } else if (term.element) {
         // Re-attach: move existing xterm DOM into the new container
         container.appendChild(term.element);
@@ -157,5 +162,5 @@ export function useTerminal({ sendMessage, ptyEvents }: UseTerminalOptions) {
     sendRef.current({ type: "pty-spawn" });
   }, [term]);
 
-  return { attachTo, fit, ptyAlive, restart };
+  return { attachTo, fit, ptyAlive, hasData, restart };
 }
