@@ -49,7 +49,6 @@ export type {
 
 // Connection management
 export {
-  ensureConnectionsTable,
   resolveConnectionId,
   upsertConnection,
   listConnections,

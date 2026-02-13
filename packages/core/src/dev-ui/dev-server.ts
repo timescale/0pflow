@@ -7,9 +7,9 @@ import { createWSServer, type WSClientMessage } from "./ws.js";
 import { createWatcher } from "./watcher.js";
 import type { PtyManager } from "./pty.js";
 import { handleApiRequest } from "./api.js";
-import { ensureConnectionsTable } from "../connections/index.js";
 import { createIntegrationProvider } from "../connections/integration-provider.js";
 import { getSchemaName } from "../dbos.js";
+import { getAppSchema } from "../cli/app.js";
 import pg from "pg";
 
 const MIME: Record<string, string> = {
@@ -49,20 +49,21 @@ export async function startDevServer(options: DevServerOptions) {
   }
   const clientDir = resolve(pkgRoot, "dist/dev-ui-client");
 
-  // Resolve DBOS schema name from project's package.json
+  // Read app schema from project's .env (DATABASE_SCHEMA, written by setup_app_schema)
   const projectPkgPath = resolve(projectRoot, "package.json");
-  let appName: string | undefined;
+  let pkgName: string | undefined;
   try {
-    appName = JSON.parse(readFileSync(projectPkgPath, "utf-8")).name;
+    pkgName = JSON.parse(readFileSync(projectPkgPath, "utf-8")).name;
   } catch { /* use default */ }
-  const dbosSchema = getSchemaName(appName);
+
+  const appSchema = getAppSchema(projectRoot);
+  const dbosSchema = getSchemaName(pkgName);
 
   // Set up API context if database is configured
   const hasApi = !!(options.databaseUrl);
   let pool: pg.Pool | null = null;
 
   if (hasApi) {
-    await ensureConnectionsTable(options.databaseUrl!, appName ?? "opflow");
     pool = new pg.Pool({ connectionString: options.databaseUrl! });
   }
 
@@ -82,7 +83,7 @@ export async function startDevServer(options: DevServerOptions) {
           pool,
           integrationProvider: integrationProvider!,
           schema: dbosSchema,
-          appSchema: appName ?? "opflow",
+          appSchema,
         });
         if (handled) return;
       } catch (err) {

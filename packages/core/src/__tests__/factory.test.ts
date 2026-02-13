@@ -5,11 +5,6 @@ import { create0pflow } from "../factory.js";
 import { Workflow } from "../workflow.js";
 import { Node } from "../node.js";
 
-// Mock connections schema (avoids pg connection in tests)
-vi.mock("../connections/schema.js", () => ({
-  ensureConnectionsTable: vi.fn().mockResolvedValue(undefined),
-}));
-
 // Mock DBOS
 vi.mock("@dbos-inc/dbos-sdk", () => ({
   DBOS: {

@@ -12,7 +12,7 @@ import { discoverWorkflows, discoverNodes } from "./discovery.js";
 import { resolveEnv } from "./env.js";
 import { listRuns, getRun } from "./runs.js";
 import { getTrace, printTrace } from "./trace.js";
-import { getAppName } from "./app.js";
+import { getAppName, getAppSchema } from "./app.js";
 import { startMcpServer } from "./mcp/server.js";
 import { runInstall, runUninstall } from "./install.js";
 import { runRun } from "./run.js";
@@ -209,7 +209,7 @@ workflow
 
       const pflow = await create0pflow({
         databaseUrl: process.env.DATABASE_URL!,
-        appName: getAppName() ?? "opflow",
+        appName: getAppSchema(),
         workflows: workflowRegistry,
         nodes,
       });
@@ -347,7 +347,7 @@ node
 
       const pflow = await create0pflow({
         databaseUrl: process.env.DATABASE_URL!,
-        appName: getAppName() ?? "opflow",
+        appName: getAppSchema(),
         nodes,
       });
 

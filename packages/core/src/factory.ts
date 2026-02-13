@@ -5,7 +5,6 @@ import { initializeDBOS, shutdownDBOS } from "./dbos.js";
 import { NodeRegistry } from "./nodes/registry.js";
 import { configureAgentRuntime } from "./agent.js";
 import { Workflow, configureWorkflowRuntime, type NodeWrapper } from "./workflow.js";
-import { ensureConnectionsTable } from "./connections/index.js";
 import { createIntegrationProvider } from "./connections/integration-provider.js";
 import pg from "pg";
 
@@ -43,7 +42,6 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
   // Create shared pg pool for connection management (needed for local connection mapping)
   const pool = new pg.Pool({ connectionString: config.databaseUrl });
   const appSchema = config.appName;
-  await ensureConnectionsTable(config.databaseUrl, appSchema);
 
   // Configure workflow runtime with pool + integration provider
   configureWorkflowRuntime(pool, integrationProvider, appSchema);

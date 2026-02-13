@@ -7,6 +7,7 @@ import * as dotenv from "dotenv";
 import pg from "pg";
 import { packageRoot, version } from "../config.js";
 import { writeAppTemplates, create0pflowDirectories } from "../lib/templates.js";
+import { ensureConnectionsTable } from "../../../connections/schema.js";
 
 const execAsync = (cmd: string, cwd?: string) =>
   new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
@@ -319,6 +320,9 @@ export async function setupAppSchema({
       .join("\n");
 
     await writeFile(envPath, `${newEnvContent}\n`);
+
+    // Create the opflow_connections table so it's ready before the dev UI launches
+    await ensureConnectionsTable(appDatabaseUrl, appName);
   } catch (err) {
     const error = err as Error;
     return {

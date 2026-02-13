@@ -7,7 +7,7 @@ import pg from "pg";
 import type { ServerContext } from "../types.js";
 import { createIntegrationProvider } from "../../../connections/integration-provider.js";
 import { resolveConnectionId } from "../../../connections/resolver.js";
-import { getAppName } from "../../app.js";
+import { getAppSchema } from "../../app.js";
 
 const inputSchema = {
   integration_id: z
@@ -100,7 +100,7 @@ export const getConnectionInfoFactory: ApiFactory<
 
       // Look up connection_id using the same resolution as runtime:
       // exact (workflow_name, node_name) match first, then global (* / *) fallback
-      const appSchema = env.DATABASE_SCHEMA ?? getAppName();
+      const appSchema = getAppSchema();
       let connectionId: string | null = null;
       const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
       try {
