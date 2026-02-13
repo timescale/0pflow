@@ -1,10 +1,7 @@
-import { exec } from "node:child_process";
-import { promisify } from "node:util";
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
+import { createDatabase } from "../lib/scaffolding.js";
 import type { ServerContext } from "../types.js";
-
-const execAsync = promisify(exec);
 
 const inputSchema = {
   name: z.string().optional().describe("Database name (default: app-db)"),
@@ -39,47 +36,7 @@ export const createDatabaseFactory: ApiFactory<
       outputSchema,
     },
     fn: async ({ name }): Promise<OutputSchema> => {
-      const dbName = name || "app-db";
-
-      const cmdArgs = [
-        "tiger",
-        "service",
-        "create",
-        "--name",
-        dbName,
-        "--cpu",
-        "shared",
-        "--memory",
-        "shared",
-        "--addons",
-        "time-series,ai",
-        "--no-wait",
-        "-o",
-        "json",
-      ];
-
-      try {
-        const { stdout, stderr } = await execAsync(cmdArgs.join(" "));
-        const result = JSON.parse(stdout) as { service_id?: string };
-
-        if (!result.service_id) {
-          return {
-            success: false,
-            error: `No service_id in response: ${stdout}${stderr}`,
-          };
-        }
-
-        return {
-          success: true,
-          service_id: result.service_id,
-        };
-      } catch (err) {
-        const error = err as Error & { stdout?: string; stderr?: string };
-        return {
-          success: false,
-          error: `Failed to create database: ${error.message}\n${error.stdout || ""}${error.stderr || ""}`,
-        };
-      }
+      return createDatabase({ name });
     },
   };
 };

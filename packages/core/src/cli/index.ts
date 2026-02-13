@@ -15,6 +15,7 @@ import { getTrace, printTrace } from "./trace.js";
 import { getAppName } from "./app.js";
 import { startMcpServer } from "./mcp/server.js";
 import { runInstall, runUninstall } from "./install.js";
+import { runInit } from "./init.js";
 
 // Read version from package.json
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -86,6 +87,14 @@ program
   .name("0pflow")
   .description("CLI for 0pflow workflow engine")
   .version(version);
+
+// ============ Init command ============
+program
+  .command("init")
+  .description("Create a new 0pflow project")
+  .action(async () => {
+    await runInit();
+  });
 
 // ============ Workflow commands ============
 const workflow = program.command("workflow").description("Workflow commands");

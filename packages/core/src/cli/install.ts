@@ -228,12 +228,18 @@ export async function runInstall(options: InstallOptions = {}): Promise<void> {
 
   // Development mode: just show the command to use
   if (mcpResult.isLocal) {
+    // Build the init command from the MCP command (same tsx + script, different subcommand)
+    const initCmd = mcpResult.command.slice(0, -2).concat("init").join(" ");
+
     printBanner();
     console.log(pc.yellow("Development mode detected"));
     console.log();
-    console.log(pc.bold("To use the plugin, run Claude Code with:"));
-    console.log();
-    console.log(pc.cyan(`  claude --plugin-dir ${mcpResult.packageRoot}`));
+    console.log(pc.bold("Next steps:"));
+    console.log(pc.dim("  1. Create a new project:"));
+    console.log(pc.cyan(`     ${initCmd}`));
+    console.log(pc.dim("  2. Run Claude Code with:"));
+    console.log(pc.cyan(`     claude --plugin-dir ${mcpResult.packageRoot}`));
+    console.log(pc.dim("  3. Use"), pc.cyan("/create-workflow"), pc.dim("to design your first workflow"));
     console.log();
     return;
   }
@@ -249,13 +255,15 @@ export async function runInstall(options: InstallOptions = {}): Promise<void> {
   }
 
   if (pluginResult.success) {
+    const initCmd = `npx 0pflow@${getNpmVersionForMcp()} init`;
+
     printBanner();
     console.log(pc.green("✓"), "Installed successfully");
     console.log();
     console.log(pc.bold("Next steps:"));
-    console.log(pc.dim("  1. Restart Claude Code in a new project folder"));
-    console.log(pc.dim("  2. Ask Claude to create a workflow, e.g.:"));
-    console.log(pc.cyan('     "Create a workflow that enriches leads from a CSV file"'));
+    console.log(pc.dim("  1. Create a new project:"));
+    console.log(pc.cyan(`     ${initCmd}`));
+    console.log(pc.dim("  2. Use"), pc.cyan("/create-workflow"), pc.dim("to design your first workflow"));
     console.log();
   } else {
     console.log(pc.red("✗"), "Installation failed");

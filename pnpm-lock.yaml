@@ -160,6 +160,9 @@ importers:
       '@ai-sdk/openai':
         specifier: ^3.0.19
         version: 3.0.25(zod@4.3.6)
+      '@clack/prompts':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@dbos-inc/dbos-sdk':
         specifier: ^4.7.9
         version: 4.8.8
@@ -251,6 +254,9 @@ importers:
       tailwindcss:
         specifier: ^4.0.0
         version: 4.1.18
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -487,6 +493,12 @@ packages:
 
   '@cfworker/json-schema@4.1.1':
     resolution: {integrity: sha512-gAmrUZSGtKc3AiBL71iNWxDsyUC5uMaKKGdvzYsBoTW/xi42JQHl7eKV2OYzCUqvc+D2RCcf7EXY2iCyFIk6og==}
+
+  '@clack/core@1.0.1':
+    resolution: {integrity: sha512-WKeyK3NOBwDOzagPR5H08rFk9D/WuN705yEbuZvKqlkmoLM2woKtXb10OO2k1NoSU4SFG947i2/SCYh+2u5e4g==}
+
+  '@clack/prompts@1.0.1':
+    resolution: {integrity: sha512-/42G73JkuYdyWZ6m8d/CJtBrGl1Hegyc7Fy78m5Ob+jF85TOUmLR5XLce/U3LxYAw0kJ8CT5aI99RIvPHcGp/Q==}
 
   '@colors/colors@1.5.0':
     resolution: {integrity: sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==}
@@ -4707,6 +4719,9 @@ packages:
   simple-wcswidth@1.1.2:
     resolution: {integrity: sha512-j7piyCjAeTDSjzTSQ7DokZtMNwNlEAyxqSZeCS+CXH7fJ4jx3FuJ/mTW3mE+6JLs4VJBbcll0Kjn+KXI5t21Iw==}
 
+  sisteransi@1.0.5:
+    resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
+
   slash@5.1.0:
     resolution: {integrity: sha512-ZA6oR3T/pEyuqwMgAKT0/hAv8oAXckzbkmR0UkUosQ+Mc4RxGoJkRmwHgHufaenlyAgE1Mxgpdcrf75y6XcnDg==}
     engines: {node: '>=14.16'}
@@ -5397,6 +5412,17 @@ snapshots:
 
   '@cfworker/json-schema@4.1.1': {}
 
+  '@clack/core@1.0.1':
+    dependencies:
+      picocolors: 1.1.1
+      sisteransi: 1.0.5
+
+  '@clack/prompts@1.0.1':
+    dependencies:
+      '@clack/core': 1.0.1
+      picocolors: 1.1.1
+      sisteransi: 1.0.5
+
   '@colors/colors@1.5.0':
     optional: true
 
@@ -5882,7 +5908,7 @@ snapshots:
       dotenv: 17.2.3
       esbuild: 0.27.2
       globby: 16.1.0
-      mcp-use: 1.13.1(j5jhqqlr5ukgs7wcyruv52im7e)
+      mcp-use: 1.13.1(6oz75nen3lvdl5jldmjqssckt4)
       open: 11.0.0
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
@@ -9046,7 +9072,7 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
-  mcp-use@1.13.1(j5jhqqlr5ukgs7wcyruv52im7e):
+  mcp-use@1.13.1(6oz75nen3lvdl5jldmjqssckt4):
     dependencies:
       '@hono/node-server': 1.19.9(hono@4.11.7)
       '@mcp-ui/server': 5.16.3(@cfworker/json-schema@4.1.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(zod@4.3.6)
@@ -9077,18 +9103,29 @@ snapshots:
       - '@opentelemetry/exporter-trace-otlp-proto'
       - '@opentelemetry/sdk-trace-base'
       - '@preact/signals-core'
+      - '@types/node'
       - '@types/react'
       - '@types/react-dom'
       - bufferutil
+      - jiti
+      - less
+      - lightningcss
       - openai
       - preact
       - react-dom
       - react-native
+      - react-router-dom
+      - sass
+      - sass-embedded
       - solid-js
+      - stylus
+      - sugarss
       - supports-color
+      - terser
       - utf-8-validate
       - vite
       - vue
+      - yaml
 
   mcp-use@1.13.1(zfq5i7464idybnpofjdm6iqidq):
     dependencies:
@@ -9794,6 +9831,8 @@ snapshots:
   siginfo@2.0.0: {}
 
   simple-wcswidth@1.1.2: {}
+
+  sisteransi@1.0.5: {}
 
   slash@5.1.0: {}
 
