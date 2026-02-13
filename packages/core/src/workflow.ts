@@ -33,6 +33,7 @@ interface WorkflowRuntimeConfig {
   sql: pg.Pool | null;
   integrationProvider: IntegrationProvider | null;
   workflowName: string;
+  appSchema: string;
 }
 
 /**
@@ -91,6 +92,7 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
         config.workflowName,
         _currentNodeName,
         integrationId,
+        config.appSchema,
       );
 
       if (!connectionId) {
@@ -121,6 +123,7 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
  */
 const POOL_KEY = Symbol.for("opflow.getWorkflowPool()");
 const PROVIDER_KEY = Symbol.for("opflow.getWorkflowIntegrationProvider()");
+const SCHEMA_KEY = Symbol.for("opflow.getWorkflowAppSchema()");
 
 function getWorkflowPool(): pg.Pool | null {
   return (globalThis as Record<symbol, pg.Pool | null>)[POOL_KEY] ?? null;
@@ -130,6 +133,10 @@ function getWorkflowIntegrationProvider(): IntegrationProvider | null {
   return (globalThis as Record<symbol, IntegrationProvider | null>)[PROVIDER_KEY] ?? null;
 }
 
+function getWorkflowAppSchema(): string {
+  return (globalThis as Record<symbol, string>)[SCHEMA_KEY] ?? "public";
+}
+
 /**
  * Configure the workflow runtime (called by factory)
  * @internal
@@ -137,9 +144,11 @@ function getWorkflowIntegrationProvider(): IntegrationProvider | null {
 export function configureWorkflowRuntime(
   sql: pg.Pool | null,
   integrationProvider: IntegrationProvider | null,
+  appSchema: string,
 ): void {
   (globalThis as Record<symbol, pg.Pool | null>)[POOL_KEY] = sql;
   (globalThis as Record<symbol, IntegrationProvider | null>)[PROVIDER_KEY] = integrationProvider;
+  (globalThis as Record<symbol, string>)[SCHEMA_KEY] = appSchema;
 }
 
 /**
@@ -164,6 +173,7 @@ export const Workflow = {
         sql: getWorkflowPool(),
         integrationProvider: getWorkflowIntegrationProvider(),
         workflowName: definition.name,
+        appSchema: getWorkflowAppSchema(),
       });
       return definition.run(ctx, inputs);
     }
@@ -205,6 +215,7 @@ export const Workflow = {
         sql: getWorkflowPool(),
         integrationProvider: getWorkflowIntegrationProvider(),
         workflowName: _parentWorkflowName ?? wrapperName,
+        appSchema: getWorkflowAppSchema(),
       });
       _parentWorkflowName = undefined;
       return ctx.run(node, inputs);

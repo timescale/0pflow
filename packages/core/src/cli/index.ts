@@ -209,7 +209,7 @@ workflow
 
       const pflow = await create0pflow({
         databaseUrl: process.env.DATABASE_URL!,
-        appName: getAppName(),
+        appName: getAppName() ?? "opflow",
         workflows: workflowRegistry,
         nodes,
       });
@@ -347,7 +347,7 @@ node
 
       const pflow = await create0pflow({
         databaseUrl: process.env.DATABASE_URL!,
-        appName: getAppName(),
+        appName: getAppName() ?? "opflow",
         nodes,
       });
 

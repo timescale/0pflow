@@ -30,6 +30,7 @@ describe.skipIf(!DATABASE_URL)("uptime-app workflows", () => {
 
     pflow = await create0pflow({
       databaseUrl: DATABASE_URL!,
+      appName: "uptime_app",
       workflows: {
         "url-check": urlCheck,
         "url-summarizer": urlSummarizer,

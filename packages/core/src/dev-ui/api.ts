@@ -11,7 +11,10 @@ import { parseOutput } from "../cli/trace.js";
 export interface ApiContext {
   pool: pg.Pool;
   integrationProvider: IntegrationProvider;
+  /** DBOS system schema (e.g. my_app_dbos) for workflow_status queries */
   schema: string;
+  /** App schema where opflow_connections lives (e.g. my_app) */
+  appSchema: string;
 }
 
 function jsonResponse(res: ServerResponse, status: number, data: unknown): void {
@@ -62,7 +65,7 @@ export async function handleApiRequest(
 
   // GET /api/connections
   if (url === "/api/connections" && method === "GET") {
-    const connections = await listConnections(ctx.pool);
+    const connections = await listConnections(ctx.pool, ctx.appSchema);
     jsonResponse(res, 200, connections);
     return true;
   }
@@ -84,7 +87,7 @@ export async function handleApiRequest(
       node_name: body.node_name ?? "*",
       integration_id: body.integration_id,
       connection_id: body.connection_id,
-    });
+    }, ctx.appSchema);
     jsonResponse(res, 200, { ok: true });
     return true;
   }
@@ -105,6 +108,7 @@ export async function handleApiRequest(
       body.workflow_name ?? "*",
       body.node_name ?? "*",
       body.integration_id,
+      ctx.appSchema,
     );
     jsonResponse(res, 200, { ok: true });
     return true;

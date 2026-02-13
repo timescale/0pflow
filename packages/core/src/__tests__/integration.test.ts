@@ -1,81 +1,110 @@
 // packages/core/src/__tests__/integration.test.ts
-import { describe, it, expect, vi, beforeEach } from "vitest";
+// Integration tests that require a real Postgres database
+// Run with: DATABASE_URL=postgres://... pnpm test integration.test
+
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { z } from "zod";
-import { create0pflow, Workflow, Node } from "../index.js";
+import pg from "pg";
+import { create0pflow, Workflow, Node, type Pflow } from "../index.js";
 
-// Mock DBOS
-vi.mock("@dbos-inc/dbos-sdk", () => ({
-  DBOS: {
-    setConfig: vi.fn(),
-    launch: vi.fn().mockResolvedValue(undefined),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-    runStep: vi.fn().mockImplementation(async (fn) => fn()),
-    registerWorkflow: vi.fn().mockImplementation((fn) => fn),
-    logger: {
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-    },
+const DATABASE_URL = process.env.DATABASE_URL;
+
+// Schema used by tests (must match appName + "_dbos")
+const TEST_SCHEMA = "integration_test_dbos";
+
+async function resetDatabase(): Promise<void> {
+  const client = new pg.Client({ connectionString: DATABASE_URL });
+  await client.connect();
+  try {
+    // Drop DBOS schema to start fresh - DBOS will recreate it on launch
+    await client.query(`DROP SCHEMA IF EXISTS ${TEST_SCHEMA} CASCADE`);
+    await client.query(`DROP SCHEMA IF EXISTS integration_test CASCADE`);
+  } finally {
+    await client.end();
+  }
+}
+
+// Define nodes
+const fetchData = Node.create({
+  name: "fetch-data",
+  description: "Fetches data from a URL",
+  inputSchema: z.object({ url: z.string() }),
+  outputSchema: z.object({ title: z.string(), body: z.string() }),
+  execute: async (_ctx, inputs) => ({
+    title: `Page: ${inputs.url}`,
+    body: "Content here",
+  }),
+});
+
+const summarize = Node.create({
+  name: "summarize",
+  description: "Summarizes text",
+  inputSchema: z.object({ text: z.string() }),
+  outputSchema: z.object({ summary: z.string() }),
+  execute: async (_ctx, inputs) => ({
+    summary: `Summary of: ${inputs.text.slice(0, 20)}...`,
+  }),
+});
+
+// Define workflows
+const researchWorkflow = Workflow.create({
+  name: "research",
+  description: "Researches a URL",
+  version: 1,
+  inputSchema: z.object({ url: z.string() }),
+  outputSchema: z.object({ title: z.string(), summary: z.string() }),
+  run: async (ctx, inputs) => {
+    ctx.log("Starting research workflow");
+    const data = await ctx.run(fetchData, { url: inputs.url });
+    ctx.log(`Fetched: ${data.title}`);
+    const result = await ctx.run(summarize, { text: data.body });
+    ctx.log("Summarization complete");
+    return { title: data.title, summary: result.summary };
   },
-}));
+});
 
-describe("0pflow integration", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+const innerWorkflow = Workflow.create({
+  name: "inner",
+  description: "Inner workflow that doubles",
+  version: 1,
+  inputSchema: z.object({ value: z.number() }),
+  run: async (_ctx, inputs) => inputs.value * 2,
+});
+
+const outerWorkflow = Workflow.create({
+  name: "outer",
+  description: "Outer workflow that calls inner",
+  version: 1,
+  inputSchema: z.object({ value: z.number() }),
+  run: async (ctx, inputs) => {
+    const doubled = await ctx.run(innerWorkflow, { value: inputs.value });
+    return doubled + 1;
+  },
+});
+
+describe.skipIf(!DATABASE_URL)("0pflow integration", () => {
+  let pflow: Pflow;
+
+  beforeAll(async () => {
+    await resetDatabase();
+
+    pflow = await create0pflow({
+      databaseUrl: DATABASE_URL!,
+      appName: "integration_test",
+      workflows: {
+        research: researchWorkflow,
+        outer: outerWorkflow,
+        inner: innerWorkflow,
+      },
+      nodes: { "fetch-data": fetchData, summarize },
+    });
+  }, 30000);
+
+  afterAll(async () => {
+    await pflow?.shutdown();
   });
 
   it("complete workflow with multiple nodes", async () => {
-    // Define nodes
-    const fetchData = Node.create({
-      name: "fetch-data",
-      description: "Fetches data from a URL",
-      inputSchema: z.object({ url: z.string() }),
-      outputSchema: z.object({ title: z.string(), body: z.string() }),
-      execute: async (_ctx, inputs) => ({
-        title: `Page: ${inputs.url}`,
-        body: "Content here",
-      }),
-    });
-
-    const summarize = Node.create({
-      name: "summarize",
-      description: "Summarizes text",
-      inputSchema: z.object({ text: z.string() }),
-      outputSchema: z.object({ summary: z.string() }),
-      execute: async (_ctx, inputs) => ({
-        summary: `Summary of: ${inputs.text.slice(0, 20)}...`,
-      }),
-    });
-
-    // Define workflow
-    const researchWorkflow = Workflow.create({
-      name: "research",
-      description: "Researches a URL",
-      version: 1,
-      inputSchema: z.object({ url: z.string() }),
-      outputSchema: z.object({ title: z.string(), summary: z.string() }),
-      run: async (ctx, inputs) => {
-        ctx.log("Starting research workflow");
-
-        const data = await ctx.run(fetchData, { url: inputs.url });
-        ctx.log(`Fetched: ${data.title}`);
-
-        const result = await ctx.run(summarize, { text: data.body });
-        ctx.log("Summarization complete");
-
-        return { title: data.title, summary: result.summary };
-      },
-    });
-
-    // Create instance
-    const pflow = await create0pflow({
-      databaseUrl: "postgres://localhost/test",
-      workflows: { research: researchWorkflow },
-      nodes: { "fetch-data": fetchData, summarize },
-    });
-
-    // Execute
     const result = await pflow.triggerWorkflow("research", {
       url: "https://example.com",
     });
@@ -87,30 +116,6 @@ describe("0pflow integration", () => {
   });
 
   it("nested workflow calls", async () => {
-    const innerWorkflow = Workflow.create({
-      name: "inner",
-      description: "Inner workflow that doubles",
-      version: 1,
-      inputSchema: z.object({ value: z.number() }),
-      run: async (_ctx, inputs) => inputs.value * 2,
-    });
-
-    const outerWorkflow = Workflow.create({
-      name: "outer",
-      description: "Outer workflow that calls inner",
-      version: 1,
-      inputSchema: z.object({ value: z.number() }),
-      run: async (ctx, inputs) => {
-        const doubled = await ctx.run(innerWorkflow, { value: inputs.value });
-        return doubled + 1;
-      },
-    });
-
-    const pflow = await create0pflow({
-      databaseUrl: "postgres://localhost/test",
-      workflows: { outer: outerWorkflow, inner: innerWorkflow },
-    });
-
     const result = await pflow.triggerWorkflow("outer", { value: 5 });
     expect(result).toBe(11); // (5 * 2) + 1
   });

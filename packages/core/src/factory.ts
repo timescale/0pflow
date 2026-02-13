@@ -42,10 +42,11 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
 
   // Create shared pg pool for connection management (needed for local connection mapping)
   const pool = new pg.Pool({ connectionString: config.databaseUrl });
-  await ensureConnectionsTable(config.databaseUrl);
+  const appSchema = config.appName;
+  await ensureConnectionsTable(config.databaseUrl, appSchema);
 
   // Configure workflow runtime with pool + integration provider
-  configureWorkflowRuntime(pool, integrationProvider);
+  configureWorkflowRuntime(pool, integrationProvider, appSchema);
 
   // Build node registry (includes built-in nodes + user nodes)
   // Nodes can be used both via ctx.run() and as agent tools
@@ -59,6 +60,7 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
     modelConfig: config.modelConfig,
     pool,
     integrationProvider,
+    appSchema,
   });
 
   return {

@@ -8,6 +8,11 @@ export interface ConnectionMapping {
   updated_at?: Date;
 }
 
+/** Schema-qualified table reference for opflow_connections */
+function table(schema: string): string {
+  return `"${schema}".opflow_connections`;
+}
+
 /**
  * Resolve a connection ID for a given workflow/node/integration.
  * Checks for an exact match first, then falls back to global defaults (* / *).
@@ -17,9 +22,10 @@ export async function resolveConnectionId(
   workflowName: string,
   nodeName: string,
   integrationId: string,
+  schema: string,
 ): Promise<string | null> {
   const result = await pool.query(
-    `SELECT connection_id FROM opflow_connections
+    `SELECT connection_id FROM ${table(schema)}
     WHERE integration_id = $1
       AND (
         (workflow_name = $2 AND node_name = $3)
@@ -39,9 +45,10 @@ export async function resolveConnectionId(
 export async function upsertConnection(
   pool: pg.Pool,
   mapping: Omit<ConnectionMapping, "updated_at">,
+  schema: string,
 ): Promise<void> {
   await pool.query(
-    `INSERT INTO opflow_connections (workflow_name, node_name, integration_id, connection_id, updated_at)
+    `INSERT INTO ${table(schema)} (workflow_name, node_name, integration_id, connection_id, updated_at)
     VALUES ($1, $2, $3, $4, NOW())
     ON CONFLICT (workflow_name, node_name, integration_id)
     DO UPDATE SET connection_id = EXCLUDED.connection_id, updated_at = NOW()`,
@@ -52,10 +59,10 @@ export async function upsertConnection(
 /**
  * List all connection mappings.
  */
-export async function listConnections(pool: pg.Pool): Promise<ConnectionMapping[]> {
+export async function listConnections(pool: pg.Pool, schema: string): Promise<ConnectionMapping[]> {
   const result = await pool.query(
     `SELECT workflow_name, node_name, integration_id, connection_id, updated_at
-    FROM opflow_connections
+    FROM ${table(schema)}
     ORDER BY workflow_name, node_name, integration_id`,
   );
   return result.rows as ConnectionMapping[];
@@ -69,9 +76,10 @@ export async function deleteConnection(
   workflowName: string,
   nodeName: string,
   integrationId: string,
+  schema: string,
 ): Promise<void> {
   await pool.query(
-    `DELETE FROM opflow_connections
+    `DELETE FROM ${table(schema)}
     WHERE workflow_name = $1
       AND node_name = $2
       AND integration_id = $3`,

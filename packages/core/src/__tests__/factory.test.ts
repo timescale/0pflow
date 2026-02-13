@@ -5,6 +5,11 @@ import { create0pflow } from "../factory.js";
 import { Workflow } from "../workflow.js";
 import { Node } from "../node.js";
 
+// Mock connections schema (avoids pg connection in tests)
+vi.mock("../connections/schema.js", () => ({
+  ensureConnectionsTable: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock DBOS
 vi.mock("@dbos-inc/dbos-sdk", () => ({
   DBOS: {
@@ -30,6 +35,7 @@ describe("create0pflow()", () => {
   it("initializes DBOS and returns pflow instance", async () => {
     const pflow = await create0pflow({
       databaseUrl: "postgres://localhost/test",
+      appName: "test",
     });
 
     expect(pflow).toBeDefined();
@@ -49,6 +55,7 @@ describe("create0pflow()", () => {
 
     const pflow = await create0pflow({
       databaseUrl: "postgres://localhost/test",
+      appName: "test",
       workflows: { "test-workflow": workflow },
     });
 
@@ -66,6 +73,7 @@ describe("create0pflow()", () => {
 
     const pflow = await create0pflow({
       databaseUrl: "postgres://localhost/test",
+      appName: "test",
       workflows: { "my-workflow": workflow },
     });
 
@@ -84,6 +92,7 @@ describe("create0pflow()", () => {
 
     const pflow = await create0pflow({
       databaseUrl: "postgres://localhost/test",
+      appName: "test",
       workflows: { echo: workflow },
     });
 
@@ -94,6 +103,7 @@ describe("create0pflow()", () => {
   it("triggerWorkflow throws for unknown workflow", async () => {
     const pflow = await create0pflow({
       databaseUrl: "postgres://localhost/test",
+      appName: "test",
     });
 
     await expect(pflow.triggerWorkflow("unknown", {})).rejects.toThrow(
@@ -112,6 +122,7 @@ describe("create0pflow()", () => {
 
     const pflow = await create0pflow({
       databaseUrl: "postgres://localhost/test",
+      appName: "test",
       workflows: { strict: workflow },
     });
 
@@ -139,6 +150,7 @@ describe("create0pflow()", () => {
 
     const pflow = await create0pflow({
       databaseUrl: "postgres://localhost/test",
+      appName: "test",
       workflows: { "double-workflow": workflow },
       nodes: { double: doubleNode },
     });

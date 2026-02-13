@@ -62,7 +62,7 @@ export async function startDevServer(options: DevServerOptions) {
   let pool: pg.Pool | null = null;
 
   if (hasApi) {
-    await ensureConnectionsTable(options.databaseUrl!);
+    await ensureConnectionsTable(options.databaseUrl!, appName ?? "opflow");
     pool = new pg.Pool({ connectionString: options.databaseUrl! });
   }
 
@@ -82,6 +82,7 @@ export async function startDevServer(options: DevServerOptions) {
           pool,
           integrationProvider: integrationProvider!,
           schema: dbosSchema,
+          appSchema: appName ?? "opflow",
         });
         if (handled) return;
       } catch (err) {

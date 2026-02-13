@@ -56,8 +56,8 @@ type AnyExecutable = Executable<any, any>;
 export interface PflowConfig {
   /** Database connection URL for DBOS durability */
   databaseUrl: string;
-  /** Application name (used for DBOS schema naming) */
-  appName?: string;
+  /** Application name (used for DB schema naming and connection table) */
+  appName: string;
   /** Registered workflows */
   workflows?: Record<string, AnyExecutable>;
   /** Registered agents */

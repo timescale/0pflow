@@ -6,6 +6,8 @@ import * as dotenv from "dotenv";
 import pg from "pg";
 import type { ServerContext } from "../types.js";
 import { createIntegrationProvider } from "../../../connections/integration-provider.js";
+import { resolveConnectionId } from "../../../connections/resolver.js";
+import { getAppName } from "../../app.js";
 
 const inputSchema = {
   integration_id: z
@@ -98,22 +100,13 @@ export const getConnectionInfoFactory: ApiFactory<
 
       // Look up connection_id using the same resolution as runtime:
       // exact (workflow_name, node_name) match first, then global (* / *) fallback
+      const appSchema = env.DATABASE_SCHEMA ?? getAppName();
       let connectionId: string | null = null;
       const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
       try {
-        const result = await pool.query(
-          `SELECT connection_id FROM opflow_connections
-          WHERE integration_id = $1
-            AND (
-              (workflow_name = $2 AND node_name = $3)
-              OR (workflow_name = '*' AND node_name = '*')
-            )
-          ORDER BY
-            CASE WHEN workflow_name = '*' AND node_name = '*' THEN 1 ELSE 0 END
-          LIMIT 1`,
-          [integration_id, workflow_name, node_name],
+        connectionId = await resolveConnectionId(
+          pool, workflow_name, node_name, integration_id, appSchema,
         );
-        connectionId = result.rows.length > 0 ? result.rows[0].connection_id : null;
       } finally {
         await pool.end();
       }

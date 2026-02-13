@@ -104,6 +104,7 @@ describe.skipIf(!DATABASE_URL)("0pflow e2e", () => {
 
     pflow = await create0pflow({
       databaseUrl: DATABASE_URL!,
+      appName: "opflow",
       workflows: {
         research: researchWorkflow,
         outer: outerWorkflow,
@@ -114,7 +115,7 @@ describe.skipIf(!DATABASE_URL)("0pflow e2e", () => {
   }, 30000); // 30s timeout for DBOS init
 
   afterAll(async () => {
-    await pflow.shutdown();
+    await pflow?.shutdown();
   });
 
   it("complete workflow with multiple nodes", async () => {

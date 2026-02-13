@@ -47,6 +47,7 @@ interface AgentRuntimeConfig {
   modelConfig?: ModelConfig;
   pool: pg.Pool | null;
   integrationProvider: IntegrationProvider | null;
+  appSchema: string;
 }
 
 const AGENT_CONFIG_KEY = Symbol.for("opflow.getAgentRuntimeConfig()");
@@ -129,6 +130,7 @@ function createAgentContext(
         resolveWorkflow,
         resolveNode,
         integrationId,
+        runtimeConfig.appSchema,
       );
 
       if (!connectionId) {

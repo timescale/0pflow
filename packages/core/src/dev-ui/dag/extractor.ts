@@ -1,7 +1,6 @@
 import type { DAGNode, DAGEdge, WorkflowDAG, LoopGroup } from "./types.js";
-import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
 // web-tree-sitter types
 type Parser = {
@@ -36,26 +35,13 @@ async function getParser(): Promise<Parser> {
     await TreeSitter.init();
 
     // Locate the .wasm file from the tree-sitter-typescript package
-    const __dir = dirname(fileURLToPath(import.meta.url));
-    // When running from dist/, we need to find node_modules
-    const possiblePaths = [
-      resolve(__dir, "../../node_modules/tree-sitter-typescript/tree-sitter-typescript.wasm"),
-      resolve(__dir, "../../../node_modules/tree-sitter-typescript/tree-sitter-typescript.wasm"),
-      resolve(__dir, "../../../../node_modules/tree-sitter-typescript/tree-sitter-typescript.wasm"),
-    ];
-
-    let wasmPath: string | undefined;
-    for (const p of possiblePaths) {
-      try {
-        readFileSync(p);
-        wasmPath = p;
-        break;
-      } catch {
-        // try next
-      }
-    }
-
-    if (!wasmPath) {
+    // Use createRequire so Node's module resolution handles hoisted packages correctly
+    const require = createRequire(import.meta.url);
+    let wasmPath: string;
+    try {
+      const tsPkgJson = require.resolve("tree-sitter-typescript/package.json");
+      wasmPath = resolve(dirname(tsPkgJson), "tree-sitter-typescript.wasm");
+    } catch {
       throw new Error(
         "Could not find tree-sitter-typescript.wasm. Make sure tree-sitter-typescript is installed."
       );

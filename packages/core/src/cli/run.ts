@@ -1,5 +1,6 @@
-import { execSync } from "node:child_process";
+import { exec, execSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { promisify } from "node:util";
 import { basename, join, resolve } from "node:path";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
@@ -334,7 +335,8 @@ export async function runRun(): Promise<void> {
   const appPath = scaffoldResult.path!;
   s.start("Installing dependencies...");
   try {
-    execSync("npm install", { cwd: appPath, stdio: "pipe" });
+    const execAsync = promisify(exec);
+    await execAsync("npm install", { cwd: appPath });
     s.stop(pc.green("Installed dependencies"));
   } catch (err) {
     s.stop(pc.yellow("npm install failed (you can retry manually)"));
