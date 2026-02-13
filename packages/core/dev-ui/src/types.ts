@@ -44,7 +44,11 @@ export type WSMessage =
   | { type: "full-sync"; data: ProjectDAGs }
   | { type: "workflow-updated"; data: WorkflowDAG }
   | { type: "workflow-removed"; data: { filePath: string } }
-  | { type: "parse-error"; data: { filePath: string; error: string } };
+  | { type: "parse-error"; data: { filePath: string; error: string } }
+  // PTY messages (server → client)
+  | { type: "pty-data"; data: string }
+  | { type: "pty-exit"; data: { code: number } }
+  | { type: "pty-spawned"; data: { pid: number } };
 
 // ---- Run History types ----
 

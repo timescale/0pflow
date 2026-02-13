@@ -12,6 +12,14 @@ export function useDAGSocket() {
   const [connected, setConnected] = useState(false);
   const reconnectAttempt = useRef(0);
   const wsRef = useRef<WebSocket | null>(null);
+  const ptyEventsRef = useRef(new EventTarget());
+
+  const sendMessage = useCallback((message: object) => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
+    }
+  }, []);
 
   const connect = useCallback(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -84,6 +92,25 @@ export function useDAGSocket() {
               return { workflows, parseErrors };
             });
             break;
+
+          // PTY events — dispatch to EventTarget for terminal hook
+          case "pty-data":
+            ptyEventsRef.current.dispatchEvent(
+              new CustomEvent("data", { detail: message.data }),
+            );
+            break;
+
+          case "pty-exit":
+            ptyEventsRef.current.dispatchEvent(
+              new CustomEvent("exit", { detail: message.data.code }),
+            );
+            break;
+
+          case "pty-spawned":
+            ptyEventsRef.current.dispatchEvent(
+              new CustomEvent("spawned", { detail: message.data.pid }),
+            );
+            break;
         }
       } catch {
         // Ignore malformed messages
@@ -98,5 +125,5 @@ export function useDAGSocket() {
     };
   }, [connect]);
 
-  return { state, connected };
+  return { state, connected, sendMessage, ptyEvents: ptyEventsRef.current };
 }

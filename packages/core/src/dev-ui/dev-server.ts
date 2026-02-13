@@ -3,8 +3,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createWSServer } from "./ws.js";
+import { createWSServer, type WSClientMessage } from "./ws.js";
 import { createWatcher } from "./watcher.js";
+import type { PtyManager } from "./pty.js";
 import { handleApiRequest } from "./api.js";
 import { ensureConnectionsTable } from "../connections/index.js";
 import { createIntegrationProvider } from "../connections/integration-provider.js";
@@ -30,6 +31,8 @@ export interface DevServerOptions {
   quiet?: boolean;
   databaseUrl?: string;
   nangoSecretKey?: string;
+  claudePluginDir?: string;
+  claudeSkipPermissions?: boolean;
 }
 
 export async function startDevServer(options: DevServerOptions) {
@@ -107,7 +110,45 @@ export async function startDevServer(options: DevServerOptions) {
     }
   });
 
-  const { broadcast, sendTo, wss } = createWSServer(httpServer);
+  // Set up PTY manager for embedded Claude Code terminal
+  let ptyManager: PtyManager | null = null;
+
+  const onClientMessage = (_ws: import("ws").WebSocket, msg: WSClientMessage) => {
+    if (!ptyManager) return;
+    switch (msg.type) {
+      case "pty-input":
+        ptyManager.write(msg.data);
+        break;
+      case "pty-resize":
+        ptyManager.resize(msg.data.cols, msg.data.rows);
+        break;
+      case "pty-spawn":
+        if (!ptyManager.isAlive()) {
+          const pid = ptyManager.spawn();
+          broadcast({ type: "pty-spawned", data: { pid } });
+        }
+        break;
+    }
+  };
+
+  const { broadcast, sendTo, wss } = createWSServer(httpServer, onClientMessage);
+
+  try {
+    const { createPtyManager } = await import("./pty.js");
+    ptyManager = createPtyManager({
+      projectRoot,
+      claudeArgs: [
+        ...(options.claudePluginDir ? ["--plugin-dir", options.claudePluginDir] : []),
+        ...(options.claudeSkipPermissions ? ["--dangerously-skip-permissions"] : []),
+      ],
+      onData: (data) => broadcast({ type: "pty-data", data }),
+      onExit: (code) => broadcast({ type: "pty-exit", data: { code } }),
+    });
+  } catch {
+    if (!options.quiet) {
+      console.log("  Terminal: unavailable (node-pty not installed)\n");
+    }
+  }
 
   // Create file watcher that broadcasts changes
   const watcher = createWatcher({
@@ -115,10 +156,34 @@ export async function startDevServer(options: DevServerOptions) {
     onMessage: (msg) => broadcast(msg),
   });
 
+  // Auto-spawn Claude Code PTY
+  if (ptyManager) {
+    try {
+      const pid = ptyManager.spawn();
+      if (!options.quiet) {
+        console.log(`  Terminal: Claude Code running (PID ${pid})\n`);
+      }
+    } catch (err) {
+      if (!options.quiet) {
+        console.log(`  Terminal: failed to spawn claude (${err instanceof Error ? err.message : err})\n`);
+      }
+      ptyManager = null;
+    }
+  }
+
   // On new WS connection, wait for initial scan then send full state
   wss.on("connection", async (ws) => {
     await watcher.waitForReady();
     sendTo(ws, { type: "full-sync", data: watcher.getState() });
+
+    // Send existing terminal scrollback to new clients
+    if (ptyManager?.isAlive()) {
+      const scrollback = ptyManager.getScrollback();
+      if (scrollback) {
+        sendTo(ws, { type: "pty-data", data: scrollback });
+      }
+      sendTo(ws, { type: "pty-spawned", data: { pid: 0 } });
+    }
   });
 
   const hostname = host ? "0.0.0.0" : "localhost";
@@ -159,6 +224,7 @@ export async function startDevServer(options: DevServerOptions) {
   }
 
   const cleanup = async () => {
+    ptyManager?.kill();
     if (pool) {
       await pool.end();
     }

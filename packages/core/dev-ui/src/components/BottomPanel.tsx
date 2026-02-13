@@ -13,7 +13,7 @@ interface BottomPanelProps {
 }
 
 const MIN_HEIGHT = 150;
-const DEFAULT_HEIGHT = 260;
+const DEFAULT_HEIGHT = 400;
 
 export function BottomPanel({ tabs, defaultTab, onClose }: BottomPanelProps) {
   const [activeTab, setActiveTab] = useState(defaultTab ?? tabs[0]?.id ?? "");
@@ -91,7 +91,7 @@ export function BottomPanel({ tabs, defaultTab, onClose }: BottomPanelProps) {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {activeContent}
       </div>
     </div>

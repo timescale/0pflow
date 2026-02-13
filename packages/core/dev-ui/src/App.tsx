@@ -3,17 +3,20 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { useDAGSocket } from "./hooks/useDAGSocket";
 import { useConnections } from "./hooks/useConnections";
 import { useRunHistory } from "./hooks/useRunHistory";
+import { useTerminal } from "./hooks/useTerminal";
 import { WorkflowGraph } from "./components/WorkflowGraph";
 import { WorkflowSelector } from "./components/WorkflowSelector";
 import { ConnectionsPanel } from "./components/ConnectionsPanel";
 import { BottomPanel } from "./components/BottomPanel";
 import { RunHistoryTab } from "./components/RunHistoryTab";
+import { ClaudeTerminal } from "./components/ClaudeTerminal";
 
 export function App() {
-  const { state, connected } = useDAGSocket();
+  const { state, connected, sendMessage, ptyEvents } = useDAGSocket();
+  const terminal = useTerminal({ sendMessage, ptyEvents });
   const connectionsApi = useConnections();
   const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
-  const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
+  const [bottomPanelOpen, setBottomPanelOpen] = useState(true);
 
   const runHistory = useRunHistory(selectedWorkflow);
 
@@ -30,22 +33,38 @@ export function App() {
   const bottomTabs = useMemo(
     () => [
       {
-        id: "history",
-        label: "History",
+        id: "terminal",
+        label: "Terminal",
         content: (
-          <RunHistoryTab
-            runs={runHistory.runs}
-            loading={runHistory.loading}
-            selectedRunId={runHistory.selectedRunId}
-            trace={runHistory.trace}
-            traceLoading={runHistory.traceLoading}
-            selectRun={runHistory.selectRun}
-            refresh={runHistory.refresh}
+          <ClaudeTerminal
+            attachTo={terminal.attachTo}
+            fit={terminal.fit}
+            ptyAlive={terminal.ptyAlive}
+            restart={terminal.restart}
           />
         ),
       },
+      ...(runHistory.available
+        ? [
+            {
+              id: "history",
+              label: "History",
+              content: (
+                <RunHistoryTab
+                  runs={runHistory.runs}
+                  loading={runHistory.loading}
+                  selectedRunId={runHistory.selectedRunId}
+                  trace={runHistory.trace}
+                  traceLoading={runHistory.traceLoading}
+                  selectRun={runHistory.selectRun}
+                  refresh={runHistory.refresh}
+                />
+              ),
+            },
+          ]
+        : []),
     ],
-    [runHistory],
+    [terminal, runHistory],
   );
 
   return (
@@ -88,19 +107,6 @@ export function App() {
                   v{activeDag.version}
                 </span>
               </div>
-              {/* History toggle */}
-              {runHistory.available && (
-                <button
-                  onClick={() => setBottomPanelOpen(!bottomPanelOpen)}
-                  className={`absolute top-3 right-3 bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-border text-[12px] cursor-pointer transition-colors ${
-                    bottomPanelOpen
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  History
-                </button>
-              )}
             </ReactFlowProvider>
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
@@ -109,13 +115,25 @@ export function App() {
                 : "Select a workflow from the sidebar."}
             </div>
           )}
+
+          {/* Panel toggle — always visible */}
+          <button
+            onClick={() => setBottomPanelOpen(!bottomPanelOpen)}
+            className={`absolute top-3 right-3 bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-border text-[12px] cursor-pointer transition-colors ${
+              bottomPanelOpen
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Terminal
+          </button>
         </div>
 
         {/* Bottom panel */}
-        {bottomPanelOpen && runHistory.available && (
+        {bottomPanelOpen && (
           <BottomPanel
             tabs={bottomTabs}
-            defaultTab="history"
+            defaultTab="terminal"
             onClose={() => setBottomPanelOpen(false)}
           />
         )}
