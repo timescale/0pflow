@@ -234,12 +234,8 @@ export async function runInstall(options: InstallOptions = {}): Promise<void> {
     printBanner();
     console.log(pc.yellow("Development mode detected"));
     console.log();
-    console.log(pc.bold("Next steps:"));
-    console.log(pc.dim("  1. Create a new project:"));
-    console.log(pc.cyan(`     ${initCmd}`));
-    console.log(pc.dim("  2. Run Claude Code with:"));
-    console.log(pc.cyan(`     claude --plugin-dir ${mcpResult.packageRoot}`));
-    console.log(pc.dim("  3. Use"), pc.cyan("/create-workflow"), pc.dim("to design your first workflow"));
+    console.log(pc.bold("Next step:"));
+    console.log(pc.cyan(`  ${initCmd}`));
     console.log();
     return;
   }
@@ -255,15 +251,13 @@ export async function runInstall(options: InstallOptions = {}): Promise<void> {
   }
 
   if (pluginResult.success) {
-    const initCmd = `npx 0pflow@${getNpmVersionForMcp()} init`;
+    const initCmd = `npx 0pflow@${getNpmVersionForMcp()} run`;
 
     printBanner();
     console.log(pc.green("✓"), "Installed successfully");
     console.log();
-    console.log(pc.bold("Next steps:"));
-    console.log(pc.dim("  1. Create a new project:"));
-    console.log(pc.cyan(`     ${initCmd}`));
-    console.log(pc.dim("  2. Use"), pc.cyan("/create-workflow"), pc.dim("to design your first workflow"));
+    console.log(pc.bold("Next step:"));
+    console.log(pc.cyan(`  ${initCmd}`));
     console.log();
   } else {
     console.log(pc.red("✗"), "Installation failed");
