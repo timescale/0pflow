@@ -16,13 +16,13 @@ Design and write a workflow with embedded description fields for 0pflow.
 Check the current working directory and handle one of three cases:
 
 **Case 1: Empty directory** (no files, or only dotfiles like `.git`)
-→ Tell the user to run `0pflow init` first to scaffold a new project, then re-invoke this skill. **Stop here.**
+→ Tell the user to run `0pflow run` first to scaffold a new project, then re-invoke this skill. **Stop here.**
 
 **Case 2: Existing 0pflow project** (has `generated/workflows/` or `specs/agents/` directories)
 → Good to go. Continue to step 2.
 
 **Case 3: Existing non-0pflow directory** (has files/projects but no 0pflow structure — e.g., home directory, another repo)
-→ Tell the user to run `0pflow init` in a subdirectory first, then re-invoke this skill from inside that directory. **Stop here.**
+→ Tell the user to run `0pflow run` in a subdirectory first, then re-invoke this skill from inside that directory. **Stop here.**
 
 ### 2. Discover Integrations
 

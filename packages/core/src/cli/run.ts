@@ -111,36 +111,32 @@ async function launchDevServer(cwd: string, { yolo = false }: { yolo?: boolean }
   }
 }
 
-export async function runInit(): Promise<void> {
-  p.intro(pc.red("0pflow") + pc.dim(" — create a new project"));
+export async function runRun(): Promise<void> {
+  p.intro(pc.red("0pflow"));
 
   if (!isClaudeAvailable()) {
     p.log.error("Claude Code CLI not found. Install it from https://claude.ai/code");
     process.exit(1);
   }
 
-  // ── Existing project check ──────────────────────────────────────────
+  // ── Existing project → launch ───────────────────────────────────────
   if (isExisting0pflow()) {
-    const action = await p.select({
-      message: "This directory is already an 0pflow project.",
+    const mode = await p.select({
+      message: "Launch mode",
       options: [
-        { value: "claude" as const, label: "Launch Dev UI" },
-        { value: "claude-yolo" as const, label: "Launch Dev UI with --dangerously-skip-permissions" },
-        { value: "new" as const, label: "Create a new project in a subdirectory" },
+        { value: "normal" as const, label: "Launch" },
+        { value: "yolo" as const, label: "Launch with --dangerously-skip-permissions" },
       ],
     });
 
-    if (p.isCancel(action)) {
+    if (p.isCancel(mode)) {
       p.cancel("Cancelled.");
       process.exit(0);
     }
 
-    if (action === "claude" || action === "claude-yolo") {
-      p.outro(pc.green("Launching Dev UI..."));
-      await launchDevServer(process.cwd(), { yolo: action === "claude-yolo" });
-      return;
-    }
-    // fall through to normal wizard (cwdEmpty will be false, so directory defaults to ./<name>)
+    p.outro(pc.green("Launching..."));
+    await launchDevServer(process.cwd(), { yolo: mode === "yolo" });
+    return;
   }
 
   const cwdEmpty = isCwdEmpty();
@@ -390,7 +386,7 @@ export async function runInit(): Promise<void> {
         } else {
           s.stop(pc.yellow("Database not ready yet"));
           p.log.warn(
-            `Run later: 0pflow init won't retry. Use the MCP tools or set up manually.`,
+            `Run later: 0pflow run won't retry. Use the MCP tools or set up manually.`,
           );
         }
       } else {
@@ -400,19 +396,19 @@ export async function runInit(): Promise<void> {
     }
   }
 
-  // ── Launch Dev UI? ──────────────────────────────────────────────────
+  // ── Launch? ─────────────────────────────────────────────────────────
   const launchChoice = await p.select({
-    message: "Launch Dev UI to design your first workflow?",
+    message: "Launch now?",
     options: [
-      { value: "claude" as const, label: "Yes" },
-      { value: "claude-yolo" as const, label: "Yes, with --dangerously-skip-permissions" },
+      { value: "normal" as const, label: "Yes" },
+      { value: "yolo" as const, label: "Yes, with --dangerously-skip-permissions" },
       { value: "no" as const, label: "No, I'll do it later" },
     ],
   });
 
   if (!p.isCancel(launchChoice) && launchChoice !== "no") {
-    p.outro(pc.green("Launching Dev UI..."));
-    await launchDevServer(resolve(appPath), { yolo: launchChoice === "claude-yolo" });
+    p.outro(pc.green("Launching..."));
+    await launchDevServer(resolve(appPath), { yolo: launchChoice === "yolo" });
     return;
   }
 
@@ -421,7 +417,7 @@ export async function runInit(): Promise<void> {
 
   p.outro(pc.green("Project created!"));
   console.log();
-  console.log(pc.bold("  To launch the Dev UI later:"));
-  console.log(pc.cyan(`  ${cdCmd}0pflow dev`));
+  console.log(pc.bold("  To launch later:"));
+  console.log(pc.cyan(`  ${cdCmd}0pflow run`));
   console.log();
 }

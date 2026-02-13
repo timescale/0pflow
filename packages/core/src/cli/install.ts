@@ -228,8 +228,8 @@ export async function runInstall(options: InstallOptions = {}): Promise<void> {
 
   // Development mode: just show the command to use
   if (mcpResult.isLocal) {
-    // Build the init command from the MCP command (same tsx + script, different subcommand)
-    const initCmd = mcpResult.command.slice(0, -2).concat("init").join(" ");
+    // Build the run command from the MCP command (same tsx + script, different subcommand)
+    const initCmd = mcpResult.command.slice(0, -2).concat("run").join(" ");
 
     printBanner();
     console.log(pc.yellow("Development mode detected"));
