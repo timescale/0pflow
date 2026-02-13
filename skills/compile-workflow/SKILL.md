@@ -280,30 +280,24 @@ Would you like me to ask clarifying questions, or should I create a minimal stub
 
 ## Handling Ambiguities
 
-When task logic is unclear, ask for clarification before generating code.
+When task logic is unclear, make your best guess and generate the code. The user can correct after. Don't block on questions.
 
-### Common Ambiguities
+### Common Ambiguities and Defaults
 
-| Pattern | Problem | Ask |
-|---------|---------|-----|
-| "if good fit" | Undefined criteria | "What's the exact condition? (e.g., score >= 80)" |
-| "check if valid" | Undefined validation | "What makes it valid? What fields to check?" |
-| Untyped output | Can't generate schema | "What type should `var_name` be?" |
-| Missing condition | Decision has no **Condition:** | "What condition determines the branch?" |
+| Pattern | Problem | Default |
+|---------|---------|---------|
+| "if good fit" | Undefined criteria | Use `score >= 80` and add a comment noting the threshold is a guess |
+| "check if valid" | Undefined validation | Check for presence of required fields |
+| Untyped output | Can't generate schema | Infer from node description and context |
+| Missing condition | Decision has no **Condition:** | Infer from surrounding task context, add a TODO comment if truly unknowable |
 
-### Clarification Flow
-
-1. Identify the ambiguity
-2. Ask ONE specific question
-3. Wait for user response
-4. Update the description field in the workflow or node file with the clarified information
-5. Continue compilation
+After generating code, tell the user what you assumed so they can correct anything.
 
 ---
 
 ## Code Generation
 
-Update the `run()` method in the existing `generated/workflows/<name>.ts` file. Do not regenerate the entire file — preserve the `description`, schemas, and imports, and update only what changed.
+Rewrite the `run()` method in the existing `generated/workflows/<name>.ts` file. Also update imports and schemas as needed. Preserve the `description` field as-is.
 
 ### Generated run() Structure
 
@@ -330,46 +324,68 @@ async run(ctx, inputs: <Name>Input): Promise<<Name>Output> {
 
 ---
 
-## Compilation Process
+## Worked Example
 
-Follow these steps in order:
+A workflow enriches Gmail leads and sends results to Slack. Here's how the compiler turns descriptions into the `run()` method.
 
-### Step 1: Read Workflow and Node Descriptions
+### Input: Workflow description
 
-1. Read `generated/workflows/<name>.ts`
-2. Extract the `description` field from `Workflow.create()`
-3. Parse tasks from the description's `## Tasks` section
-4. For each task with a `**Node:**` reference, read the node/agent file and extract its `description` field
+```markdown
+Enrich the 10 most recent Gmail leads from Salesforce with web research and DM results on Slack.
 
-### Step 2: Validate Structure
+## Tasks
 
-1. Verify tasks have required fields (Node or Condition)
-2. Check that referenced node/agent files exist
-3. List any missing or ambiguous elements
+### 1. Fetch Gmail Leads
+**Node:** `fetch-gmail-leads` (node)
 
-### Step 3: Resolve All Nodes
+### 2. Enrich Lead
+**Node:** `enrich-lead` (agent)
+**Loop:** for each lead in leads
 
-For each task with a `**Node:**` reference:
-1. Determine node type (agent/node/builtin)
-2. Verify node exists or create stub
-3. Build import statement
+### 3. Send Slack DM
+**Node:** `send-slack-dm` (node)
+```
 
-### Step 4: Clarify Ambiguities
+### Input: Node schemas (from refined node files)
 
-If any ambiguities found:
-1. Ask ONE question at a time
-2. Update the relevant description field with answer
-3. Repeat until all ambiguities resolved
+- **fetch-gmail-leads** — `inputSchema: z.object({})`, `outputSchema: z.object({ leads: z.array(LeadSchema) })`
+- **enrich-lead** — `inputSchema: z.object({ name: z.string(), email: z.string(), company: z.string().nullable(), title: z.string().nullable() })`, `outputSchema: z.object({ name: z.string(), email: z.string(), linkedinUrl: z.string().nullable(), ... })`
+- **send-slack-dm** — `inputSchema: z.object({ enrichedLeads: z.array(EnrichedLeadSchema) })`, `outputSchema: z.object({ success: z.boolean(), channel: z.string() })`
 
-### Step 5: Update Code
+### Output: Generated run() method
 
-1. Update imports in the workflow file as needed
-2. Regenerate the `run()` method based on descriptions
-3. Update schemas from Zod `inputSchema`/`outputSchema` in node files
+```typescript
+async run(ctx, inputs: LeadEnrichmentInput): Promise<LeadEnrichmentOutput> {
+  // Task 1: Fetch the 10 most recent Gmail leads from Salesforce
+  const leadsResult = await ctx.run(fetchGmailLeads, {});
 
-### Step 6: Report Results
+  // Task 2: Enrich each lead with web research
+  const enrichedLeads = [];
+  for (const lead of leadsResult.leads) {
+    const enriched = await ctx.run(enrichLead, {
+      name: lead.name ?? "",
+      email: lead.email ?? "",
+      company: lead.company,
+      title: lead.title,
+    });
+    enrichedLeads.push(enriched);
+  }
 
-Tell user:
+  // Task 3: Send enriched lead summary as Slack DM
+  const slackResult = await ctx.run(sendSlackDm, { enrichedLeads });
+
+  return { success: slackResult.success, channel: slackResult.channel };
+},
+```
+
+Key things the compiler did:
+1. **Data flow** — wired `leadsResult.leads` fields into `enrichLead`'s input schema, and `enrichedLeads` array into `sendSlackDm`'s input
+2. **Loop** — translated `**Loop:** for each lead in leads` into a `for...of` loop over `leadsResult.leads`
+3. **Schema alignment** — matched field names from output schemas to input schemas (e.g., `lead.name` → `name`, `lead.company` → `company`)
+
+### After Compilation
+
+Tell the user:
 1. "Updated `generated/workflows/<name>.ts`"
 2. If stubs created: "Created agent stub(s): `agents/<name>.ts` + `specs/agents/<name>.md`"
 3. If function nodes missing: "Missing function node(s) that you need to implement: `src/nodes/<name>.ts`"
@@ -378,8 +394,8 @@ Tell user:
 
 ## Compiler Principles
 
-1. **No invention** - Only emit code that directly maps to descriptions
-2. **Fail closed** - Missing info → ask, don't guess
-3. **Deterministic** - Same descriptions → same output
-4. **Readable output** - Generated code should be understandable
-5. **Update descriptions** - When clarifying, update the description field so it stays canonical
+1. **Draft first, ask later** — make your best guess and let the user correct, rather than blocking on questions
+2. **No invention** — only emit code that maps to descriptions; guesses should be flagged with comments
+3. **Deterministic** — same descriptions → same output
+4. **Readable output** — generated code should be understandable
+5. **Update descriptions** — when clarifying, update the description field so it stays canonical

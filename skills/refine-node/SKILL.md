@@ -131,6 +131,75 @@ After writing all refinements:
 
 ---
 
+## Worked Example
+
+A workflow has an `enrich-lead` agent with empty schemas from create-workflow:
+
+**Before** (`agents/enrich-lead.ts`):
+```typescript
+export const enrichLead = Agent.create({
+  name: "enrich-lead",
+  integrations: ["openai"],
+  description: `
+Searches the web to find additional professional info about a lead.
+
+**Input Description:** A lead's name, email, and any known company or title from Salesforce.
+**Output Description:** Enriched lead info including LinkedIn URL, company, job title, and summary.
+`,
+  inputSchema: z.object({}),
+  outputSchema: z.object({}),
+  tools: {},
+  specPath: path.resolve(__dirname, "../specs/agents/enrich-lead.md"),
+});
+```
+
+**After refinement** — schemas filled, description enriched, tools added:
+```typescript
+export const enrichLead = Agent.create({
+  name: "enrich-lead",
+  integrations: ["openai"],
+  description: `
+Given a lead's name, email, and any existing Salesforce fields, searches the web to find
+additional information: LinkedIn profile URL, current company, job title, and other
+relevant professional details.
+
+**Implementation:** OpenAI GPT-4o with web search tool
+**Tools needed:**
+  - openai.tools.webSearch() (provider)
+**Guidelines:** Search by name + email domain or company. Prioritize LinkedIn as primary source. Do not fabricate URLs.
+
+**Input Description:** A lead's name, email, and any known company or title from Salesforce.
+**Output Description:** Enriched lead info including LinkedIn URL, company, job title, and summary.
+`,
+  inputSchema: z.object({
+    name: z.string().describe("Lead's full name"),
+    email: z.string().describe("Lead's email address"),
+    company: z.string().nullable().describe("Company from Salesforce, if known"),
+    title: z.string().nullable().describe("Title from Salesforce, if known"),
+  }),
+  outputSchema: z.object({
+    name: z.string(),
+    email: z.string(),
+    linkedinUrl: z.string().nullable().describe("LinkedIn profile URL if found"),
+    company: z.string().nullable().describe("Current company if found"),
+    jobTitle: z.string().nullable().describe("Current job title if found"),
+    summary: z.string().describe("Brief summary of findings"),
+  }),
+  tools: {
+    webSearch: openai.tools.webSearch({}),
+  },
+  specPath: path.resolve(__dirname, "../specs/agents/enrich-lead.md"),
+});
+```
+
+What changed:
+1. **Description** — expanded with Implementation, Tools needed, Guidelines
+2. **inputSchema** — filled with typed fields derived from Input Description
+3. **outputSchema** — filled with typed fields derived from Output Description
+4. **tools** — `webSearch` added based on Tools needed
+
+---
+
 ## Principles
 
 1. **Draft first, ask later** — propose complete schemas based on descriptions; let the user correct rather than interrogating
