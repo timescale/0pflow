@@ -47,8 +47,6 @@ For each task's `**Node:**` reference, read the `description` field from the nod
 - **What the node does** — first paragraph
 - `**Input Description:**` — plain language inputs
 - `**Output Description:**` — plain language outputs
-- `**Input:**` — typed schema (if refined)
-- `**Output:**` — typed schema (if refined)
 
 ### Task Formats
 
@@ -64,8 +62,6 @@ Node file contains:
 
 **Input Description:** what it needs
 **Output Description:** what it produces
-**Input:** `var1, var2.field, inputs.field` (added by refine-node)
-**Output:** `var_name: type` (added by refine-node)
 ```
 
 **Decision task** (no Node):
@@ -150,9 +146,7 @@ After refinement, node descriptions include extra fields used to generate the ag
 **Guidelines:** specific guidelines for the agent
 
 **Input Description:** what it needs
-**Input:** `{ field: type }`
 **Output Description:** what it produces
-**Output:** `var: type`
 ```
 
 ### Agent Stub Template
@@ -191,7 +185,7 @@ maxSteps: 10          # optional
 ## Output Format
 
 Return a JSON object with:
-<From **Output:** type or parsed from output schema>
+<Derived from the node's outputSchema>
 ```
 
 #### Executable File (`agents/<name>.ts`)
@@ -226,10 +220,10 @@ export const <camelCaseName> = Agent.create({
 **Output Description:** <plain language>
 `,
   inputSchema: z.object({
-    // ... from **Input:** type
+    // ... derived from Input Description
   }),
   outputSchema: z.object({
-    // ... from **Output:** type
+    // ... derived from Output Description
   }),
   // Tools from **Tools needed:** - only include what the description specifies
   tools: {
@@ -328,18 +322,6 @@ async run(ctx, inputs: <Name>Input): Promise<<Name>Output> {
 },
 ```
 
-### Type Mapping
-
-| Spec Type | Zod Schema |
-|-----------|------------|
-| `string` | `z.string()` |
-| `number` | `z.number()` |
-| `boolean` | `z.boolean()` |
-| `string \| null` | `z.string().nullable()` |
-| `"a" \| "b"` | `z.enum(["a", "b"])` |
-| `{ x: string, y?: number }` | `z.object({ x: z.string(), y: z.number().optional() })` |
-| `string[]` | `z.array(z.string())` |
-
 ### Naming Conventions
 
 - Workflow export: `camelCase` (e.g., `urlSummarizer`)
@@ -383,7 +365,7 @@ If any ambiguities found:
 
 1. Update imports in the workflow file as needed
 2. Regenerate the `run()` method based on descriptions
-3. Update schemas if typed **Input:**/**Output:** fields exist in node descriptions
+3. Update schemas from Zod `inputSchema`/`outputSchema` in node files
 
 ### Step 6: Report Results
 

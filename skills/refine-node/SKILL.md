@@ -32,7 +32,7 @@ Refine node definitions in existing node and agent files. While create-workflow 
 
 Read `generated/workflows/<workflow-name>.ts` and parse its `description` field to find all task nodes. Then read each referenced node/agent file and check its `description` field.
 
-A node **needs refinement** if its `description` has `**Input Description:**` / `**Output Description:**` (plain language) but is missing typed `**Input:**` / `**Output:**` fields, and its `inputSchema` / `outputSchema` are empty `z.object({})`.
+A node **needs refinement** if its `inputSchema` / `outputSchema` are still empty `z.object({})`.
 
 ### Step 2: Research Implementation Approaches
 
@@ -59,8 +59,8 @@ Draft the complete refined definition for **every node that needs it**, then upd
 For each node, determine:
 
 - **Implementation approach** — SDK, library, or "pure TypeScript"
-- **Typed input schema** — derived from the Input Description
-- **Typed output schema** — derived from the Output Description
+- **Zod input schema** — derived from the Input Description
+- **Zod output schema** — derived from the Output Description
 - **Tools** (agent nodes only) — selected from the three categories below
 - **Guidelines** (agent nodes only) — behavioral rules, preferred sources, edge case handling
 
@@ -96,9 +96,7 @@ For each node/agent file (`src/nodes/<name>.ts` or `agents/<name>.ts`), update:
 **Implementation:** <SDK, library, or approach>
 
 **Input Description:** <original from create-workflow>
-**Input:** `{ field: type, field2: type }`
 **Output Description:** <original from create-workflow>
-**Output:** `var_name: { field: type, field2?: type }`
 ```
 
 **Refined agent description:**
@@ -113,9 +111,7 @@ For each node/agent file (`src/nodes/<name>.ts` or `agents/<name>.ts`), update:
 **Guidelines:** <specific guidelines>
 
 **Input Description:** <original from create-workflow>
-**Input:** `{ field: type, field2: type }`
 **Output Description:** <original from create-workflow>
-**Output:** `var_name: { field: type, field2?: type }`
 ```
 
 2. **The `inputSchema` and `outputSchema`** — replace empty `z.object({})` with proper Zod types
@@ -125,13 +121,6 @@ For each node/agent file (`src/nodes/<name>.ts` or `agents/<name>.ts`), update:
 4. **For agents: the `tools` record** — add tool imports and entries based on `**Tools needed:**`
 
 5. **For agents: the spec file** (`specs/agents/<name>.md`) — update guidelines and output format sections
-
-### Type Syntax
-
-- Simple: `string`, `number`, `boolean`
-- Objects: `{ field1: string, field2?: number }` (? = optional)
-- Arrays: `string[]` or `{ name: string }[]`
-- Nullable: `string | null`
 
 ### Step 4: Write and Continue
 
@@ -145,6 +134,6 @@ After writing all refinements:
 ## Principles
 
 1. **Draft first, ask later** — propose complete schemas based on descriptions; let the user correct rather than interrogating
-2. **Preserve descriptions** — keep the original Input/Output Description fields alongside the new typed schemas
+2. **Preserve descriptions** — keep the original Input/Output Description fields from create-workflow
 3. **Concrete types** — every field needs a type; no `any` or untyped fields
 4. **Research before guessing** — check integration skills and provider docs before selecting tools/SDKs
