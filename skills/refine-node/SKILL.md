@@ -120,7 +120,9 @@ For each node/agent file (`src/nodes/<name>.ts` or `agents/<name>.ts`), update:
 
 4. **For agents: the `tools` record** — add tool imports and entries based on `**Tools needed:**`
 
-5. **For agents: the spec file** (`specs/agents/<name>.md`) — update guidelines and output format sections
+5. **For agents: the spec file** (`specs/agents/<name>.md`) — update guidelines, output format sections, and optionally add `model` and `maxSteps` to the YAML frontmatter:
+   - `model: openai/gpt-4o` — override the default model (use when a specific model is needed, e.g. cheaper model for simple tasks, stronger model for complex reasoning)
+   - `maxSteps: 10` — max tool-call iterations (increase for agents that need many sequential tool calls, decrease for simple single-shot agents)
 
 ### Step 4: Write and Continue
 

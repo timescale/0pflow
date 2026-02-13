@@ -107,174 +107,23 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 3. **For user-defined nodes:**
    - Look for `src/nodes/<name>.ts`
-   - Read its `description` field for Input/Output info
-   - If missing: ask user to create it (nodes require user implementation)
+   - Read its `description` field and `inputSchema`/`outputSchema` for type info
+   - If missing: create it using the stub templates from `/0pflow:create-workflow`
 
 4. **For agents:**
    - Look for `agents/<name>.ts`
-   - Read its `description` field for Input/Output info
-   - If missing but task has enough context: create agent stub (see Stub Generation)
-   - If missing and context is insufficient: ask clarifying questions
+   - Read its `description` field and `inputSchema`/`outputSchema` for type info
+   - If missing: create it using the stub templates from `/0pflow:create-workflow`
 
----
+### Updating Agent Tools from Description
 
-## Stub Generation
+When an agent's description contains a `**Tools needed:**` section (added by `/0pflow:refine-node`), update the agent's `tools` record and imports to match. Use the tool type to determine the import pattern:
 
-When an agent is referenced but doesn't exist, generate a stub using the workflow description context.
-
-### Tool Types
-
-There are three types of tools that can be used in agents:
-
-| Type | Description | Import | Example |
-|------|-------------|--------|---------|
-| **Provider tools** | Tools from AI SDK providers (OpenAI, Anthropic) | `import { createOpenAI } from "@ai-sdk/openai"` | `openai.tools.webSearch()` |
-| **Built-in nodes** | Nodes that ship with 0pflow | `import { webRead } from "0pflow"` | `webRead` |
-| **User nodes** | Custom nodes implemented in `src/nodes/` | `import { myNode } from "../../src/nodes/my-node.js"` | `myNode` |
-
-### Enriched Node Description (from refine-node)
-
-After refinement, node descriptions include extra fields used to generate the agent executable:
-
-```markdown
-<What the agent does.>
-
-**Tools needed:**
-  - webRead (builtin)
-  - openai.tools.webSearch() (provider)
-  - myCustomNode (user node)
-**Guidelines:** specific guidelines for the agent
-
-**Input Description:** what it needs
-**Output Description:** what it produces
-```
-
-### Agent Stub Template
-
-When creating a new agent, generate TWO files:
-
-1. **Spec file:** `specs/agents/<name>.md` - The agent prompt/config
-2. **Executable file:** `agents/<name>.ts` - TypeScript executable that references the spec
-
-#### Spec File (`specs/agents/<name>.md`)
-
-The spec contains only the system prompt and optional model/maxSteps config. **Tools are defined in code, not in the spec.**
-
-```markdown
----
-name: <agent-name>
-model: openai/gpt-4o  # optional
-maxSteps: 10          # optional
----
-
-# <Agent Title>
-
-<First paragraph of task description>
-
-## Task
-
-<Derived from task description and inputs>
-
-## Guidelines
-
-<From **Guidelines:** field, or defaults:>
-- Prefer primary sources over aggregators
-- If information is unavailable, say so rather than guessing
-- Keep output structured and consistent
-
-## Output Format
-
-Return a JSON object with:
-<Derived from the node's outputSchema>
-```
-
-#### Executable File (`agents/<name>.ts`)
-
-**IMPORTANT:**
-- Always use absolute path resolution for `specPath` to ensure the agent works regardless of the current working directory
-- Tools are defined as a record in `Agent.create()`, not in the spec file
-- **Agents must declare their AI model provider in `integrations`** (e.g. `["openai"]`) so the framework fetches the API key at runtime via `ctx.getConnection()`. Do NOT rely on env vars like `OPENAI_API_KEY`.
-
-```typescript
-// agents/<name>.ts
-// Agent executable for <name>
-import { z } from "zod";
-import { Agent, webRead } from "0pflow";               // Built-in nodes
-import { createOpenAI } from "@ai-sdk/openai";         // Provider tools
-// import { myNode } from "../src/nodes/my-node.js";   // User nodes
-import { fileURLToPath } from "url";
-import path from "path";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Initialize provider for provider-specific tools (only if using provider tools)
-const openai = createOpenAI({});
-
-export const <camelCaseName> = Agent.create({
-  name: "<name>",
-  integrations: ["openai"],  // REQUIRED: declares which API keys to fetch at runtime (e.g. "openai", "anthropic", "salesforce")
-  description: `
-<What this agent does.>
-
-**Input Description:** <plain language>
-**Output Description:** <plain language>
-`,
-  inputSchema: z.object({
-    // ... derived from Input Description
-  }),
-  outputSchema: z.object({
-    // ... derived from Output Description
-  }),
-  // Tools from **Tools needed:** - only include what the description specifies
-  tools: {
-    web_read: webRead,                     // (builtin)
-    web_search: openai.tools.webSearch(),  // (provider)
-    // my_node: myNode,                    // (user node)
-  },
-  specPath: path.resolve(__dirname, "../specs/agents/<name>.md"),
-});
-```
-
-The `path.resolve(__dirname, ...)` pattern ensures the spec file is found relative to the executable file's location, not the current working directory.
-
-#### Generating Tools from Description
-
-The `**Tools needed:**` section in the node description explicitly specifies each tool with its type. Generate imports and tools record directly:
-
-```markdown
-**Tools needed:**
-  - webRead (builtin)
-  - openai.tools.webSearch() (provider)
-  - enrichCompany (user node in src/nodes/enrich-company.ts)
-```
-
-Generates:
-
-```typescript
-import { webRead } from "0pflow";
-import { createOpenAI } from "@ai-sdk/openai";
-import { enrichCompany } from "../../src/nodes/enrich-company.js";
-
-const openai = createOpenAI({});
-
-// In Agent.create():
-tools: {
-  web_read: webRead,
-  web_search: openai.tools.webSearch(),
-  enrich_company: enrichCompany,
-},
-```
-
-### When Context Is Insufficient
-
-If the node description lacks `**Tools needed:**`, `**Guidelines:**`, or clear output type, ask:
-
-"Task N references `<agent-name>` agent but the description is missing details:
-- Tools needed: [missing/present]
-- Guidelines: [missing/present]
-- Output format: [missing/present]
-
-Would you like me to ask clarifying questions, or should I create a minimal stub with TODOs?"
+| Tool Type | Import Pattern | tools record entry |
+|-----------|----------------|--------------------|
+| `(builtin)` | `import { webRead } from "0pflow"` | `web_read: webRead` |
+| `(provider)` | `import { createOpenAI } from "@ai-sdk/openai"` | `web_search: openai.tools.webSearch()` |
+| `(user node in src/nodes/<file>.ts)` | `import { name } from "../../src/nodes/<file>.js"` | `enrich_company: enrichCompany` |
 
 ---
 
@@ -387,8 +236,8 @@ Key things the compiler did:
 
 Tell the user:
 1. "Updated `generated/workflows/<name>.ts`"
-2. If stubs created: "Created agent stub(s): `agents/<name>.ts` + `specs/agents/<name>.md`"
-3. If function nodes missing: "Missing function node(s) that you need to implement: `src/nodes/<name>.ts`"
+2. If any missing nodes/agents were created: list the new files
+3. If agent tools were updated from descriptions: list which agents were updated
 
 ---
 
