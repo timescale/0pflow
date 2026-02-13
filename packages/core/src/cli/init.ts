@@ -1,5 +1,5 @@
 import { execSync, spawn } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
@@ -67,8 +67,69 @@ async function waitForDatabase(
   return false;
 }
 
+function isExisting0pflow(): boolean {
+  try {
+    const pkgPath = join(process.cwd(), "package.json");
+    if (!existsSync(pkgPath)) return false;
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+    return "0pflow" in deps;
+  } catch {
+    return false;
+  }
+}
+
+function launchClaude(cwd: string, { yolo = false }: { yolo?: boolean } = {}): void {
+  const prompt =
+    "Welcome to your 0pflow project! What workflow would you like to create? Here are some ideas:\n\n" +
+    '- "Enrich leads from a CSV file with company data"\n' +
+    '- "Monitor website uptime and send Slack alerts"\n' +
+    '- "Sync Salesforce contacts to our database nightly"\n' +
+    '- "Score and route inbound leads based on firmographics"\n\n' +
+    "Describe what you'd like to automate and I'll help you build it with /create-workflow.";
+
+  const claudeArgs: string[] = [];
+  if (isDevMode()) claudeArgs.push("--plugin-dir", monorepoRoot);
+  if (yolo) claudeArgs.push("--dangerously-skip-permissions");
+  claudeArgs.push(prompt);
+
+  const child = spawn("claude", claudeArgs, {
+    cwd,
+    stdio: "inherit",
+  });
+  child.on("exit", (code) => process.exit(code ?? 0));
+}
+
 export async function runInit(): Promise<void> {
   p.intro(pc.red("0pflow") + pc.dim(" — create a new project"));
+
+  // ── Existing project check ──────────────────────────────────────────
+  if (isExisting0pflow()) {
+    const action = await p.select({
+      message: "This directory is already an 0pflow project.",
+      options: [
+        { value: "claude" as const, label: "Launch Claude Code" },
+        { value: "claude-yolo" as const, label: "Launch Claude Code with --dangerously-skip-permissions" },
+        { value: "new" as const, label: "Create a new project in a subdirectory" },
+      ],
+    });
+
+    if (p.isCancel(action)) {
+      p.cancel("Cancelled.");
+      process.exit(0);
+    }
+
+    if (action === "claude" || action === "claude-yolo") {
+      if (!isClaudeAvailable()) {
+        p.log.error("Claude Code CLI not found. Install it from https://claude.ai/code");
+        process.exit(1);
+      }
+      p.outro(pc.green("Launching Claude Code..."));
+      launchClaude(process.cwd(), { yolo: action === "claude-yolo" });
+      return;
+    }
+    // fall through to normal wizard (cwdEmpty will be false, so directory defaults to ./<name>)
+  }
 
   const cwdEmpty = isCwdEmpty();
 
@@ -331,31 +392,18 @@ export async function runInit(): Promise<void> {
   const hasClaude = isClaudeAvailable();
 
   if (hasClaude) {
-    const launchClaude = await p.confirm({
+    const launchChoice = await p.select({
       message: "Launch Claude Code to design your first workflow?",
-      initialValue: true,
+      options: [
+        { value: "claude" as const, label: "Yes" },
+        { value: "claude-yolo" as const, label: "Yes, with --dangerously-skip-permissions" },
+        { value: "no" as const, label: "No, I'll do it later" },
+      ],
     });
 
-    if (!p.isCancel(launchClaude) && launchClaude) {
+    if (!p.isCancel(launchChoice) && launchChoice !== "no") {
       p.outro(pc.green("Launching Claude Code..."));
-      // Launch claude with an initial prompt to get started
-      const prompt =
-        "Welcome to your new 0pflow project! What workflow would you like to create? Here are some ideas:\n\n" +
-        '- "Enrich leads from a CSV file with company data"\n' +
-        '- "Monitor website uptime and send Slack alerts"\n' +
-        '- "Sync Salesforce contacts to our database nightly"\n' +
-        '- "Score and route inbound leads based on firmographics"\n\n' +
-        "Describe what you'd like to automate and I'll help you build it with /create-workflow.";
-
-      const claudeArgs = isDevMode()
-        ? ["--plugin-dir", monorepoRoot, prompt]
-        : [prompt];
-
-      const child = spawn("claude", claudeArgs, {
-        cwd: resolve(appPath),
-        stdio: "inherit",
-      });
-      child.on("exit", (code) => process.exit(code ?? 0));
+      launchClaude(resolve(appPath), { yolo: launchChoice === "claude-yolo" });
       return;
     }
   }
