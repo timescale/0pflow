@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { basename, join, resolve } from "node:path";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
+import * as dotenv from "dotenv";
 import {
   scaffoldApp,
   createDatabase,
@@ -30,8 +31,9 @@ function isCwdEmpty(): boolean {
 }
 
 /**
- * Poll Tiger Cloud until the service is ready (status != "creating").
+ * Poll Tiger Cloud until the service is ready (status == "ready").
  * Returns true if ready, false on timeout.
+ * Throws an error if the service is not found or tiger CLI is unavailable.
  */
 async function waitForDatabase(
   serviceId: string,
@@ -48,15 +50,78 @@ async function waitForDatabase(
         stdio: ["pipe", "pipe", "pipe"],
       });
       const info = JSON.parse(stdout) as { status?: string };
-      if (info.status && info.status !== "creating") {
+      // Only return true when database is actually ready
+      if (info.status === "ready") {
         return true;
       }
-    } catch {
-      // tiger CLI not available or service not found — keep trying
+    } catch (error) {
+      const err = error as Error & { stderr?: string };
+      // Check if it's a "service not found" or "tiger CLI not available" error
+      if (err.message?.includes("not found") || err.stderr?.includes("not found")) {
+        throw new Error(`Service ${serviceId} not found. Please check the service ID.`);
+      }
+      if (err.message?.includes("command not found") || err.message?.includes("tiger")) {
+        throw new Error("Tiger CLI not available. Please install it from https://tiger.tigerdata.cloud");
+      }
+      // For other errors (network, etc.), continue retrying
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
   return false;
+}
+
+/**
+ * Extract the service ID from a Tiger Cloud DATABASE_URL.
+ * Tiger Cloud hostnames follow the pattern: <service_id>.<region>.aws.tsdb.cloud
+ */
+function extractServiceIdFromUrl(databaseUrl: string): string | null {
+  try {
+    const url = new URL(databaseUrl);
+    const hostname = url.hostname;
+
+    // Match Tiger Cloud hostname patterns like: abc123def4.us-east-1.aws.tsdb.cloud
+    const match = hostname.match(/^([a-z0-9]{10})\./);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check database status and start it if paused/stopped.
+ * Returns the status: "started", "already_running", "not_found", or "creating"
+ */
+function startDatabaseIfNeeded(serviceId: string, noWait = false): string {
+  try {
+    const stdout = execSync(`tiger service get ${serviceId} -o json`, {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    const info = JSON.parse(stdout) as { status?: string };
+
+    if (!info.status) {
+      return "not_found";
+    }
+
+    // If database is paused or stopped, start it
+    if (info.status === "paused" || info.status === "stopped") {
+      execSync(`tiger service start ${serviceId}${noWait ? " --no-wait" : ""}`, {
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      return "started";
+    }
+
+    if (info.status === "creating") {
+      return "creating";
+    }
+
+    // Already running
+    return "already_running";
+  } catch {
+    // tiger CLI not available or service not found
+    return "not_found";
+  }
 }
 
 function isExisting0pflow(): boolean {
@@ -123,6 +188,35 @@ export async function runRun(): Promise<void> {
 
   // ── Existing project → launch ───────────────────────────────────────
   if (isExisting0pflow()) {
+    // Check if database is paused and start it if needed
+    try {
+      const { findEnvFile } = await import("./env.js");
+      const envPath = findEnvFile(process.cwd());
+      if (envPath) {
+        const envContent = readFileSync(envPath, "utf-8");
+        const parsed = dotenv.parse(envContent);
+
+        if (parsed.DATABASE_URL) {
+          const serviceId = extractServiceIdFromUrl(parsed.DATABASE_URL);
+          if (serviceId) {
+            const status = startDatabaseIfNeeded(serviceId, false);
+            if (status === "started") {
+              const s = p.spinner();
+              s.start("Database was paused, waiting for it to start...");
+              const ready = await waitForDatabase(serviceId, 3 * 60 * 1000);
+              if (ready) {
+                s.stop(pc.green("Database is ready"));
+              } else {
+                s.stop(pc.yellow("Database is starting (taking longer than expected)"));
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // Continue without database check if env loading fails
+    }
+
     const mode = await p.select({
       message: "Launch mode",
       options: [
@@ -296,28 +390,34 @@ export async function runRun(): Promise<void> {
       }
       serviceId = sid;
     }
+
+    // Start database if paused (async, don't wait)
+    if (serviceId) {
+      const status = startDatabaseIfNeeded(serviceId, true);
+      if (status === "started") {
+        p.log.info("Database was paused, starting it in the background...");
+      }
+    }
   }
 
   // ── Execute ─────────────────────────────────────────────────────────
   const s = p.spinner();
 
-  // Start database creation first (async) if creating new
-  let dbPromise: Promise<{ service_id?: string }> | undefined;
+  // Create database if needed (returns immediately with --no-wait)
   if (dbChoice === "new") {
     s.start("Creating Tiger Cloud database...");
-    dbPromise = createDatabase({ name: projectName }).then((result) => {
-      if (!result.success) {
-        throw new Error(result.error || "Failed to create database");
-      }
-      return result;
-    });
+    const dbResult = await createDatabase({ name: projectName });
+    if (!dbResult.success) {
+      s.stop(pc.red("Database creation failed"));
+      p.log.error(dbResult.error || "Failed to create database");
+      process.exit(1);
+    }
+    serviceId = dbResult.service_id;
+    s.stop(pc.green(`Database creation initiated (${serviceId})`));
   }
 
-  // Scaffold app (parallel with db provisioning)
-  if (!dbPromise) {
-    s.start("Scaffolding project...");
-  }
-
+  // Scaffold app
+  s.start("Scaffolding project...");
   const scaffoldResult = await scaffoldApp({
     appName: projectName,
     directory,
@@ -343,19 +443,16 @@ export async function runRun(): Promise<void> {
     s.stop(pc.yellow("npm install failed (you can retry manually)"));
   }
 
-  // Wait for database and setup schema
-  if (dbChoice === "new" && dbPromise) {
-    s.start("Waiting for database to be ready...");
-    try {
-      const dbResult = await dbPromise;
-      serviceId = dbResult.service_id;
-      s.stop(pc.green(`Database created (${serviceId})`));
-    } catch (err) {
-      s.stop(pc.yellow("Database creation failed"));
-      p.log.warn(
-        `You can create one later with: tiger service create --name ${projectName}`,
-      );
+  // Wait for database to be ready (whether new or existing that was started)
+  if (serviceId) {
+    s.start("Checking database status...");
+    const ready = await waitForDatabase(serviceId, 3 * 60 * 1000);
+    if (!ready) {
+      s.stop(pc.red("Database failed to start"));
+      p.log.error("Database did not become ready in time. Please check Tiger Cloud dashboard.");
+      process.exit(1);
     }
+    s.stop(pc.green("Database is ready"));
   }
 
   if (serviceId) {
