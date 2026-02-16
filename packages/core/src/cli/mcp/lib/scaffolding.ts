@@ -62,7 +62,16 @@ async function writeClaudeSettings(appPath: string): Promise<void> {
   // Get git commit SHA from auto-generated version.ts
   // This pins the marketplace to the exact same commit as the MCP server
   const { BUILD_INFO } = await import('../../../version.js');
-  const ref = BUILD_INFO.commit || 'main';
+
+  const source: { source: string; repo: string; sha?: string } = {
+    source: "github",
+    repo: "timescale/0pflow"
+  };
+
+  // Only add sha field if commit is available
+  if (BUILD_INFO.commit) {
+    source.sha = BUILD_INFO.commit;
+  }
 
   await writeFile(
     join(claudeDir, 'settings.json'),
@@ -70,11 +79,7 @@ async function writeClaudeSettings(appPath: string): Promise<void> {
       "$schema": "https://json.schemastore.org/claude-code-settings.json",
       "extraKnownMarketplaces": {
         "0pflow": {
-          "source": {
-            "source": "github",
-            "repo": "timescale/0pflow",
-            "ref": ref  // Pin to exact commit SHA from version.ts
-          }
+          source
         }
       },
       "enabledPlugins": {
