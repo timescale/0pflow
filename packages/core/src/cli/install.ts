@@ -251,7 +251,7 @@ export async function runInstall(options: InstallOptions = {}): Promise<void> {
   }
 
   if (pluginResult.success) {
-    const initCmd = `npx 0pflow@${getNpmVersionForMcp()} run`;
+    const initCmd = `npx -y 0pflow@${getNpmVersionForMcp()} run`;
 
     printBanner();
     console.log(pc.green("✓"), "Installed successfully");
