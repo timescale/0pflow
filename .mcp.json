@@ -2,7 +2,7 @@
   "mcpServers": {
     "0pflow-local-tools": {
       "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/run-mcp.cjs"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/run-mcp.cjs"]
     }
   }
 }
