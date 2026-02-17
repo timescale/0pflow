@@ -4,7 +4,23 @@ AI-native workflow engine for GTM/RevOps automation.
 
 ## Installation
 
-Install the 0pflow plugin for Claude Code:
+Get started with a single command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/timescale/0pflow/main/scripts/install.sh | bash
+```
+
+This installs all dependencies (Node.js, Claude Code, Tiger CLI) and sets up the `0pflow` command.
+
+After installation, open a new terminal and run:
+
+```bash
+0pflow
+```
+
+### Already have Node.js?
+
+If you already have Node.js 20+ installed:
 
 ```bash
 npx -y 0pflow@dev install --force
