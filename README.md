@@ -15,20 +15,12 @@ This installs all dependencies (Node.js, Claude Code, Tiger CLI) and sets up the
 After installation, open a new terminal and run:
 
 ```bash
-0pflow
+0pflow run
 ```
+___
+### Want to contribute? - Developer Guide
 
-### Already have Node.js?
-
-If you already have Node.js 20+ installed:
-
-```bash
-npx -y 0pflow@dev install --force
-```
-
-### Development Mode
-
-To use the plugin from source (for development):
+To use the plugin from source:
 
 ```bash
 git clone https://github.com/timescale/0pflow.git
