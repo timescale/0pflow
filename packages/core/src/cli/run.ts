@@ -1,5 +1,5 @@
 import { exec, execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { promisify } from "node:util";
 import { join, resolve } from "node:path";
@@ -167,6 +167,45 @@ function isExisting0pflow(): boolean {
   }
 }
 
+interface ProjectInfo {
+  name: string;
+  path: string;
+}
+
+/**
+ * Scan ~/0pflow/ for directories that contain a package.json with 0pflow as a dependency.
+ */
+function discoverProjects(): ProjectInfo[] {
+  const baseDir = join(homedir(), "0pflow");
+  if (!existsSync(baseDir)) return [];
+
+  const projects: ProjectInfo[] = [];
+  let entries: string[];
+  try {
+    entries = readdirSync(baseDir);
+  } catch {
+    return [];
+  }
+
+  for (const entry of entries) {
+    const projectDir = join(baseDir, entry);
+    const pkgPath = join(projectDir, "package.json");
+    try {
+      if (!existsSync(pkgPath)) continue;
+      const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if ("0pflow" in deps) {
+        projects.push({ name: entry, path: projectDir });
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  projects.sort((a, b) => a.name.localeCompare(b.name));
+  return projects;
+}
+
 const WELCOME_PROMPT =
   "Welcome to your 0pflow project! What workflow would you like to create? Here are some ideas:\n\n" +
   '- "Enrich leads from a CSV file with company data"\n' +
@@ -174,6 +213,53 @@ const WELCOME_PROMPT =
   '- "Sync Salesforce contacts to our database nightly"\n' +
   '- "Score and route inbound leads based on firmographics"\n\n' +
   "Describe what you'd like to automate and I'll help you build it with /create-workflow.";
+
+async function launchExistingProject(projectPath: string): Promise<void> {
+  // Check if database is paused and start it if needed
+  try {
+    const { findEnvFile } = await import("./env.js");
+    const envPath = findEnvFile(projectPath);
+    if (envPath) {
+      const envContent = readFileSync(envPath, "utf-8");
+      const parsed = dotenv.parse(envContent);
+
+      if (parsed.DATABASE_URL) {
+        const serviceId = extractServiceIdFromUrl(parsed.DATABASE_URL);
+        if (serviceId) {
+          const status = startDatabaseIfNeeded(serviceId, false);
+          if (status === "started") {
+            const s = p.spinner();
+            s.start("Database was paused, waiting for it to start...");
+            const ready = await waitForDatabase(serviceId, 3 * 60 * 1000);
+            if (ready) {
+              s.stop(pc.green("Database is ready"));
+            } else {
+              s.stop(pc.yellow("Database is starting (taking longer than expected)"));
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // Continue without database check if env loading fails
+  }
+
+  const mode = await p.select({
+    message: "Launch mode",
+    options: [
+      { value: "normal" as const, label: "Launch" },
+      { value: "yolo" as const, label: "Launch with --dangerously-skip-permissions" },
+    ],
+  });
+
+  if (p.isCancel(mode)) {
+    p.cancel("Cancelled.");
+    process.exit(0);
+  }
+
+  p.outro(pc.green("Launching..."));
+  await launchDevServer(projectPath, { yolo: mode === "yolo" });
+}
 
 async function launchDevServer(cwd: string, { yolo = false }: { yolo?: boolean } = {}): Promise<void> {
   // Load .env from the app directory (not process.cwd(), which may be a parent)
@@ -235,53 +321,42 @@ export async function runRun(): Promise<void> {
     }
   }
 
-  // ── Existing project → launch ───────────────────────────────────────
+  // ── Existing project (CWD) → launch directly ───────────────────────
   if (isExisting0pflow()) {
-    // Check if database is paused and start it if needed
-    try {
-      const { findEnvFile } = await import("./env.js");
-      const envPath = findEnvFile(process.cwd());
-      if (envPath) {
-        const envContent = readFileSync(envPath, "utf-8");
-        const parsed = dotenv.parse(envContent);
+    await launchExistingProject(process.cwd());
+    return;
+  }
 
-        if (parsed.DATABASE_URL) {
-          const serviceId = extractServiceIdFromUrl(parsed.DATABASE_URL);
-          if (serviceId) {
-            const status = startDatabaseIfNeeded(serviceId, false);
-            if (status === "started") {
-              const s = p.spinner();
-              s.start("Database was paused, waiting for it to start...");
-              const ready = await waitForDatabase(serviceId, 3 * 60 * 1000);
-              if (ready) {
-                s.stop(pc.green("Database is ready"));
-              } else {
-                s.stop(pc.yellow("Database is starting (taking longer than expected)"));
-              }
-            }
-          }
-        }
-      }
-    } catch {
-      // Continue without database check if env loading fails
-    }
+  // ── Discover existing projects in ~/0pflow/ ───────────────────────
+  const projects = discoverProjects();
 
-    const mode = await p.select({
-      message: "Launch mode",
+  if (projects.length > 0) {
+    const CREATE_NEW = "__create_new__";
+
+    const projectChoice = await p.select({
+      message: "Select a project",
       options: [
-        { value: "normal" as const, label: "Launch" },
-        { value: "yolo" as const, label: "Launch with --dangerously-skip-permissions" },
+        ...projects.map((proj) => ({
+          value: proj.path,
+          label: proj.name,
+          hint: proj.path,
+        })),
+        {
+          value: CREATE_NEW,
+          label: pc.green("+ Create new project"),
+        },
       ],
     });
 
-    if (p.isCancel(mode)) {
+    if (p.isCancel(projectChoice)) {
       p.cancel("Cancelled.");
       process.exit(0);
     }
 
-    p.outro(pc.green("Launching..."));
-    await launchDevServer(process.cwd(), { yolo: mode === "yolo" });
-    return;
+    if (projectChoice !== CREATE_NEW) {
+      await launchExistingProject(projectChoice);
+      return;
+    }
   }
 
   // ── Project name ────────────────────────────────────────────────────
