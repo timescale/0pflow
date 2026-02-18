@@ -92,8 +92,8 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 | Type | Location | Import Pattern |
 |------|----------|----------------|
 | `(builtin)` | Built-in nodes from 0pflow | `import { webRead } from "0pflow"` |
-| `(node)` | User-defined in `src/nodes/` | `import { nodeName } from "../../src/nodes/<name>.js"` |
-| `(agent)` | `agents/<name>.ts` | `import { agentName } from "../../agents/<name>.js"` |
+| `(node)` | User-defined in `src/nodes/` or `nodes/` | `import { nodeName } from "../../src/nodes/<name>"` |
+| `(agent)` | `agents/<name>.ts` | `import { agentName } from "../../agents/<name>"` |
 
 **Note:** Agent imports reference the executable file (`agents/<name>.ts`), not the spec file (`specs/agents/<name>.md`). The executable contains the runtime code that loads the spec.
 
@@ -123,7 +123,7 @@ When an agent's description contains a `**Tools needed:**` section (added by `/0
 |-----------|----------------|--------------------|
 | `(builtin)` | `import { webRead } from "0pflow"` | `web_read: webRead` |
 | `(provider)` | `import { createOpenAI } from "@ai-sdk/openai"; const openai = createOpenAI();` | `web_search: openai.tools.webSearch()` |
-| `(user node in src/nodes/<file>.ts)` | `import { name } from "../../src/nodes/<file>.js"` | `enrich_company: enrichCompany` |
+| `(user node in src/nodes/<file>.ts)` | `import { name } from "../../src/nodes/<file>"` | `enrich_company: enrichCompany` |
 
 ---
 

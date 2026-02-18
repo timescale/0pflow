@@ -6,9 +6,12 @@ export const VERSION = "0.1.0";
 export { create0pflow } from "./factory.js";
 export { getSchemaName } from "./dbos.js";
 
-// Discovery
+// Discovery (CLI / non-bundled environments)
 export { discover } from "./discover.js";
 export type { DiscoverResult } from "./discover.js";
+
+// Registry generation (for bundled builds - Next.js, etc.)
+export { generateRegistry } from "./registry-gen.js";
 
 // Executable factories
 export { Node } from "./node.js";

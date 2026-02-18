@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prebuild": "0pflow build",
     "build": "next build",
     "check": "biome check .",
     "check:unsafe": "biome check --write --unsafe .",
@@ -12,6 +13,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "predev": "0pflow build",
     "dev": "next dev --turbo",
     "0pflow": "0pflow",
     "preview": "next build && next start",

@@ -96,6 +96,16 @@ program
     await runRun();
   });
 
+// ============ Build command ============
+program
+  .command("build")
+  .description("Generate registry.ts with static imports (for Next.js / bundled builds)")
+  .action(async () => {
+    const { generateRegistry } = await import("../registry-gen.js");
+    const outPath = generateRegistry(process.cwd());
+    console.log(pc.green(`Registry generated: ${outPath}`));
+  });
+
 // ============ Workflow commands ============
 const workflow = program.command("workflow").description("Workflow commands");
 

@@ -1,4 +1,5 @@
-import { create0pflow, discover } from "0pflow";
+import { create0pflow } from "0pflow";
+import { workflows, agents, nodes } from "../../generated/registry";
 import "server-only";
 
 type PflowInstance = Awaited<ReturnType<typeof create0pflow>>;
@@ -11,14 +12,12 @@ export async function getPflow(): Promise<PflowInstance> {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
-    const discovered = await discover(process.cwd());
-    if (discovered.warnings.length > 0) {
-      console.warn("0pflow discovery warnings:", discovered.warnings);
-    }
     const instance = await create0pflow({
       databaseUrl: process.env.DATABASE_URL!,
       appName: "{{app_name}}",
-      ...discovered,
+      workflows,
+      agents,
+      nodes,
     });
     console.log("0pflow initialized");
     return instance;
