@@ -7,7 +7,7 @@ import { randomHex } from "@/lib/auth";
  * Create a new CLI auth session. Returns {code, secret} for the CLI to poll.
  */
 export async function POST() {
-  const db = getPool();
+  const db = await getPool();
 
   const code = randomHex(4); // 8-char hex
   const secret = randomHex(16); // 32-char hex

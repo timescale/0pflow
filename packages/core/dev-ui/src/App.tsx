@@ -7,6 +7,7 @@ import { useTerminal } from "./hooks/useTerminal";
 import { WorkflowGraph } from "./components/WorkflowGraph";
 import { WorkflowSelector } from "./components/WorkflowSelector";
 import { ConnectionsPanel } from "./components/ConnectionsPanel";
+import { DeployPanel } from "./components/DeployPanel";
 import { BottomPanel } from "./components/BottomPanel";
 import { RunHistoryTab } from "./components/RunHistoryTab";
 import { ClaudeTerminal } from "./components/ClaudeTerminal";
@@ -89,6 +90,7 @@ export function App() {
             workflows={state.workflows}
             connectionsApi={connectionsApi}
           />
+          <DeployPanel />
         </div>
       </div>
 

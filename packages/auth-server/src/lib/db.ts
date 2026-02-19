@@ -1,8 +1,9 @@
 import pg from "pg";
 
 let pool: pg.Pool | null = null;
+let schemaReady = false;
 
-export function getPool(): pg.Pool {
+export async function getPool(): Promise<pg.Pool> {
   if (!pool) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
@@ -10,16 +11,18 @@ export function getPool(): pg.Pool {
     }
     pool = new pg.Pool({ connectionString, max: 10 });
   }
+  if (!schemaReady) {
+    await ensureSchema();
+    schemaReady = true;
+  }
   return pool;
 }
 
 /**
  * Create the required tables if they don't exist.
  */
-export async function ensureSchema(): Promise<void> {
-  const db = getPool();
-
-  await db.query(`
+async function ensureSchema(): Promise<void> {
+  await pool!.query(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
       github_id TEXT UNIQUE NOT NULL,
@@ -29,7 +32,7 @@ export async function ensureSchema(): Promise<void> {
     )
   `);
 
-  await db.query(`
+  await pool!.query(`
     CREATE TABLE IF NOT EXISTS cli_auth_sessions (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
       code TEXT UNIQUE NOT NULL,
@@ -43,10 +46,27 @@ export async function ensureSchema(): Promise<void> {
   `);
 
   // Indexes for lookups
-  await db.query(`
+  await pool!.query(`
     CREATE INDEX IF NOT EXISTS idx_cli_sessions_code ON cli_auth_sessions(code)
   `);
-  await db.query(`
+  await pool!.query(`
     CREATE INDEX IF NOT EXISTS idx_cli_sessions_token ON cli_auth_sessions(session_token)
+  `);
+
+  // Deployments table — tracks Sprites per user/app
+  await pool!.query(`
+    CREATE TABLE IF NOT EXISTS deployments (
+      id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      app_name TEXT NOT NULL,
+      sprite_name TEXT NOT NULL UNIQUE,
+      sprite_url TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, app_name)
+    )
+  `);
+  await pool!.query(`
+    CREATE INDEX IF NOT EXISTS idx_deployments_user ON deployments(user_id)
   `);
 }

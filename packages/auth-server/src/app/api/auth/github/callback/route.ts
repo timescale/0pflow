@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     email: string | null;
   };
 
-  const db = getPool();
+  const db = await getPool();
 
   // Upsert user
   const userResult = await db.query(

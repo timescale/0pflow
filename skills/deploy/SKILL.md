@@ -1,13 +1,13 @@
 ---
 name: deploy
-description: Deploy a 0pflow app to DBOS Cloud. Verifies deployment files, sets up environment, and deploys.
+description: Deploy a 0pflow app to the cloud. Verifies deployment files, sets up environment, and deploys.
 ---
 
-# Deploy to DBOS Cloud
+# Deploy to Cloud
 
-Deploys a Next.js + 0pflow workflow app to DBOS Cloud.
+Deploys a 0pflow app to the cloud using `0pflow deploy`.
 
-**Announce at start:** "I'm using the deploy skill to prepare and deploy this app to DBOS Cloud."
+**Announce at start:** "I'm using the deploy skill to prepare and deploy this app."
 
 ---
 
@@ -17,177 +17,94 @@ Deploys a Next.js + 0pflow workflow app to DBOS Cloud.
    - `package.json` must exist with `0pflow` as a dependency
    - `generated/workflows/` should exist with at least one compiled workflow
 
-2. **Check DBOS Cloud CLI:**
-   - Run `npx dbos-cloud --version` to verify availability
-   - If not installed: `npm install -g @dbos-inc/dbos-cloud@latest`
+2. **Verify `.env` exists with required variables:**
+   - `DATABASE_URL` — Application database connection string (required)
+   - Any other secrets your workflows need (API keys, etc.)
 
-3. **Verify deployment files exist (shipped with template):**
-   - `src/lib/pflow.ts` — singleton with auto-discovery
-   - `src/instrumentation.ts` — eager initialization at startup
-   - `src/app/api/workflow/[name]/route.ts` — dynamic workflow API route
-   - `dbos-config.yaml` — DBOS Cloud config
-   - If any are missing, inform the user they can be restored by copying from the 0pflow app template
-
-4. **Verify `dbos-config.yaml` name matches the app:**
-   - The `name` field should match the project name
-   - If it still has the template placeholder `{{app_name}}`, replace it with the actual app name from `package.json`
+3. **Verify the app builds:**
+   ```bash
+   npm run build
+   ```
+   - Fix any build errors before deploying
 
 ---
 
-## Phase 1: Generate Lockfile
+## Phase 1: Authenticate
 
-DBOS Cloud uses bun for faster installs. Generate a bun lockfile:
+If not already authenticated:
 
 ```bash
-bun install
+0pflow login
 ```
 
-This creates `bun.lock` which DBOS Cloud prefers over `package-lock.json`.
-
-- If bun is not installed: `npm install -g bun`
-- If `bun.lock` already exists, run `bun install` again to refresh it
+This opens a browser for GitHub OAuth and stores a session token locally.
 
 ---
 
-## Phase 2: Link Database (BYOD — first-time only)
-
-0pflow apps use Tiger Cloud as their database. DBOS Cloud connects to it via **Bring Your Own Database (BYOD)**.
-
-The `setup_app_schema` tool automatically creates a `dbosadmin` role on the database and writes `DBOS_ADMIN_URL` to `.env`. If `DBOS_ADMIN_URL` is not in `.env`, the dbosadmin role may not exist yet — re-run `setup_app_schema` or create it manually:
-
-```sql
-CREATE ROLE dbosadmin WITH LOGIN CREATEDB PASSWORD '<password>';
-```
-
-### Link the database to DBOS Cloud
-
-1. **Extract hostname and port from `DATABASE_URL`:**
-   - Parse the `DATABASE_URL` from `.env` to get the hostname and port
-
-2. **Link:**
-   ```bash
-   npx dbos-cloud db link <database-instance-name> -H <hostname> -p <port> -W <password>
-   ```
-   - `<database-instance-name>` must be 3-16 chars, lowercase alphanumeric + underscores
-   - Use the password from `DBOS_ADMIN_URL` in `.env`
-
-3. **Verify:**
-   ```bash
-   npx dbos-cloud db list
-   ```
-   - The linked database should appear in the list
-
-Skip this phase if `npx dbos-cloud db list` already shows the database.
-
----
-
-## Phase 3: Deploy
-
-### First-time Deployment
-
-1. **Login to DBOS Cloud:**
-   ```bash
-   npx dbos-cloud login
-   ```
-
-2. **Import environment variables:**
-   ```bash
-   npx dbos-cloud app env import -d .env
-   ```
-   - Review `.env` before importing — ensure it doesn't contain local-only values
-   - Do NOT import `DBOS_ADMIN_URL` — it's only for setup, not the app runtime
-
-3. **Deploy:**
-   ```bash
-   npx dbos-cloud app deploy -d <database-instance-name>
-   ```
-   - Use the same database instance name from the `db link` step
-
-### Subsequent Deployments
+## Phase 2: Deploy
 
 ```bash
-npx dbos-cloud app deploy
+0pflow deploy
 ```
 
-No need to re-import env variables or specify database on subsequent deploys.
+This command:
+1. Packages the application (excluding `node_modules`, `.git`, `.next`, `dist`, `.env`)
+2. Uploads the code to a cloud VM
+3. Runs `npm install` and `npm run build` remotely
+4. Starts the app with `npm run start` on port 3000
+5. Returns the public URL
+
+The deploy command handles both first-time deployments and re-deployments automatically. On re-deploy, the existing VM is reused — only the code is updated.
 
 ---
 
-## Phase 4: Verify Deployment
+## Phase 3: Verify Deployment
 
 After deployment completes:
 
-1. **Check app status:**
+1. **Check the URL** printed by the deploy command
+2. **Test a workflow endpoint:**
    ```bash
-   npx dbos-cloud app status
+   curl <app-url>/api/workflow/<workflow-name>
    ```
-   - Should show status as `AVAILABLE`
-
-2. **Check logs if issues:**
-   ```bash
-   npx dbos-cloud app logs
-   ```
-
-3. **Test a workflow endpoint:**
-   - Use the URL from `app status` output
-   - `curl <app-url>/api/workflow/<workflow-name>`
 
 ---
 
 ## Troubleshooting
 
-### App shows UNAVAILABLE status
+### Deploy fails during authentication
 
-Check logs with `npx dbos-cloud app logs`. Common causes:
-- Missing environment variables
-- DBOS not initializing at startup (missing `instrumentation.ts`)
-- Database connection issues
+Run `0pflow login` manually and retry.
 
-### "Application taking too long to become available"
+### Build fails remotely
 
-DBOS Cloud has a startup timeout. Verify:
-1. `src/instrumentation.ts` exists and calls `getPflow()`
-2. `DATABASE_URL` is correct and accessible from DBOS Cloud
-3. No errors during DBOS initialization
+The deploy command will report build errors. Common causes:
+- Missing dependencies in `package.json`
+- TypeScript errors not caught locally
+- Environment variables needed at build time
 
-### Build fails with lockfile errors
+Fix the issue locally, verify with `npm run build`, then re-deploy.
 
-Regenerate lockfiles:
-```bash
-rm -rf bun.lock package-lock.json
-bun install
-```
+### App not responding after deploy
+
+The app may take a moment to start. If it doesn't become available:
+- Check that `npm run start` works locally
+- Ensure the app listens on port 3000
+- Verify `DATABASE_URL` is correct and the database is accessible
 
 ---
 
-## Environment Variables Reference
+## Environment Variables
 
-**Required for deployment:**
-- `DATABASE_URL` — Application database connection string
-- `OPFLOW_TOKEN` — For fetching integration credentials via 0pflow cloud at runtime (generated by `0pflow login`). Alternatively, set `NANGO_SECRET_KEY` for self-hosted Nango.
-- Any other secrets your workflows need
+All variables from `.env` are synced to the cloud VM during deploy, except:
+- `DBOS_ADMIN_URL`
+- `DBOS_SYSTEM_DATABASE_URL`
+- `DBOS_CONDUCTOR_KEY`
 
-**Setup only (do not import to DBOS Cloud):**
-- `DBOS_ADMIN_URL` — Connection string for the `dbosadmin` role, used for `dbos-cloud db link`
-
-**Not needed when deployed (DBOS Cloud provides them):**
-- `DBOS_CONDUCTOR_KEY` — Only for local development with `npx dbos start`
-- `DBOS_SYSTEM_DATABASE_URL` — Provided automatically by DBOS Cloud
+Additionally, `OPFLOW_TOKEN` is automatically included for runtime integration credential fetching.
 
 ---
 
-## Useful Commands
+## Dev UI
 
-```bash
-# Check app status
-npx dbos-cloud app status
-
-# View logs
-npx dbos-cloud app logs
-
-# List database instances
-npx dbos-cloud db list
-
-# Update environment variables
-npx dbos-cloud app env import -d .env
-```
+The Dev UI also has a **Deploy** button in the sidebar that triggers the same deploy flow with live progress updates.

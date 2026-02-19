@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const db = getPool();
+  const db = await getPool();
 
   const result = await db.query(
     `SELECT status, session_token, secret, expires_at

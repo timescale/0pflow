@@ -25,7 +25,7 @@ export async function authenticateRequest(
   }
 
   const token = authHeader.slice(7);
-  const db = getPool();
+  const db = await getPool();
 
   const result = await db.query(
     `SELECT user_id FROM cli_auth_sessions

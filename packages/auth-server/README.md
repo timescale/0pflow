@@ -32,17 +32,12 @@ DATABASE_URL=<PostgreSQL connection string>
 GITHUB_CLIENT_ID=<from step 1>
 GITHUB_CLIENT_SECRET=<from step 1>
 NEXT_PUBLIC_GITHUB_CLIENT_ID=<same Client ID — needed for the browser page>
+SPRITES_API_TOKEN=<Fly.io Sprites API token — for cloud deployments>
 ```
 
 ### 3. Set up the database
 
-The auth server needs a PostgreSQL database for users and auth sessions. You can use Tiger Cloud or any PostgreSQL instance.
-
-Run the setup script (reads `DATABASE_URL` from `.env.local`):
-
-```bash
-./setup-db.sh
-```
+The auth server needs a PostgreSQL database for users and auth sessions. You can use Tiger Cloud or any PostgreSQL instance. Tables are created automatically on first request.
 
 ### 4. Install and run
 
@@ -103,6 +98,10 @@ After deploying, update your GitHub OAuth App at https://github.com/settings/dev
 | `/api/integrations/{id}/connections` | GET | Bearer | List connections for an integration |
 | `/api/credentials/{integrationId}` | GET | Bearer | Fetch credentials (`?connection_id=X`) |
 | `/api/nango/connect-session` | POST | Bearer | Create Nango Connect session for OAuth setup |
+| `/api/deploy/prepare` | POST | Bearer | Create/get Sprite for deployment |
+| `/api/deploy/push` | POST | Bearer | Upload code + kick off build on Sprite |
+| `/api/deploy/status` | GET | Bearer | Check build/service status (`?appName=X`) |
+| `/api/deploy/logs` | GET | Bearer | Get build + service logs (`?appName=X`) |
 
 ## How it connects to the core package
 
