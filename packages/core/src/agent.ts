@@ -152,6 +152,15 @@ function createAgentContext(
   return ctx;
 }
 
+// Global cache for agent executables to prevent duplicate DBOS registration
+// when bundlers (Turbopack) re-evaluate the same module in multiple chunks.
+const AGENT_CACHE_KEY = Symbol.for("opflow.agentCache");
+function getAgentCache(): Map<string, AgentExecutable> {
+  const g = globalThis as Record<symbol, Map<string, AgentExecutable>>;
+  if (!g[AGENT_CACHE_KEY]) g[AGENT_CACHE_KEY] = new Map();
+  return g[AGENT_CACHE_KEY];
+}
+
 /**
  * Factory for creating agent executables
  */
@@ -159,6 +168,10 @@ export const Agent = {
   create<TInput, TOutput = unknown>(
     definition: AgentDefinition<TInput, TOutput>
   ): AgentExecutable<TInput, TOutput> {
+    // Return cached executable if already registered (bundler re-evaluation)
+    const cached = getAgentCache().get(definition.name);
+    if (cached) return cached as AgentExecutable<TInput, TOutput>;
+
     const tools = definition.tools ?? {};
 
     // Parent workflow context info, captured before DBOS child workflow starts
@@ -208,7 +221,7 @@ export const Agent = {
       name: definition.name,
     });
 
-    return {
+    const executable: AgentExecutable<TInput, TOutput> = {
       name: definition.name,
       type: "agent",
       description: definition.description,
@@ -224,5 +237,8 @@ export const Agent = {
         return durableAgentWorkflow(inputs);
       },
     };
+
+    getAgentCache().set(definition.name, executable as AgentExecutable);
+    return executable;
   },
 };

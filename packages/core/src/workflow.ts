@@ -160,6 +160,15 @@ export interface NodeWrapper<TInput = unknown, TOutput = unknown> {
   setParentWorkflowName: (name: string | undefined) => void;
 }
 
+// Global cache for workflow executables to prevent duplicate DBOS registration
+// when bundlers (Turbopack) re-evaluate the same module in multiple chunks.
+const WORKFLOW_CACHE_KEY = Symbol.for("opflow.workflowCache");
+function getWorkflowCache(): Map<string, WorkflowExecutable> {
+  const g = globalThis as Record<symbol, Map<string, WorkflowExecutable>>;
+  if (!g[WORKFLOW_CACHE_KEY]) g[WORKFLOW_CACHE_KEY] = new Map();
+  return g[WORKFLOW_CACHE_KEY];
+}
+
 /**
  * Factory for creating workflow executables
  */
@@ -167,6 +176,10 @@ export const Workflow = {
   create<TInput, TOutput>(
     definition: WorkflowDefinition<TInput, TOutput>
   ): WorkflowExecutable<TInput, TOutput> {
+    // Return cached executable if already registered (bundler re-evaluation)
+    const cached = getWorkflowCache().get(definition.name);
+    if (cached) return cached as WorkflowExecutable<TInput, TOutput>;
+
     // Create the DBOS-registered workflow function
     async function workflowImpl(inputs: TInput): Promise<TOutput> {
       const ctx = createDurableContext({
@@ -183,7 +196,7 @@ export const Workflow = {
       name: definition.name,
     });
 
-    return {
+    const executable: WorkflowExecutable<TInput, TOutput> = {
       name: definition.name,
       type: "workflow",
       description: definition.description,
@@ -193,6 +206,9 @@ export const Workflow = {
       // execute ignores the ctx param and uses DBOS context instead
       execute: (_ctx: WorkflowContext, inputs: TInput) => durableWorkflow(inputs),
     };
+
+    getWorkflowCache().set(definition.name, executable as WorkflowExecutable);
+    return executable;
   },
 
   /**
