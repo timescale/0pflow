@@ -1,8 +1,10 @@
 import { createServer as createHttpServer } from "node:http";
+import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
+import * as p from "@clack/prompts";
 import { createWSServer, type WSClientMessage } from "./ws.js";
 import { createWatcher } from "./watcher.js";
 import type { PtyManager } from "./pty.js";
@@ -11,6 +13,22 @@ import { createIntegrationProvider } from "../connections/integration-provider.j
 import { getSchemaName } from "../dbos.js";
 import { getAppSchema } from "../cli/app.js";
 import pg from "pg";
+
+async function killPortHolder(port: number): Promise<boolean> {
+  try {
+    const pids = execSync(`lsof -ti :${port}`, { encoding: "utf-8" }).trim();
+    if (pids) {
+      for (const pid of pids.split("\n")) {
+        process.kill(parseInt(pid, 10), "SIGTERM");
+      }
+      await new Promise((r) => setTimeout(r, 500));
+      return true;
+    }
+  } catch {
+    // no process on port or kill failed
+  }
+  return false;
+}
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -136,6 +154,7 @@ export async function startDevServer(options: DevServerOptions) {
   };
 
   const { broadcast, sendTo, wss } = createWSServer(httpServer, onClientMessage);
+  wss.on("error", () => {}); // errors handled on httpServer
 
   try {
     const { createPtyManager } = await import("./pty.js");
@@ -193,10 +212,21 @@ export async function startDevServer(options: DevServerOptions) {
 
   const hostname = host ? "0.0.0.0" : "localhost";
 
-  // Try the requested port; fall back to OS-assigned port if taken
+  // Try the requested port; offer to kill existing instance if taken
   const actualPort = await new Promise<number>((resolvePromise, rejectPromise) => {
-    httpServer.once("error", (err: NodeJS.ErrnoException) => {
+    httpServer.once("error", async (err: NodeJS.ErrnoException) => {
       if (err.code === "EADDRINUSE") {
+        const shouldKill = await p.confirm({
+          message: "0pflow is likely already running. Kill it and restart?",
+        });
+        if (!p.isCancel(shouldKill) && shouldKill) {
+          const killed = await killPortHolder(port);
+          if (killed) {
+            httpServer.listen(port, hostname, () => resolvePromise(port));
+            return;
+          }
+        }
+        // Fall back to OS-assigned port
         httpServer.listen(0, hostname, () => {
           const addr = httpServer.address();
           resolvePromise(typeof addr === "object" && addr ? addr.port : 0);
