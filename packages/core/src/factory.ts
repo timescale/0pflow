@@ -8,10 +8,19 @@ import { Workflow, configureWorkflowRuntime, type NodeWrapper } from "./workflow
 import { createIntegrationProvider } from "./connections/integration-provider.js";
 import pg from "pg";
 
+// Global singleton to survive across Turbopack chunk duplication.
+// Module-level `let` in user's pflow.ts breaks across chunks, but globalThis is shared.
+const PFLOW_INSTANCE_KEY = Symbol.for("opflow.pflowInstance");
+
 /**
  * Create a 0pflow instance
  */
 export async function create0pflow(config: PflowConfig): Promise<Pflow> {
+  // Return cached instance if already initialized
+  // (handles Turbopack chunk duplication where pflow.ts module-level singleton breaks)
+  const cached = (globalThis as Record<symbol, Pflow>)[PFLOW_INSTANCE_KEY];
+  if (cached) return cached;
+
   // Build registry from provided executables (before DBOS init)
   const registry = new Registry({
     workflows: config.workflows,
@@ -61,7 +70,7 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
     appSchema,
   });
 
-  return {
+  const pflow: Pflow = {
     listWorkflows: () => registry.listWorkflows(),
 
     getWorkflow: (name: string) => registry.getWorkflow(name),
@@ -117,4 +126,8 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
       await shutdownDBOS();
     },
   };
+
+  // Cache on globalThis so duplicate module copies return the same instance
+  (globalThis as Record<symbol, Pflow>)[PFLOW_INSTANCE_KEY] = pflow;
+  return pflow;
 }

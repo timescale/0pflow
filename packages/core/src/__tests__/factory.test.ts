@@ -25,6 +25,12 @@ vi.mock("@dbos-inc/dbos-sdk", () => ({
 describe("create0pflow()", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Clear globalThis singleton so each test gets a fresh create0pflow()
+    delete (globalThis as Record<symbol, unknown>)[Symbol.for("opflow.pflowInstance")];
+    // Clear workflow cache so Workflow.create() re-registers
+    delete (globalThis as Record<symbol, unknown>)[Symbol.for("opflow.workflowCache")];
+    // Clear agent cache
+    delete (globalThis as Record<symbol, unknown>)[Symbol.for("opflow.agentCache")];
   });
 
   it("initializes DBOS and returns pflow instance", async () => {
