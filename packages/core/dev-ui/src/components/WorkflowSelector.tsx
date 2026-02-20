@@ -31,7 +31,7 @@ export function WorkflowSelector({
             text-left px-2.5 py-1.5 rounded-md text-sm transition-colors
             ${
               selected === w.workflowName
-                ? "bg-accent text-foreground font-medium"
+                ? "bg-[#e8e0d4] text-foreground font-medium shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)]"
                 : "text-muted-foreground hover:bg-accent/60"
             }
           `}
