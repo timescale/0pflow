@@ -1,11 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
 import { getPool } from "@/lib/db";
-import { createSprite, getSprite, updateSprite } from "@/lib/sprites";
+import { flyctlSync } from "@/lib/flyctl";
+
+const FLY_ORG = process.env.FLY_ORG ?? "tiger-data";
 
 /**
  * POST /api/deploy/prepare
- * Create or retrieve a Sprite for the user's app.
+ * Create or retrieve a Fly app for the user's deployment.
  */
 export async function POST(req: NextRequest) {
   const auth = await authenticateRequest(req);
@@ -26,54 +28,68 @@ export async function POST(req: NextRequest) {
 
     // Check for existing deployment
     const existing = await db.query(
-      `SELECT id, sprite_name, sprite_url FROM deployments
+      `SELECT id, fly_app_name, app_url FROM deployments
        WHERE user_id = $1 AND app_name = $2`,
       [userId, appName],
     );
 
     if (existing.rows.length > 0) {
       const row = existing.rows[0];
-      // Ensure Sprite still exists
-      const sprite = await getSprite(row.sprite_name as string);
-      if (sprite) {
+      if (row.fly_app_name) {
         return NextResponse.json({
           data: {
-            spriteName: row.sprite_name,
-            spriteUrl: row.sprite_url ?? sprite.url,
+            appUrl: row.app_url as string,
           },
         });
       }
-      // Sprite was deleted — recreate below
     }
 
     // Create new deployment record (or get existing ID for naming)
     const upsert = await db.query(
-      `INSERT INTO deployments (user_id, app_name, sprite_name, sprite_url)
-       VALUES ($1, $2, '', '')
+      `INSERT INTO deployments (user_id, app_name)
+       VALUES ($1, $2)
        ON CONFLICT (user_id, app_name) DO UPDATE SET updated_at = NOW()
        RETURNING id`,
       [userId, appName],
     );
     const deploymentId = upsert.rows[0].id as number;
-    const spriteName = `opflow-${deploymentId}`;
+    const flyAppName = `opflow-${deploymentId}`;
+    const appUrl = `https://${flyAppName}.fly.dev`;
 
-    // Create Sprite
-    const sprite = await createSprite(spriteName);
+    // Create Fly app
+    console.log(`[deploy/prepare] Creating Fly app: ${flyAppName}`);
+    try {
+      flyctlSync(["apps", "create", flyAppName, "--org", FLY_ORG]);
+    } catch (err) {
+      // App might already exist (idempotent)
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("already exists")) {
+        throw err;
+      }
+      console.log(`[deploy/prepare] App ${flyAppName} already exists`);
+    }
 
-    // Make URL public
-    await updateSprite(spriteName, { url_settings: { auth: "public" } });
+    // Allocate shared IPv4
+    console.log(`[deploy/prepare] Allocating shared IPv4 for ${flyAppName}`);
+    try {
+      flyctlSync(["ips", "allocate-v4", "--shared", "-a", flyAppName]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("already") && !msg.includes("shared")) {
+        console.log(`[deploy/prepare] IP allocation warning: ${msg}`);
+      }
+    }
 
-    // Update deployment record with sprite info
+    // Update deployment record
     await db.query(
-      `UPDATE deployments SET sprite_name = $1, sprite_url = $2, updated_at = NOW()
+      `UPDATE deployments SET fly_app_name = $1, app_url = $2, updated_at = NOW()
        WHERE id = $3`,
-      [spriteName, sprite.url ?? "", deploymentId],
+      [flyAppName, appUrl, deploymentId],
     );
 
     return NextResponse.json({
       data: {
-        spriteName,
-        spriteUrl: sprite.url,
+        appUrl,
       },
     });
   } catch (err) {

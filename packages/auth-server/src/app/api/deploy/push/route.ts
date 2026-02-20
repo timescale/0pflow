@@ -1,63 +1,38 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
 import { getPool } from "@/lib/db";
-import {
-  writeFile,
-  putService,
-  startService,
-  stopService,
-  deleteService,
-  wakeSprite,
-} from "@/lib/sprites";
+import { startDeploy, getBuildStatus } from "@/lib/flyctl";
+import { writeFileSync, mkdtempSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { execSync } from "node:child_process";
 
 /**
- * build.sh template — runs inside the Sprite.
- * Extracts code, installs deps, builds, then creates the "app" service.
+ * Generate a fly.toml for the user's app.
  */
-function generateBuildScript(): string {
-  return `#!/bin/bash
+function generateFlyToml(flyAppName: string): string {
+  return `app = "${flyAppName}"
+primary_region = "iad"
 
-# Clean previous markers
-rm -f /app/.build-complete /app/.build-error
+[build]
 
-# Start a temporary HTTP server on port 3000 to keep the Sprite awake.
-# Incoming TCP connections from status polling prevent idle hibernation.
-sprite-env services stop app 2>/dev/null || true
-sprite-env services delete app 2>/dev/null || true
-sprite-env services create app \\
-  --cmd node --args "-e,require('http').createServer((q,r)=>{r.end('building')}).listen(3000)" \\
-  --http-port 3000 \\
-  --no-stream
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
 
-# Extract app code
-mkdir -p /app
-cd /app
-tar xzf /tmp/app.tar.gz || { echo "Failed to extract archive" > /app/.build-error; exit 1; }
-
-# Install dependencies and build
-npm install 2>&1 | tee /app/build.log || { echo "npm install failed" > /app/.build-error; exit 1; }
-npm run build 2>&1 | tee -a /app/build.log || { echo "npm run build failed" > /app/.build-error; exit 1; }
-
-# Signal build completion
-touch /app/.build-complete
-
-# Replace temp server with real app
-sprite-env services stop app 2>/dev/null || true
-sprite-env services delete app 2>/dev/null || true
-sprite-env services create app \\
-  --cmd bash --args "-c,cd /app && npm run start" \\
-  --http-port 3000 \\
-  --no-stream
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
 `;
 }
 
 /**
  * POST /api/deploy/push
- * Upload app code + env vars, kick off build inside the Sprite.
- *
- * The build runs as a Sprite service ("build") so the Sprite stays
- * awake for the duration. When the build finishes, the script creates
- * the "app" service which runs `npm run start`.
+ * Upload app code + env vars, kick off Docker build via flyctl.
  */
 export async function POST(req: NextRequest) {
   const auth = await authenticateRequest(req);
@@ -83,59 +58,116 @@ export async function POST(req: NextRequest) {
 
     // Look up deployment and verify ownership
     const result = await db.query(
-      `SELECT sprite_name FROM deployments
+      `SELECT fly_app_name, deploy_status FROM deployments
        WHERE user_id = $1 AND app_name = $2`,
       [userId, appName],
     );
 
-    if (result.rows.length === 0) {
+    if (result.rows.length === 0 || !result.rows[0].fly_app_name) {
       return NextResponse.json(
         { error: "No deployment found. Run prepare first." },
         { status: 404 },
       );
     }
 
-    const spriteName = result.rows[0].sprite_name as string;
+    const flyAppName = result.rows[0].fly_app_name as string;
 
-    // Wake the Sprite from hibernation before writing files
-    console.log(`[deploy/push] Waking sprite ${spriteName}...`);
-    await wakeSprite(spriteName);
+    // Check if a build is already in progress
+    const existingBuild = getBuildStatus(flyAppName);
+    if (existingBuild && existingBuild.exitCode === null) {
+      return NextResponse.json(
+        { error: "A deploy is already in progress for this app." },
+        { status: 409 },
+      );
+    }
 
-    // Upload tarball to Sprite
+    // Create temp directory and extract tarball
+    const tempDir = mkdtempSync(join(tmpdir(), `deploy-${flyAppName}-`));
+    console.log(`[deploy/push] Extracting to ${tempDir}`);
+
     const tarBuffer = Buffer.from(archive, "base64");
-    await writeFile(spriteName, "/tmp/app.tar.gz", tarBuffer);
+    const tarPath = join(tempDir, "app.tar.gz");
+    writeFileSync(tarPath, tarBuffer);
+    execSync("tar xzf app.tar.gz && rm app.tar.gz", { cwd: tempDir });
 
-    // Write .env file if env vars provided
+    // Generate fly.toml (Dockerfile and .dockerignore come from the app template)
+    writeFileSync(join(tempDir, "fly.toml"), generateFlyToml(flyAppName));
+
+    // Write .env file for build-time vars
     if (envVars && Object.keys(envVars).length > 0) {
       const envContent = Object.entries(envVars)
         .map(([key, value]) => `${key}=${value}`)
         .join("\n");
-      await writeFile(spriteName, "/app/.env", envContent);
+      writeFileSync(join(tempDir, ".env"), envContent);
     }
 
-    // Write build script
-    const buildScript = generateBuildScript();
-    await writeFile(spriteName, "/tmp/build.sh", buildScript, "0755");
+    // Set runtime secrets via flyctl secrets import (stdin)
+    if (envVars && Object.keys(envVars).length > 0) {
+      console.log(`[deploy/push] Setting secrets for ${flyAppName}`);
+      const envLines = Object.entries(envVars)
+        .map(([key, value]) => `${key}=${value}`)
+        .join("\n");
 
-    // Stop previous build service if still running
-    await stopService(spriteName, "build").catch(() => {});
-    await deleteService(spriteName, "build").catch(() => {});
+      // Write env to a temp file and pipe it to flyctl
+      const secretsFile = join(tmpdir(), `secrets-${flyAppName}.env`);
+      writeFileSync(secretsFile, envLines);
+      try {
+        execSync(
+          `flyctl secrets import -a ${flyAppName} --stage < ${secretsFile}`,
+          {
+            env: { ...process.env, FLY_API_TOKEN: process.env.FLY_API_TOKEN },
+            stdio: "pipe",
+            timeout: 15000,
+            shell: "/bin/bash",
+          },
+        );
+      } catch (err) {
+        console.log(
+          `[deploy/push] Secrets import warning: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      } finally {
+        try {
+          require("node:fs").unlinkSync(secretsFile);
+        } catch {
+          // ignore
+        }
+      }
+    }
 
-    // Create and start "build" service — keeps the Sprite awake
-    await putService(spriteName, "build", {
-      cmd: "bash",
-      args: ["/tmp/build.sh"],
+    // Start flyctl deploy in background
+    console.log(`[deploy/push] Starting deploy for ${flyAppName}`);
+    startDeploy(flyAppName, tempDir, async (exitCode, output) => {
+      // Update DB on completion
+      try {
+        const pool = await getPool();
+        if (exitCode === 0) {
+          await pool.query(
+            `UPDATE deployments SET deploy_status = 'deployed', deploy_error = NULL, updated_at = NOW()
+             WHERE fly_app_name = $1`,
+            [flyAppName],
+          );
+        } else {
+          const errorSnippet = output.slice(-500);
+          await pool.query(
+            `UPDATE deployments SET deploy_status = 'error', deploy_error = $1, updated_at = NOW()
+             WHERE fly_app_name = $2`,
+            [errorSnippet, flyAppName],
+          );
+        }
+      } catch {
+        // ignore DB errors in callback
+      }
     });
-    await startService(spriteName, "build");
 
-    // Update timestamp
+    // Update status in DB
     await db.query(
-      `UPDATE deployments SET updated_at = NOW() WHERE user_id = $1 AND app_name = $2`,
+      `UPDATE deployments SET deploy_status = 'building', deploy_error = NULL, updated_at = NOW()
+       WHERE user_id = $1 AND app_name = $2`,
       [userId, appName],
     );
 
     return NextResponse.json({
-      data: { status: "building" },
+      data: { status: "deploying" },
     });
   } catch (err) {
     return NextResponse.json(

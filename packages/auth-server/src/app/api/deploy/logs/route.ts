@@ -1,11 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
 import { getPool } from "@/lib/db";
-import { getServiceLogs, readFile } from "@/lib/sprites";
+import { getBuildStatus } from "@/lib/flyctl";
+import { flyctlSync } from "@/lib/flyctl";
 
 /**
  * GET /api/deploy/logs?appName=X
- * Get deployment logs (build log + service logs).
+ * Get deployment logs (build output + runtime logs).
  */
 export async function GET(req: NextRequest) {
   const auth = await authenticateRequest(req);
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
   try {
     const db = await getPool();
     const result = await db.query(
-      `SELECT sprite_name FROM deployments
+      `SELECT fly_app_name FROM deployments
        WHERE user_id = $1 AND app_name = $2`,
       [userId, appName],
     );
@@ -35,23 +36,30 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const spriteName = result.rows[0].sprite_name as string;
+    const flyAppName = result.rows[0].fly_app_name as string | null;
+    if (!flyAppName) {
+      return NextResponse.json(
+        { error: "No deployment found" },
+        { status: 404 },
+      );
+    }
 
-    // Try to get build log first
-    const buildLog = await readFile(spriteName, "/app/build.log");
+    // Get build output from in-memory tracking
+    const build = getBuildStatus(flyAppName);
+    const buildLog = build?.output || null;
 
-    // Try to get service logs
-    let serviceLogs = "";
+    // Get runtime logs via flyctl
+    let serviceLogs: string | null = null;
     try {
-      serviceLogs = await getServiceLogs(spriteName, "app");
+      serviceLogs = flyctlSync(["logs", "-a", flyAppName, "--no-tail"]);
     } catch {
-      // Service might not exist yet
+      // App might not have any logs yet
     }
 
     return NextResponse.json({
       data: {
-        buildLog: buildLog ? buildLog.toString("utf-8") : null,
-        serviceLogs: serviceLogs || null,
+        buildLog,
+        serviceLogs,
       },
     });
   } catch (err) {

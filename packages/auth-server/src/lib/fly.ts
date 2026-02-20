@@ -1,0 +1,123 @@
+/**
+ * Fly Machines REST API client.
+ *
+ * Used primarily for checking machine state in the status endpoint.
+ * App creation, deploys, and secrets are handled via flyctl (see flyctl.ts).
+ */
+
+const FLY_MACHINES_API = "https://api.machines.dev";
+
+function getToken(): string {
+  const token = process.env.FLY_API_TOKEN;
+  if (!token) {
+    throw new Error(
+      "FLY_API_TOKEN not configured. See deployment docs for setup.",
+    );
+  }
+  return token;
+}
+
+/**
+ * Make an authenticated REST API call to Fly Machines.
+ */
+async function flyApiCall(
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<Response> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+  };
+
+  let bodyInit: BodyInit | undefined;
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    bodyInit = JSON.stringify(body);
+  }
+
+  const url = `${FLY_MACHINES_API}${path}`;
+  const maxRetries = 5;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url, { method, headers, body: bodyInit });
+
+    if (
+      (response.status === 502 || response.status === 503) &&
+      attempt < maxRetries
+    ) {
+      console.log(
+        `[fly] ${response.status} on ${method} ${path} (attempt ${attempt}/${maxRetries})`,
+      );
+      await new Promise((r) => setTimeout(r, attempt * 3000));
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error("Unexpected end of retry loop");
+}
+
+// ── Types ─────────────────────────────────────────────────────────
+
+export interface MachineInfo {
+  id: string;
+  name: string;
+  state: string;
+  region: string;
+  config?: {
+    image?: string;
+    env?: Record<string, string>;
+  };
+  events?: Array<{
+    type: string;
+    status: string;
+    timestamp: number;
+  }>;
+}
+
+// ── Machine queries ───────────────────────────────────────────────
+
+/**
+ * List all machines for a Fly app.
+ */
+export async function listMachines(appName: string): Promise<MachineInfo[]> {
+  const response = await flyApiCall(
+    "GET",
+    `/v1/apps/${encodeURIComponent(appName)}/machines`,
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(
+      `Failed to list machines for "${appName}" (${response.status}): ${text}`,
+    );
+  }
+
+  return (await response.json()) as MachineInfo[];
+}
+
+/**
+ * Get info for a specific machine. Returns null if not found.
+ */
+export async function getMachine(
+  appName: string,
+  machineId: string,
+): Promise<MachineInfo | null> {
+  const response = await flyApiCall(
+    "GET",
+    `/v1/apps/${encodeURIComponent(appName)}/machines/${encodeURIComponent(machineId)}`,
+  );
+
+  if (response.status === 404) return null;
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(
+      `Failed to get machine "${machineId}" (${response.status}): ${text}`,
+    );
+  }
+
+  return (await response.json()) as MachineInfo;
+}

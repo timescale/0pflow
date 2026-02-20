@@ -47,9 +47,6 @@ const EXCLUDE_PATTERNS = [
   ".venv",
   ".python-version",
   "dbos-config.yaml",
-  "package-lock.json",
-  "bun.lock",
-  "bun.lockb",
   ".env",
   ".env.local",
 ];
@@ -111,17 +108,17 @@ export async function deploy(
     }
   }
 
-  // ── Step 3: Prepare (create Sprite) ────────────────────────────
+  // ── Step 3: Prepare (create Fly app) ──────────────────────────
   progress({ step: "preparing", message: "Preparing deployment..." });
 
-  let spriteUrl: string;
+  let appUrl: string;
 
   try {
     const result = (await apiCall("POST", "/api/deploy/prepare", {
       appName,
-    })) as { spriteName: string; spriteUrl: string };
+    })) as { appUrl: string };
 
-    spriteUrl = result.spriteUrl;
+    appUrl = result.appUrl;
   } catch (err) {
     return {
       success: false,
@@ -195,10 +192,10 @@ export async function deploy(
       const status = (await apiCall(
         "GET",
         `/api/deploy/status?appName=${encodeURIComponent(appName)}`,
-      )) as { status: string; url?: string; error?: string };
+      )) as { status: string; url?: string; error?: string; message?: string };
 
       if (status.status === "running") {
-        const url = status.url ?? spriteUrl;
+        const url = status.url ?? appUrl;
         progress({ step: "done", url });
         return { success: true, url };
       }
@@ -214,7 +211,7 @@ export async function deploy(
       if (status.status === "building") {
         progress({
           step: "polling",
-          message: "Building application...",
+          message: status.message ?? "Building application...",
         });
       } else if (status.status === "starting") {
         progress({
@@ -244,6 +241,8 @@ export async function runDeploy(
   const s = p.spinner();
   let currentStep = "";
 
+  let currentMessage = "";
+
   const result = await deploy(process.cwd(), {
     verbose: options.verbose,
     onProgress: (prog) => {
@@ -255,12 +254,18 @@ export async function runDeploy(
         s.stop(pc.red(prog.message ?? "Error"));
         return;
       }
-      if (prog.message && prog.step !== currentStep) {
-        if (currentStep) {
-          s.stop(pc.green("Done"));
+      if (prog.message) {
+        if (prog.step !== currentStep) {
+          if (currentStep) {
+            s.stop(pc.green("Done"));
+          }
+          currentStep = prog.step;
+          currentMessage = prog.message;
+          s.start(prog.message);
+        } else if (prog.message !== currentMessage) {
+          currentMessage = prog.message;
+          s.message(prog.message);
         }
-        currentStep = prog.step;
-        s.start(prog.message);
       }
     },
   });

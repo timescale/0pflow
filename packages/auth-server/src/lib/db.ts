@@ -53,14 +53,16 @@ async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_cli_sessions_token ON cli_auth_sessions(session_token)
   `);
 
-  // Deployments table — tracks Sprites per user/app
+  // Deployments table — tracks Fly apps per user/app
   await pool!.query(`
     CREATE TABLE IF NOT EXISTS deployments (
       id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
       user_id TEXT NOT NULL REFERENCES users(id),
       app_name TEXT NOT NULL,
-      sprite_name TEXT NOT NULL UNIQUE,
-      sprite_url TEXT,
+      fly_app_name TEXT,
+      app_url TEXT,
+      deploy_status TEXT DEFAULT 'idle',
+      deploy_error TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE(user_id, app_name)

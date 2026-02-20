@@ -1,6 +1,6 @@
 # 0pflow Auth Server
 
-Hosted credential proxy that lets users access integrations (Salesforce, HubSpot, etc.) without needing their own Nango account. Authenticates users via GitHub OAuth and proxies Nango API calls.
+Hosted credential proxy that lets users access integrations (Salesforce, HubSpot, etc.) without needing their own Nango account. Authenticates users via GitHub OAuth and proxies Nango API calls. Also handles user app deployments to Fly.io via `flyctl`.
 
 ## Setup
 
@@ -16,7 +16,7 @@ Hosted credential proxy that lets users access integrations (Salesforce, HubSpot
 4. Copy the **Client ID**
 5. Click **Generate a new client secret** and copy it
 
-> For production, update the Homepage URL and callback URL to your deployed domain (e.g. `https://auth.0pflow.dev/api/auth/github/callback`).
+> For production, update the Homepage URL and callback URL to `https://opflow-auth.fly.dev`.
 
 ### 2. Configure environment
 
@@ -32,7 +32,8 @@ DATABASE_URL=<PostgreSQL connection string>
 GITHUB_CLIENT_ID=<from step 1>
 GITHUB_CLIENT_SECRET=<from step 1>
 NEXT_PUBLIC_GITHUB_CLIENT_ID=<same Client ID — needed for the browser page>
-SPRITES_API_TOKEN=<Fly.io Sprites API token — for cloud deployments>
+FLY_API_TOKEN=<Fly.io API token — for managing user app deployments>
+FLY_ORG=personal
 ```
 
 ### 3. Set up the database
@@ -68,23 +69,44 @@ TOKEN=<token from step 3>
 curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/integrations | jq
 ```
 
-## Deploying to Vercel
+## Deploying to Fly.io
+
+The auth server runs on Fly.io so it can invoke `flyctl` for user app deployments.
+
+### First-time setup
 
 ```bash
-# 1. Link the project (first time only — set Root Directory to packages/auth-server)
 cd packages/auth-server
-vercel link
 
-# 2. Upload env vars from .env.local as sensitive secrets
-./deploy-env.sh
+# Create the Fly app
+flyctl apps create opflow-auth
 
-# 3. Deploy to production
-vercel --prod
+# Set secrets
+flyctl secrets set -a opflow-auth \
+  DATABASE_URL="..." \
+  GITHUB_CLIENT_ID="..." \
+  GITHUB_CLIENT_SECRET="..." \
+  NEXT_PUBLIC_GITHUB_CLIENT_ID="..." \
+  NANGO_SECRET_KEY="..." \
+  FLY_API_TOKEN="..." \
+  FLY_ORG="tiger-data"
+
+# Deploy
+flyctl deploy
 ```
 
-After deploying, update your GitHub OAuth App at https://github.com/settings/developers:
-- **Homepage URL:** `https://<your-domain>`
-- **Authorization callback URL:** `https://<your-domain>/api/auth/github/callback`
+### Subsequent deploys
+
+```bash
+cd packages/auth-server
+flyctl deploy
+```
+
+### After deploying
+
+Update your GitHub OAuth App at https://github.com/settings/developers:
+- **Homepage URL:** `https://opflow-auth.fly.dev`
+- **Authorization callback URL:** `https://opflow-auth.fly.dev/api/auth/github/callback`
 
 ## API Routes
 
@@ -98,17 +120,17 @@ After deploying, update your GitHub OAuth App at https://github.com/settings/dev
 | `/api/integrations/{id}/connections` | GET | Bearer | List connections for an integration |
 | `/api/credentials/{integrationId}` | GET | Bearer | Fetch credentials (`?connection_id=X`) |
 | `/api/nango/connect-session` | POST | Bearer | Create Nango Connect session for OAuth setup |
-| `/api/deploy/prepare` | POST | Bearer | Create/get Sprite for deployment |
-| `/api/deploy/push` | POST | Bearer | Upload code + kick off build on Sprite |
-| `/api/deploy/status` | GET | Bearer | Check build/service status (`?appName=X`) |
-| `/api/deploy/logs` | GET | Bearer | Get build + service logs (`?appName=X`) |
+| `/api/deploy/prepare` | POST | Bearer | Create Fly app for deployment |
+| `/api/deploy/push` | POST | Bearer | Upload code + kick off Docker build via flyctl |
+| `/api/deploy/status` | GET | Bearer | Check build/machine status (`?appName=X`) |
+| `/api/deploy/logs` | GET | Bearer | Get build + runtime logs (`?appName=X`) |
 
 ## How it connects to the core package
 
 Users of the `@0pflow/core` package set `OPFLOW_SERVER_URL` to point at this server. The core package's `CloudIntegrationProvider` then routes all Nango operations through this server instead of calling Nango directly.
 
 ```
-User's app (OPFLOW_SERVER_URL=https://auth.0pflow.dev)
+User's app (OPFLOW_SERVER_URL=https://opflow-auth.fly.dev)
   → CloudIntegrationProvider
     → GET /api/credentials/salesforce?connection_id=X
       → Auth server fetches from Nango with its own NANGO_SECRET_KEY
