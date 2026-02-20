@@ -71,9 +71,9 @@ export function App() {
 
   return (
     <div className="h-screen w-screen flex bg-background">
-      <div className="w-56 border-r border-border flex flex-col">
+      <div className="w-56 border-r border-border flex flex-col bg-[#f3ede5]">
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <h1 className="text-sm font-bold text-foreground font-serif">0pflow</h1>
+          <h1 className="text-sm font-bold text-foreground font-serif tracking-wide">0pflow</h1>
           <span
             className={`w-2 h-2 rounded-full ${connected ? "bg-green-400" : "bg-red-400"}`}
             title={connected ? "Connected" : "Disconnected"}
@@ -99,11 +99,11 @@ export function App() {
         <div className="flex-1 relative min-h-0">
           {activeDag ? (
             <ReactFlowProvider key={activeDag.workflowName}>
-              <div className="absolute inset-0">
+              <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.03)]">
                 <WorkflowGraph dag={activeDag} connectionsApi={connectionsApi} />
               </div>
-              <div className="absolute top-3 left-3 bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-border">
-                <span className="text-sm font-medium text-foreground">
+              <div className="absolute top-3 left-3 bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.04)] border border-border">
+                <span className="text-[15px] font-semibold text-foreground font-sketch">
                   {activeDag.workflowName}
                 </span>
                 <span className="text-xs text-muted-foreground ml-2">

@@ -12,10 +12,12 @@ import {
   type Edge,
   type NodeTypes,
   type NodeMouseHandler,
+  type EdgeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { WorkflowNode } from "./WorkflowNode";
 import { LoopGroupNode } from "./LoopGroupNode";
+import { ScribbyEdge } from "./ScribbyEdge";
 import { NodeDetailPopover } from "./NodeDetailPopover";
 import type { WorkflowDAG, DAGNode } from "../types";
 import { computeLayout, computeGroupLayouts, NODE_WIDTH, NODE_HEIGHT } from "../layout";
@@ -23,6 +25,10 @@ import { computeLayout, computeGroupLayouts, NODE_WIDTH, NODE_HEIGHT } from "../
 const nodeTypes: NodeTypes = {
   workflowNode: WorkflowNode,
   loopGroup: LoopGroupNode,
+};
+
+const edgeTypes: EdgeTypes = {
+  scribby: ScribbyEdge,
 };
 
 interface WorkflowGraphProps {
@@ -65,7 +71,7 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
         type: "loopGroup",
         position: gl.position,
         data: { label: group?.label ?? "", width: gl.width, height: gl.height },
-        draggable: false,
+        draggable: true,
         style: { width: gl.width, height: gl.height },
       });
     }
@@ -83,7 +89,7 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
           parentId: gl.id,
           extent: "parent" as const,
           data: { ...node },
-          draggable: false,
+          draggable: true,
           width: NODE_WIDTH,
           height: NODE_HEIGHT,
         });
@@ -94,7 +100,7 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
           type: "workflowNode",
           position: pos,
           data: { ...node },
-          draggable: false,
+          draggable: true,
           width: NODE_WIDTH,
           height: NODE_HEIGHT,
         });
@@ -106,10 +112,10 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
       source: edge.source,
       target: edge.target,
       label: edge.label,
-      type: "smoothstep",
+      type: "scribby",
       animated: false,
-      style: { stroke: "#d4cfc8", strokeWidth: 1.5 },
-      labelStyle: { fontSize: 10, fill: "#787068" },
+      style: { stroke: "#9e9689", strokeWidth: 1.2, strokeLinecap: "round" as const },
+      labelStyle: { fontSize: 13, fill: "#6b6358", fontFamily: "'Caveat', cursive" },
     }));
 
     return { flowNodes, flowEdges };
@@ -158,6 +164,7 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onInit={onInit}
         onNodeClick={onNodeClick}
         fitView
@@ -166,13 +173,14 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} color="#d4cfc8" gap={20} size={1.5} />
+        <Background variant={BackgroundVariant.Cross} color="#d5cdc0" gap={24} size={1.5} />
         <Controls showInteractive={false} />
         <MiniMap
           nodeStrokeWidth={3}
           pannable
           zoomable
           style={{ width: 120, height: 80 }}
+          maskColor="rgba(240, 235, 227, 0.7)"
         />
       </ReactFlow>
       {selectedNode && popoverPosition && (
