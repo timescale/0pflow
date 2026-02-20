@@ -96,6 +96,15 @@ export async function scaffoldApp({
       await execAsync("npm install", appPath);
     }
 
+    // Initialize git repo with initial commit
+    try {
+      await execAsync("git init", appPath);
+      await execAsync("git add -A", appPath);
+      await execAsync('git commit -m "Initial commit"', appPath);
+    } catch {
+      // git not available — continue without repo
+    }
+
     return {
       success: true,
       message: `Created 0pflow app '${appName}' in ${appPath}`,

@@ -10,6 +10,7 @@ import { isAuthenticated, authenticate } from "../connections/cloud-auth.js";
 
 export type DeployStep =
   | "preflight"
+  | "committing"
   | "authenticating"
   | "preparing"
   | "packaging"
@@ -96,6 +97,32 @@ export async function deploy(
 
   const appName = pkg.name;
 
+  // ── Step 1b: Auto-commit if working tree is dirty ──────────────
+  let commitHash: string | undefined;
+  try {
+    const isDirty = execSync("git status --porcelain", {
+      cwd: projectDir,
+      encoding: "utf-8",
+    }).trim();
+
+    if (isDirty) {
+      progress({ step: "committing", message: "Committing changes..." });
+      // generateCommitMessage stages files (git add -A) internally
+      const message = generateCommitMessage(projectDir);
+      execSync(`git commit -m ${JSON.stringify(message)}`, {
+        cwd: projectDir,
+        stdio: "pipe",
+      });
+    }
+
+    commitHash = execSync("git rev-parse --short HEAD", {
+      cwd: projectDir,
+      encoding: "utf-8",
+    }).trim();
+  } catch {
+    // Not a git repo or git not available — continue without hash
+  }
+
   // ── Step 2: Authenticate ───────────────────────────────────────
   progress({ step: "authenticating", message: "Checking authentication..." });
 
@@ -168,6 +195,7 @@ export async function deploy(
       appName,
       archive,
       envVars: envVarsToSync,
+      commitHash,
     });
   } catch (err) {
     return {
@@ -182,11 +210,12 @@ export async function deploy(
     message: "Building and starting app...",
   });
 
-  const pollStart = Date.now();
-  const pollTimeout = 5 * 60 * 1000; // 5 minutes
+  const stalledTimeout = 3 * 60 * 1000; // 3 minutes since last status change
   const pollInterval = 3000; // 3 seconds
+  let lastStatusKey = "";
+  let lastChangeTime = Date.now();
 
-  while (Date.now() - pollStart < pollTimeout) {
+  while (true) {
     await new Promise((r) => setTimeout(r, pollInterval));
 
     try {
@@ -194,6 +223,13 @@ export async function deploy(
         "GET",
         `/api/deploy/status?appName=${encodeURIComponent(appName)}`,
       )) as { status: string; url?: string; error?: string; message?: string };
+
+      // Track status changes to reset the stalled timer
+      const statusKey = `${status.status}:${status.message ?? ""}`;
+      if (statusKey !== lastStatusKey) {
+        lastStatusKey = statusKey;
+        lastChangeTime = Date.now();
+      }
 
       if (status.status === "running") {
         const url = status.url ?? appUrl;
@@ -223,12 +259,14 @@ export async function deploy(
     } catch {
       // Continue polling on transient errors
     }
-  }
 
-  return {
-    success: false,
-    error: "Timed out waiting for app to become available.",
-  };
+    if (Date.now() - lastChangeTime > stalledTimeout) {
+      return {
+        success: false,
+        error: "Timed out — deploy appears stalled (no progress for 3 minutes).",
+      };
+    }
+  }
 }
 
 /**
@@ -280,6 +318,66 @@ export async function runDeploy(
     p.log.error(result.error ?? "Deploy failed");
     p.outro(pc.red("Deploy failed"));
     process.exit(1);
+  }
+}
+
+// ── Auto-Commit ──────────────────────────────────────────────────
+
+/**
+ * Generate a commit message for pre-deploy auto-commit.
+ * Tries `claude` CLI for a full message; falls back to a heuristic.
+ */
+function generateCommitMessage(projectDir: string): string {
+  // Try claude CLI for a full commit message
+  try {
+    // Stage everything so we can get the full diff
+    execSync("git add -A", { cwd: projectDir, stdio: "pipe" });
+
+    const diffContent = execSync("git diff --cached", {
+      cwd: projectDir,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      maxBuffer: 100_000,
+    }).trim();
+
+    if (diffContent) {
+      const prompt = `Write a git commit message for these changes. Use conventional commit format (e.g. feat:, fix:, chore:). Include a short subject line and a body with bullet points if there are multiple changes. Do not include any explanation or markdown formatting — just the raw commit message text.\n\n${diffContent.slice(0, 8000)}`;
+
+      const message = execSync(
+        `claude -p ${JSON.stringify(prompt)}`,
+        {
+          cwd: projectDir,
+          encoding: "utf-8",
+          stdio: ["pipe", "pipe", "pipe"],
+          timeout: 30_000,
+        },
+      ).trim();
+
+      if (message && message.length > 5 && message.length < 2000) {
+        return message;
+      }
+    }
+  } catch {
+    // claude CLI not available or failed — fall through to heuristic
+  }
+
+  // Heuristic fallback: summarize changed files
+  try {
+    const stat = execSync("git diff --cached --stat", {
+      cwd: projectDir,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim();
+
+    const lines = stat.split("\n").filter((l) => l.includes("|"));
+    const files = lines.map((l) => l.split("|")[0].trim());
+
+    if (files.length <= 3) {
+      return `deploy: update ${files.join(", ")}`;
+    }
+    return `deploy: update ${files.length} files`;
+  } catch {
+    return "deploy: pre-deploy commit";
   }
 }
 

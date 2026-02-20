@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { join } from "node:path";
 import { deploy } from "../cli/deploy.js";
 import { isAuthenticated } from "../connections/cloud-auth.js";
@@ -74,9 +75,11 @@ export async function handleDeployRequest(
 /**
  * Check if the app has been previously deployed by calling the auth-server.
  */
+export type DeployFreshness = "current" | "outdated" | "unknown";
+
 async function getDeployStatus(
   projectDir: string,
-): Promise<{ deployed: boolean; url?: string }> {
+): Promise<{ deployed: boolean; url?: string; freshness?: DeployFreshness }> {
   if (!isAuthenticated()) return { deployed: false };
 
   const pkgPath = join(projectDir, "package.json");
@@ -89,12 +92,38 @@ async function getDeployStatus(
     const status = (await apiCall(
       "GET",
       `/api/deploy/status?appName=${encodeURIComponent(pkg.name)}`,
-    )) as { status: string; url?: string };
+    )) as { status: string; url?: string; commit?: string };
 
-    if (status.url) {
-      return { deployed: true, url: status.url };
+    if (!status.url) return { deployed: false };
+
+    // Compare deployed commit hash against local HEAD — only if the app
+    // actually deployed successfully (not errored/still building)
+    let freshness: DeployFreshness = "unknown";
+    const isDeployed = ["running", "deployed", "stopped", "starting"].includes(status.status);
+    if (isDeployed && status.commit) {
+      try {
+        const localHash = execSync("git rev-parse --short HEAD", {
+          cwd: projectDir,
+          encoding: "utf-8",
+          stdio: ["pipe", "pipe", "pipe"],
+        }).trim();
+        if (localHash !== status.commit) {
+          freshness = "outdated";
+        } else {
+          // Commit matches, but check for uncommitted changes
+          const dirty = execSync("git status --porcelain", {
+            cwd: projectDir,
+            encoding: "utf-8",
+            stdio: ["pipe", "pipe", "pipe"],
+          }).trim();
+          freshness = dirty ? "outdated" : "current";
+        }
+      } catch {
+        // git not available
+      }
     }
-    return { deployed: false };
+
+    return { deployed: true, url: status.url, freshness };
   } catch {
     return { deployed: false };
   }

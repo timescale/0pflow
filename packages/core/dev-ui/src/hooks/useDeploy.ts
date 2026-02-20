@@ -10,19 +10,30 @@ export interface DeployState {
   error?: string;
 }
 
+export type DeployFreshness = "current" | "outdated" | "unknown";
+
 export function useDeploy() {
   const [state, setState] = useState<DeployState>({ status: "idle" });
   // Persists across deploy cycles so the URL stays visible in the sidebar
   const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
+  const [freshness, setFreshness] = useState<DeployFreshness>("unknown");
 
-  // Fetch existing deploy URL on mount
+  // Fetch deploy URL and freshness on mount, then poll every 30s
   useEffect(() => {
-    fetch("/api/deploy")
-      .then((r) => r.json() as Promise<{ deployed: boolean; url?: string }>)
-      .then((data) => {
-        if (data.deployed && data.url) setDeployedUrl(data.url);
-      })
-      .catch(() => {});
+    const check = () => {
+      fetch("/api/deploy")
+        .then((r) => r.json() as Promise<{ deployed: boolean; url?: string; freshness?: DeployFreshness }>)
+        .then((data) => {
+          if (data.deployed && data.url) {
+            setDeployedUrl(data.url);
+            setFreshness(data.freshness ?? "unknown");
+          }
+        })
+        .catch(() => {});
+    };
+    check();
+    const interval = setInterval(check, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
   const startDeploy = useCallback(async () => {
@@ -70,6 +81,7 @@ export function useDeploy() {
                 });
               } else if (data.type === "done") {
                 if (data.url) setDeployedUrl(data.url);
+                setFreshness("current");
                 setState({ status: "success", url: data.url });
               } else if (data.type === "error") {
                 setState({ status: "error", error: data.message });
@@ -92,5 +104,5 @@ export function useDeploy() {
     setState({ status: "idle" });
   }, []);
 
-  return { ...state, deployedUrl, startDeploy, reset };
+  return { ...state, deployedUrl, freshness, startDeploy, reset };
 }

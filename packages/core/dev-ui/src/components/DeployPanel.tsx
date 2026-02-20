@@ -21,8 +21,9 @@ export function DeployPanel() {
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-1 mb-2 group transition-colors"
+          title={deploy.freshness === "outdated" ? "Local changes not yet deployed" : deploy.freshness === "current" ? "Up to date" : undefined}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${deploy.freshness === "outdated" ? "bg-yellow-400" : deploy.freshness === "current" ? "bg-green-400" : "bg-zinc-400"}`} />
           <span className="truncate group-hover:underline">{shortUrl(deploy.deployedUrl)}</span>
           <svg className="w-2.5 h-2.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M3.5 1.5h7v7M10.5 1.5L1.5 10.5" />

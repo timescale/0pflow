@@ -63,6 +63,7 @@ async function ensureSchema(): Promise<void> {
       app_url TEXT,
       deploy_status TEXT DEFAULT 'idle',
       deploy_error TEXT,
+      deploy_commit TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE(user_id, app_name)

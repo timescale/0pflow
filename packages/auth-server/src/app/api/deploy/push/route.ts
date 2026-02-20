@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       appName?: string;
       archive?: string; // base64 tar.gz
       envVars?: Record<string, string>;
+      commitHash?: string;
     };
 
     if (!body.appName || !body.archive) {
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { appName, archive, envVars } = body;
+    const { appName, archive, envVars, commitHash } = body;
     const db = await getPool();
 
     // Look up deployment and verify ownership
@@ -159,11 +160,11 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Update status in DB
+    // Update status and commit hash in DB
     await db.query(
-      `UPDATE deployments SET deploy_status = 'building', deploy_error = NULL, updated_at = NOW()
+      `UPDATE deployments SET deploy_status = 'building', deploy_error = NULL, deploy_commit = $3, updated_at = NOW()
        WHERE user_id = $1 AND app_name = $2`,
-      [userId, appName],
+      [userId, appName, commitHash ?? null],
     );
 
     return NextResponse.json({

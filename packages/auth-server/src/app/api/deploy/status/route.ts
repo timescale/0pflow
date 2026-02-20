@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
   try {
     const db = await getPool();
     const result = await db.query(
-      `SELECT fly_app_name, app_url, deploy_status, deploy_error FROM deployments
+      `SELECT fly_app_name, app_url, deploy_status, deploy_error, deploy_commit FROM deployments
        WHERE user_id = $1 AND app_name = $2`,
       [userId, appName],
     );
@@ -76,6 +76,7 @@ export async function GET(req: NextRequest) {
     const appUrl = result.rows[0].app_url as string | null;
     const deployStatus = result.rows[0].deploy_status as string;
     const deployError = result.rows[0].deploy_error as string | null;
+    const deployCommit = result.rows[0].deploy_commit as string | null;
 
     if (!flyAppName) {
       return NextResponse.json({
@@ -89,7 +90,7 @@ export async function GET(req: NextRequest) {
       const buildMessage = parseBuildStep(build.output);
       console.log(`[deploy/status] ${appName}: building — ${buildMessage}`);
       return NextResponse.json({
-        data: { status: "building", message: buildMessage, url: appUrl },
+        data: { status: "building", message: buildMessage, url: appUrl, commit: deployCommit },
       });
     }
 
@@ -97,26 +98,23 @@ export async function GET(req: NextRequest) {
     if (deployStatus === "error") {
       console.log(`[deploy/status] ${appName}: build_error`);
       return NextResponse.json({
-        data: { status: "build_error", error: deployError, url: appUrl },
+        data: { status: "build_error", error: deployError, url: appUrl, commit: deployCommit },
       });
     }
 
     if (deployStatus === "building") {
-      // Build process may have been lost (server restart) — check machine state
-      console.log(`[deploy/status] ${appName}: building (db status)`);
-      return NextResponse.json({
-        data: { status: "building", url: appUrl },
-      });
+      // Build process lost (server restart) — fall through to machine state check
+      console.log(`[deploy/status] ${appName}: db says building but no active build, checking machines`);
     }
 
-    // Build is done (deployed or idle) — check machine state
-    if (deployStatus === "deployed" || deployStatus === "idle") {
+    // Check machine state (deployed, idle, or stale building status)
+    if (deployStatus === "deployed" || deployStatus === "idle" || deployStatus === "building") {
       try {
         const machines = await listMachines(flyAppName);
         if (machines.length === 0) {
           console.log(`[deploy/status] ${appName}: no machines yet`);
           return NextResponse.json({
-            data: { status: "starting", url: appUrl },
+            data: { status: "starting", url: appUrl, commit: deployCommit },
           });
         }
 
@@ -134,14 +132,14 @@ export async function GET(req: NextRequest) {
             });
             if (resp.ok || resp.status < 500) {
               return NextResponse.json({
-                data: { status: "running", url: appUrl },
+                data: { status: "running", url: appUrl, commit: deployCommit },
               });
             }
           } catch {
             // App not responding yet
           }
           return NextResponse.json({
-            data: { status: "starting", url: appUrl },
+            data: { status: "starting", url: appUrl, commit: deployCommit },
           });
         }
 
@@ -153,13 +151,13 @@ export async function GET(req: NextRequest) {
             );
           }
           return NextResponse.json({
-            data: { status: "starting", url: appUrl },
+            data: { status: "starting", url: appUrl, commit: deployCommit },
           });
         }
 
         // Other states (created, destroying, etc.)
         return NextResponse.json({
-          data: { status: "starting", url: appUrl },
+          data: { status: "starting", url: appUrl, commit: deployCommit },
         });
       } catch (err) {
         console.log(
@@ -171,7 +169,7 @@ export async function GET(req: NextRequest) {
 
     // Default: return DB status
     return NextResponse.json({
-      data: { status: deployStatus, url: appUrl },
+      data: { status: deployStatus, url: appUrl, commit: deployCommit },
     });
   } catch (err) {
     return NextResponse.json(
