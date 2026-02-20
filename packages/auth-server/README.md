@@ -81,15 +81,8 @@ cd packages/auth-server
 # Create the Fly app
 flyctl apps create opflow-auth
 
-# Set secrets
-flyctl secrets set -a opflow-auth \
-  DATABASE_URL="..." \
-  GITHUB_CLIENT_ID="..." \
-  GITHUB_CLIENT_SECRET="..." \
-  NEXT_PUBLIC_GITHUB_CLIENT_ID="..." \
-  NANGO_SECRET_KEY="..." \
-  FLY_API_TOKEN="..." \
-  FLY_ORG="tiger-data"
+# Set secrets from .env.local
+flyctl secrets import -a opflow-auth < .env.local
 
 # Deploy
 flyctl deploy

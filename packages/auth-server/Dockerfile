@@ -12,7 +12,15 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install
 COPY . .
+
+# NEXT_PUBLIC_* vars must be present at build time to be inlined into client JS
+ARG NEXT_PUBLIC_GITHUB_CLIENT_ID
+ENV NEXT_PUBLIC_GITHUB_CLIENT_ID=$NEXT_PUBLIC_GITHUB_CLIENT_ID
+
 RUN npm run build
+
+# Standalone output needs static assets copied alongside server.js
+RUN cp -r .next/static .next/standalone/.next/static
 
 ENV NODE_ENV=production
 EXPOSE 3000

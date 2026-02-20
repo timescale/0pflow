@@ -2,6 +2,8 @@ app = "opflow-auth"
 primary_region = "iad"
 
 [build]
+  [build.args]
+    NEXT_PUBLIC_GITHUB_CLIENT_ID = "Ov23liSRt3zwGSbluKs5"
 
 [http_service]
   internal_port = 3000
