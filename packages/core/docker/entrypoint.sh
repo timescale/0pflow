@@ -76,6 +76,20 @@ if [ ! -f "$APP_DIR/package.json" ]; then
   log "  Running crayon init..."
   su -s /bin/bash "$DEV_USER" -c "cd '$APP_DIR' && "$CRAYON" init '$APP_NAME' --dir . --no-install"
 
+  # Generate CLAUDE.md with cloud hosting context so Claude Code knows the public URL
+  if [ -n "$FLY_APP_NAME" ]; then
+    cat > "$APP_DIR/CLAUDE.md" <<CLAUDEMD
+# Cloud Dev Environment
+
+This app is hosted on Fly.io. The public URL is:
+https://${FLY_APP_NAME}.fly.dev/
+
+When running \`npm run dev\`, the app is available at the public URL above, NOT at localhost.
+The dev server (Next.js) binds to 0.0.0.0:3000 inside the container, and Fly proxies traffic to it.
+CLAUDEMD
+    chown "$DEV_USER:devs" "$APP_DIR/CLAUDE.md"
+  fi
+
   # Symlink to image's /node_modules so Turbopack resolves packages immediately.
   # (Turbopack doesn't do parent-directory node_modules resolution like Node.js does.)
   # Background copy replaces symlink with real dir so npm install works later.
