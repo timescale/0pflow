@@ -251,3 +251,4 @@ Tell the user:
 3. **Deterministic** — same descriptions → same output
 4. **Readable output** — generated code should be understandable
 5. **Update descriptions** — when clarifying, update the description field so it stays canonical
+6. **Run it yourself** — when the user wants to test a workflow or node, use the `runWorkflow` / `runNode` MCP tools or run CLI commands yourself.

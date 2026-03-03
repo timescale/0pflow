@@ -256,3 +256,4 @@ Built-in nodes: `web_read`
 2. **Concrete over abstract** — push for specific conditions, not vague descriptions (e.g., `score >= 80` not "if it's good")
 3. **Leverage existing** — prefer reusing existing agents/nodes over creating new ones
 4. **What, not how** — capture intent in plain language; implementation details come during refinement
+5. **Run it yourself** — when the user wants to test a workflow or node, use the `runWorkflow` / `runNode` MCP tools or run CLI commands yourself.
