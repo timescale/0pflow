@@ -192,6 +192,14 @@ cloud
     await handleSSH();
   });
 
+cloud
+  .command("mcp [app-name]")
+  .description("Connect local Claude Code to a cloud sandbox via MCP")
+  .action(async (appName?: string) => {
+    const { handleMcp } = await import("./cloud-dev.js");
+    await handleMcp(appName);
+  });
+
 // ============ Workflow commands ============
 const workflow = program.command("workflow").description("Workflow commands");
 
@@ -640,6 +648,14 @@ mcp
   .description("Start the MCP server for Claude Code")
   .action(async () => {
     await startMcpServer();
+  });
+
+mcp
+  .command("sandbox")
+  .description("Start the sandbox MCP server (filesystem + bash tools for remote access)")
+  .action(async () => {
+    const { startSandboxMcpServer } = await import("./mcp/sandbox-server.js");
+    await startSandboxMcpServer();
   });
 
 // ============ Install/Uninstall commands ============

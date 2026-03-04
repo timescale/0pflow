@@ -1,4 +1,4 @@
-import { execSync, spawnSync } from "node:child_process";
+import { execFileSync, execSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, userInfo } from "node:os";
@@ -127,11 +127,25 @@ export async function runCloudRun(): Promise<void> {
       const existing = existingSandboxes.find((m) => m.app_name === choice);
       if (existing?.app_url) {
         const devUrl = existing.app_url.replace(/\/$/, "") + "/dev/";
-        p.log.info(`URL: ${pc.cyan(devUrl)}`);
-        openInBrowser(devUrl);
+        p.log.info(`Dev UI: ${pc.cyan(devUrl)}`);
       }
       p.log.info(`Status: ${pc.bold(existing?.fly_state ?? "unknown")}`);
-      p.outro(pc.green("Sandbox ready."));
+
+      // Open dev UI and register MCP + launch local Claude Code
+      if (existing?.app_url) openInBrowser(existing.app_url.replace(/\/$/, "") + "/dev/");
+
+      const s = p.spinner();
+      s.start("Registering sandbox MCP server...");
+      const ok = await registerSandboxMcp(choice as string);
+      if (ok) {
+        s.stop(pc.green("MCP server registered"));
+        p.log.info("Launching Claude Code with sandbox access...");
+        p.outro("");
+        launchClaude();
+      } else {
+        s.stop(pc.yellow("MCP registration failed"));
+        p.outro(pc.green("Sandbox ready."));
+      }
       return;
     }
 
@@ -235,9 +249,21 @@ export async function runCloudRun(): Promise<void> {
           const baseUrl = statusResult.url ?? createResult.appUrl;
           const devUrl = baseUrl.replace(/\/$/, "") + "/dev/";
           s.stop(pc.green("Sandbox is running!"));
-          p.log.info(`URL: ${pc.cyan(devUrl)}`);
+          p.log.info(`Dev UI: ${pc.cyan(devUrl)}`);
           openInBrowser(devUrl);
-          p.outro(pc.green("Cloud dev environment is ready!"));
+
+          // Register MCP and launch local Claude Code
+          s.start("Registering sandbox MCP server...");
+          const ok = await registerSandboxMcp(appName as string);
+          if (ok) {
+            s.stop(pc.green("MCP server registered"));
+            p.log.info("Launching Claude Code with sandbox access...");
+            p.outro("");
+            launchClaude();
+          } else {
+            s.stop(pc.yellow("MCP registration failed"));
+            p.outro(pc.green("Cloud dev environment is ready!"));
+          }
           return;
         }
 
@@ -513,6 +539,86 @@ export async function handleClaude(extraArgs: string[] = []): Promise<void> {
   const allArgs = ["--dangerously-skip-permissions", ...extraArgs];
   const exitCode = connectSSH(sshInfo, `cd /data/app && exec claude ${allArgs.join(" ")}`);
   process.exit(exitCode);
+}
+
+// ── MCP sandbox registration ────────────────────────────────
+
+const MCP_SERVER_NAME = "crayon-sandbox";
+
+async function registerSandboxMcp(appName: string): Promise<boolean> {
+  let sshInfo: SSHKeyInfo;
+  try {
+    sshInfo = await getSSHKey(appName);
+  } catch (err) {
+    p.log.error(
+      `Failed to get SSH key: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return false;
+  }
+
+  // Ensure key is cached on disk (getSSHKey already does this)
+  const keyPath = getCachedKeyPath(appName);
+
+  const sshArgs = [
+    "-i", keyPath,
+    "-p", String(sshInfo.port),
+    "-o", "StrictHostKeyChecking=no",
+    "-o", "UserKnownHostsFile=/dev/null",
+    "-o", "LogLevel=ERROR",
+    "-o", "IdentitiesOnly=yes",
+    `${sshInfo.linuxUser}@${sshInfo.host}`,
+    "crayon", "mcp", "sandbox",
+  ];
+
+  // Register via claude mcp add (removes old one first if exists)
+  try {
+    execSync(`claude mcp remove ${MCP_SERVER_NAME} 2>/dev/null`, {
+      stdio: "ignore",
+    });
+  } catch {
+    // May not exist yet — ignore
+  }
+
+  try {
+    execFileSync("claude", [
+      "mcp", "add",
+      "--transport", "stdio",
+      MCP_SERVER_NAME,
+      "--",
+      "ssh",
+      ...sshArgs,
+    ], { stdio: "ignore" });
+    return true;
+  } catch (err) {
+    p.log.error(
+      `Failed to register MCP server: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return false;
+  }
+}
+
+function launchClaude(): void {
+  const result = spawnSync("claude", [], { stdio: "inherit" });
+  process.exit(result.status ?? 0);
+}
+
+export async function handleMcp(appNameArg?: string): Promise<void> {
+  await ensureAuth();
+  const appName = appNameArg ?? (await selectMachine({ excludeStopped: true }));
+
+  const s = p.spinner();
+  s.start("Registering sandbox MCP server...");
+
+  const ok = await registerSandboxMcp(appName);
+  if (!ok) {
+    s.stop(pc.red("Failed to register MCP server"));
+    process.exit(1);
+  }
+
+  s.stop(pc.green(`MCP server "${MCP_SERVER_NAME}" registered for ${appName}`));
+  p.log.info("Launching Claude Code with sandbox access...");
+  p.outro("");
+  launchClaude();
 }
 
 export async function handleSSH(): Promise<void> {
