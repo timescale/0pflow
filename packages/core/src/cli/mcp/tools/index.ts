@@ -10,6 +10,7 @@ import { runNodeFactory } from "./runNode.js";
 import { listRunsFactory } from "./listRuns.js";
 import { getRunFactory } from "./getRun.js";
 import { getTraceFactory } from "./getTrace.js";
+import { getSkillGuideFactory } from "./getSkillGuide.js";
 
 export async function getApiFactories() {
   return [
@@ -25,5 +26,7 @@ export async function getApiFactories() {
     listRunsFactory,
     getRunFactory,
     getTraceFactory,
+
+    getSkillGuideFactory,
   ] as const;
 }

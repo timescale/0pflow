@@ -33,3 +33,6 @@ coverage/
 
 # Turbo
 .turbo/
+
+# Build artifact: skills copied into packages/core during build
+packages/core/skills/

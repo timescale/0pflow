@@ -80,6 +80,9 @@ You have access to crayon MCP tools for building and running AI-native workflows
 - \`create_database\` — set up a database
 - \`setup_app_schema\` — initialize crayon tables in existing DB
 
+**Skill guides:**
+- \`get_skill_guide\` — detailed procedural guides for workflow development
+
 ### Workflow Development Pipeline
 
 1. **Design** — create \`src/crayon/workflows/<name>.ts\` with a \`description\` field that captures the flow (task ordering, conditions, loops)
@@ -180,7 +183,23 @@ export const myAgent = Agent.create({
 
 ### Integration Gate
 
-Before implementing nodes that use external services, call \`get_connection_info\` to verify the connection exists. If it fails, tell the user to set up the connection in the Dev UI first.`;
+Before implementing nodes that use external services, call \`get_connection_info\` to verify the connection exists. If it fails, tell the user to set up the connection in the Dev UI first.
+
+### Skill Guides
+
+Detailed procedural guides are available for complex tasks. Call \`get_skill_guide\` to load them:
+
+| Guide | When to fetch |
+|-------|---------------|
+| \`create-workflow\` | Designing a new workflow from scratch |
+| \`compile-workflow\` | Updating a workflow's run() from descriptions |
+| \`refine-node\` | Adding schemas, tools, implementation to nodes |
+| \`integrations\` | Index of integration setup guides |
+| \`integrations/salesforce\` | Salesforce GraphQL integration setup |
+| \`integrations/postgres\` | PostgreSQL query integration setup |
+| \`integrations/unlisted\` | Custom integration for unlisted systems |
+
+**Always fetch the relevant guide before starting a complex workflow task.** The guides contain critical steps, connection gates, and templates that ensure correct implementation.`;
 
 /**
  * Start the sandbox MCP server in stdio mode.
