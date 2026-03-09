@@ -174,17 +174,6 @@ cloud
   });
 
 cloud
-  .command("claude")
-  .description("SSH into a cloud workspace and start a Claude Code session")
-  .allowUnknownOption()
-  .allowExcessArguments(true)
-  .passThroughOptions()
-  .action(async (_opts, cmd) => {
-    const { handleClaude } = await import("./cloud-dev.js");
-    await handleClaude(cmd.args);
-  });
-
-cloud
   .command("ssh")
   .description("SSH into a cloud workspace")
   .action(async () => {

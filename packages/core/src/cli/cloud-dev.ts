@@ -519,28 +519,6 @@ function connectSSH(info: SSHKeyInfo, command?: string): number {
   return result.status ?? 1;
 }
 
-export async function handleClaude(extraArgs: string[] = []): Promise<void> {
-  await ensureAuth();
-  const appName = await selectMachine({ excludeStopped: true });
-
-  const s = p.spinner();
-  s.start("Fetching SSH credentials...");
-
-  let sshInfo: SSHKeyInfo;
-  try {
-    sshInfo = await getSSHKey(appName);
-    s.stop(pc.green(`Connecting to ${appName}`));
-  } catch (err) {
-    s.stop(pc.red("Failed to get SSH key"));
-    p.log.error(err instanceof Error ? err.message : String(err));
-    process.exit(1);
-  }
-
-  const allArgs = ["--dangerously-skip-permissions", ...extraArgs];
-  const exitCode = connectSSH(sshInfo, `cd /data/app && exec claude ${allArgs.join(" ")}`);
-  process.exit(exitCode);
-}
-
 // ── MCP sandbox registration ────────────────────────────────
 
 const MCP_SERVER_NAME = "crayon-sandbox";
