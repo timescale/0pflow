@@ -1,39 +1,31 @@
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
 import type { ServerContext } from "../types.js";
-import { listSkillGuides, getSkillGuideContent } from "../lib/skills.js";
+import { viewSkillContent } from "../lib/skills.js";
 
 const inputSchema = {
-  name: z
+  skill_name: z
     .string()
-    .optional()
     .describe(
-      "Guide or skill resource name (e.g., 'create-workflow', 'integrations/salesforce', " +
-        "'integrations/scripts/fetch-schema'). Omit to list all available guides and resources.",
+      'The name of the skill to view (e.g., "create-workflow", "integrations"), ' +
+        'or "." to list all available skills.',
+    ),
+  path: z
+    .string()
+    .describe(
+      "Relative path within the skill directory. " +
+        'Empty or "SKILL.md" reads the main guide. ' +
+        '"." lists the directory contents. ' +
+        'Use paths like "scripts/fetch-schema.ts" or "salesforce.md" to read specific files.',
     ),
 } as const;
 
 const outputSchema = {
-  guides: z
-    .array(
-      z.object({
-        name: z.string(),
-        description: z.string(),
-      }),
-    )
-    .optional()
-    .describe("List of available guides (returned when name is omitted)"),
-  content: z
-    .string()
-    .optional()
-    .describe("Full guide content (returned when name is provided)"),
-  error: z.string().optional().describe("Error message if guide not found"),
+  content: z.string().describe("File content or directory listing."),
 } as const;
 
 type OutputSchema = {
-  guides?: { name: string; description: string }[];
-  content?: string;
-  error?: string;
+  content: string;
 };
 
 export const getSkillGuideFactory: ApiFactory<
@@ -42,44 +34,26 @@ export const getSkillGuideFactory: ApiFactory<
   typeof outputSchema
 > = () => {
   return {
-    name: "get_skill_guide",
+    name: "view_skill",
     config: {
-      title: "Get Skill Guide",
+      title: "View Skill",
       description:
-        "Get crayon skill guides with detailed procedural instructions for workflow development. " +
-        "Call without a name to list available guides, or with a name to get the full content. " +
-        "Guides include markdown instructions AND skill resources (e.g., " +
-        "'integrations/scripts/fetch-schema', 'integrations/scripts/codegen'). " +
-        "When a guide tells you to fetch a skill resource by name, use this tool with that name. " +
-        "References to '/crayon:<name>' in guides map to guide '<name>' in this tool (e.g., '/crayon:refine-node' → get_skill_guide('refine-node')). " +
-        "Available guides: create-workflow, compile-workflow, refine-node, integrations, " +
-        "integrations/salesforce, integrations/postgres, integrations/unlisted.",
+        "Browse crayon skill guides with procedural instructions for workflow development. " +
+        "Use skill_name=\".\" to list all skills. " +
+        "Use path=\".\" to list a skill's directory and discover resources. " +
+        "Use path=\"SKILL.md\" (or empty) to read the main guide. " +
+        "Use paths like \"scripts/fetch-schema.ts\" or \"salesforce.md\" to read specific files. " +
+        "References to '/crayon:<name>' in guides correspond to skill '<name>' in this tool.",
       inputSchema,
       outputSchema,
     },
-    fn: async ({ name }): Promise<OutputSchema> => {
+    fn: async ({ skill_name, path }): Promise<OutputSchema> => {
       try {
-        if (!name) {
-          const guides = await listSkillGuides();
-          if (guides.length === 0) {
-            return { error: "No skill guides found. The skills directory may not be bundled." };
-          }
-          return { guides };
-        }
-
-        const guide = await getSkillGuideContent(name);
-        if (!guide) {
-          const guides = await listSkillGuides();
-          return {
-            error: `Guide "${name}" not found. Available guides: ${guides.map((g) => g.name).join(", ")}`,
-            guides,
-          };
-        }
-
-        return { content: guide.content };
+        const content = await viewSkillContent(skill_name, path);
+        return { content };
       } catch (err) {
         return {
-          error: err instanceof Error ? err.message : String(err),
+          content: err instanceof Error ? err.message : String(err),
         };
       }
     },

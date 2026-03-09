@@ -106,7 +106,7 @@ mkdir -p src/crayon/integrations/salesforce/{scripts,schemas,graphql/operations,
 
 ### Step 3: Copy fetch-schema.ts
 
-Fetch the skill resource `integrations/scripts/fetch-schema` and write its content to `src/crayon/integrations/salesforce/scripts/fetch-schema.ts`.
+Copy this skill's `scripts/fetch-schema.ts` to `src/crayon/integrations/salesforce/scripts/fetch-schema.ts`.
 
 This single script handles everything:
 1. Authenticates via connection (`--connection-id`), direct token, or client credentials
@@ -117,7 +117,7 @@ This single script handles everything:
 
 ### Step 4: Copy Codegen Config
 
-Fetch the skill resource `integrations/scripts/codegen` and write its content to `src/crayon/integrations/salesforce/scripts/codegen.ts`.
+Copy this skill's `scripts/codegen.ts` to `src/crayon/integrations/salesforce/scripts/codegen.ts`.
 
 This TypeScript config generates a fully typed SDK using `graphql-request`.
 
