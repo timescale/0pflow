@@ -107,9 +107,10 @@ my-app/
 ### Dev UI (`dev-ui/`)
 - `dev-server.ts` - Vite + Express dev server
 - `api.ts` - REST API for workflows/runs/connections
-- `watcher.ts` - File watcher for live DAG updates
+- `watcher.ts` - File watcher for live DAG updates (watches workflows/, nodes/, agents/)
 - `dag/` - React Flow DAG visualization
 - `pty.ts` - Embedded Claude Code terminal
+- Debug endpoint: `GET /dev/api/debug/dag-state` — dumps current watcher state (workflows, nodes with descriptions, parse errors). Useful for debugging via SSH: `crayon cloud ssh <app> "curl -s http://localhost:4173/dev/api/debug/dag-state"`
 
 ### MCP Tools (`cli/mcp/tools/`)
 - Each tool is a separate file with Zod input/output schemas
@@ -128,6 +129,7 @@ my-app/
 | `crayon trace <run-id>` | Show execution trace |
 | `crayon install` / `uninstall` | Install/remove Claude Code plugin |
 | `crayon deploy` | Deploy app to the cloud |
+| `crayon cloud ssh [app] [cmd]` | SSH into cloud workspace (interactive or one-shot) |
 | `crayon login` / `logout` | Authenticate with crayon cloud |
 | `crayon mcp start` | Start MCP server |
 

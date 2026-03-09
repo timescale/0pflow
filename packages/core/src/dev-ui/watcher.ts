@@ -66,7 +66,10 @@ export function createWatcher(options: WatcherOptions) {
               const stripped = importFile.replace(/^(\.\.\/)+/, "");
               resolvedPath = resolve(projectRoot, stripped);
             }
-            if (!existsSync(resolvedPath)) continue;
+            if (!existsSync(resolvedPath)) {
+              console.warn(`[watcher] Node file not found for import "${node.importPath}" (tried ${resolvedPath})`);
+              continue;
+            }
             const nodeSource = readFileSync(resolvedPath, "utf-8");
             const name = await extractNodeName(nodeSource);
             if (name) {

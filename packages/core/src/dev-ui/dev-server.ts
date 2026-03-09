@@ -93,6 +93,9 @@ export async function startDevServer(options: DevServerOptions) {
   // Integration provider auto-detects: NANGO_SECRET_KEY → local, otherwise → cloud
   const integrationProvider = await createIntegrationProvider(options.nangoSecretKey);
 
+  // Declared here so the request handler closure can access it; assigned after server creation.
+  let watcher: ReturnType<typeof createWatcher> | null = null;
+
   const httpServer = createHttpServer(async (req, res) => {
     // Skip WebSocket upgrade requests
     if (req.headers.upgrade) return;
@@ -137,6 +140,14 @@ export async function startDevServer(options: DevServerOptions) {
         const appName = process.env.APP_NAME;
         res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
         res.end(JSON.stringify({ projectRoot, isCloud, appName }));
+        return;
+      }
+
+      // Debug endpoint: dump current DAG state (for debugging via SSH/curl)
+      if (devPath === "/api/debug/dag-state" && req.method === "GET") {
+        const state = watcher?.getState() ?? { workflows: [], parseErrors: [] };
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(state, null, 2));
         return;
       }
 
@@ -258,7 +269,7 @@ export async function startDevServer(options: DevServerOptions) {
   }
 
   // Create file watcher that broadcasts changes
-  const watcher = createWatcher({
+  watcher = createWatcher({
     projectRoot,
     onMessage: (msg) => broadcast(msg),
   });
