@@ -8,8 +8,8 @@ const inputSchema = {
     .string()
     .optional()
     .describe(
-      "Skill guide name (e.g., 'create-workflow', 'integrations/salesforce'). " +
-        "Omit to list all available guides.",
+      "Guide or skill resource name (e.g., 'create-workflow', 'integrations/salesforce', " +
+        "'integrations/scripts/fetch-schema'). Omit to list all available guides and resources.",
     ),
 } as const;
 
@@ -48,7 +48,11 @@ export const getSkillGuideFactory: ApiFactory<
       description:
         "Get crayon skill guides with detailed procedural instructions for workflow development. " +
         "Call without a name to list available guides, or with a name to get the full content. " +
-        "Guides: create-workflow, compile-workflow, refine-node, integrations, " +
+        "Guides include markdown instructions AND skill resources (e.g., " +
+        "'integrations/scripts/fetch-schema', 'integrations/scripts/codegen'). " +
+        "When a guide tells you to fetch a skill resource by name, use this tool with that name. " +
+        "References to '/crayon:<name>' in guides map to guide '<name>' in this tool (e.g., '/crayon:refine-node' → get_skill_guide('refine-node')). " +
+        "Available guides: create-workflow, compile-workflow, refine-node, integrations, " +
         "integrations/salesforce, integrations/postgres, integrations/unlisted.",
       inputSchema,
       outputSchema,

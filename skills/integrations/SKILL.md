@@ -16,11 +16,8 @@ This skill generates function nodes for querying external APIs. It creates prope
 | PostgreSQL | Connection String | `postgres.md` |
 | Salesforce | OAuth2 Client Credentials | `salesforce.md` |
 
-**To use a listed integration:** Read the corresponding file in this skill's directory (e.g., `salesforce.md`).
+**To use a listed integration:** Fetch the skill resource by name (e.g., `integrations/salesforce`).
 
-**For unlisted systems:** Read `unlisted.md` for instructions on researching and setting up custom integrations.
-
-Example: To set up Salesforce, read the file at the same path as this SKILL.md but with `salesforce.md` instead:
-- `skills/integrations/salesforce.md`
+**For unlisted systems:** Fetch the skill resource `integrations/unlisted` for instructions on researching and setting up custom integrations.
 
 ---
