@@ -168,7 +168,7 @@ To test local core changes on a cloud dev machine:
 
 To update existing cloud machines to a new image:
 ```bash
-cd packages/core/docker && npx tsx update-all-machines.ts [image] [--app <fly-app-name>]
+cd packages/core/docker && npx tsx update-all-machines.ts [--image <image>] [--app <fly-app-name>]
 ```
 
 ## Deployment

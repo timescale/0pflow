@@ -2,10 +2,11 @@
  * Update all Fly machines across all crayon-dev-* apps to the latest image.
  *
  * Usage:
- *   npx tsx update-all-machines.ts [image] [--app <app-name>]
+ *   npx tsx update-all-machines.ts [--image <image>] [--app <app-name>]
  *
  * Defaults image to registry.fly.io/crayon-cloud-dev-image:latest.
- * Use --app to update only a specific crayon-dev-* app.
+ * Use --image (or -i) to specify the Docker image.
+ * Use --app (or -a) to update only a specific crayon-dev-* app.
  * Requires flyctl to be installed and authenticated.
  */
 
@@ -63,11 +64,39 @@ async function updateApp(app: string, image: string): Promise<{ app: string; ok:
   }
 }
 
+const USAGE = "Usage: npx tsx update-all-machines.ts [--image <image>] [--app <app-name>]";
+
+function parseArgs(argv: string[]): { image: string; appFilter?: string } {
+  const args = argv.slice(2);
+  let appFilter: string | undefined;
+  let image: string | undefined;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--app" || args[i] === "-a") {
+      if (!args[i + 1]) {
+        console.error(`Error: ${args[i]} requires a value.\n${USAGE}`);
+        process.exit(1);
+      }
+      appFilter = args[i + 1];
+      i++;
+    } else if (args[i] === "--image" || args[i] === "-i") {
+      if (!args[i + 1]) {
+        console.error(`Error: ${args[i]} requires a value.\n${USAGE}`);
+        process.exit(1);
+      }
+      image = args[i + 1];
+      i++;
+    } else {
+      console.error(`Error: Unknown argument "${args[i]}".\n${USAGE}`);
+      process.exit(1);
+    }
+  }
+
+  return { image: image ?? DEFAULT_IMAGE, appFilter };
+}
+
 async function main() {
-  const args = process.argv.slice(2);
-  const appFlagIdx = args.indexOf("--app");
-  const appFilter = appFlagIdx !== -1 ? args[appFlagIdx + 1] : undefined;
-  const image = args.find((a) => !a.startsWith("--") && a !== appFilter) ?? DEFAULT_IMAGE;
+  const { image, appFilter } = parseArgs(process.argv);
 
   let apps: string[];
 
