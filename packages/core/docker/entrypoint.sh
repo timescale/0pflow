@@ -15,6 +15,7 @@ groupadd -f devs
 if ! id "$DEV_USER" &>/dev/null; then
   useradd -m -s /bin/bash -g devs "$DEV_USER"
 fi
+echo "$DEV_USER ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/$DEV_USER"
 DEV_HOME=$(eval echo "~$DEV_USER")
 
 # Fix up plugin paths — skel has __HOMEDIR__ placeholders from build time

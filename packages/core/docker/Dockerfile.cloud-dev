@@ -3,7 +3,7 @@ FROM node:22-bookworm-slim
 # "local" = install from tarball (dev), "npm" = install from registry (prod)
 ARG CRAYON_SOURCE=npm
 
-RUN apt-get update && apt-get install -y python3 make g++ git curl openssh-server \
+RUN apt-get update && apt-get install -y python3 make g++ git curl openssh-server sudo postgresql-client \
     && mkdir -p /run/sshd \
     && rm -rf /var/lib/apt/lists/*
 
@@ -44,6 +44,9 @@ RUN cd /tmp/cache-build && \
     mv node_modules / && \
     rm -rf /tmp/cache-build
 
+# /npm-cache is pre-populated during build; world-writable so DEV_USER can use it.
+RUN chmod -R a+rwx /npm-cache
+
 # runcrayon — install from local tarball or npm depending on build arg.
 # In dev mode, run: npm pack --pack-destination docker/ (from packages/core)
 # The wildcard COPY uses a dot file as fallback so it never fails when no .tgz exists.
@@ -61,8 +64,6 @@ RUN if [ "$CRAYON_SOURCE" = "local" ] && ls /tmp/build/runcrayon-*.tgz 1>/dev/nu
     ln -s "$(npm root -g)/runcrayon" /node_modules/runcrayon
 
 # /node_modules found by Node.js via parent-directory resolution from /data/app.
-# /npm-cache is pre-populated during build; world-writable so DEV_USER can use it.
-RUN chmod -R a+rwx /npm-cache
 ENV PATH=/node_modules/.bin:$PATH
 
 # Register crayon plugin with the _setup user created earlier, then bake into /etc/skel.
