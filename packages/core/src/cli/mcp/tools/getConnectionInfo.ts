@@ -1,13 +1,7 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
-import * as dotenv from "dotenv";
-import pg from "pg";
 import type { ServerContext } from "../types.js";
-import { createIntegrationProvider } from "../../../connections/integration-provider.js";
-import { resolveConnectionId } from "../../../connections/resolver.js";
-import { getAppSchema } from "../../app.js";
+import { resolveCredentials } from "../lib/resolve-credentials.js";
 
 const inputSchema = {
   integration_id: z
@@ -51,25 +45,6 @@ type OutputSchema = {
   error?: string;
 };
 
-/**
- * Load env vars from the project's .env file
- */
-function loadEnv(): Record<string, string> {
-  const envPath = join(process.cwd(), ".env");
-  if (!existsSync(envPath)) return {};
-  const content = readFileSync(envPath, "utf-8");
-  return dotenv.parse(content);
-}
-
-/**
- * Create an IntegrationProvider based on available env vars.
- * NANGO_SECRET_KEY → local, otherwise → cloud (auto-auth).
- */
-async function createProvider(env: Record<string, string>) {
-  const nangoSecretKey = env.NANGO_SECRET_KEY ?? undefined;
-  return createIntegrationProvider(nangoSecretKey);
-}
-
 export const getConnectionInfoFactory: ApiFactory<
   ServerContext,
   typeof inputSchema,
@@ -87,41 +62,10 @@ export const getConnectionInfoFactory: ApiFactory<
       outputSchema,
     },
     fn: async ({ integration_id, workflow_name, node_name }): Promise<OutputSchema> => {
-      const env = loadEnv();
-      const databaseUrl = env.DATABASE_URL ?? process.env.DATABASE_URL;
-
-      if (!databaseUrl) {
-        return {
-          error:
-            "DATABASE_URL not found in .env file. " +
-            "Run setup_app_schema to configure the database.",
-        };
-      }
-
-      // Look up connection_id using the same resolution as runtime:
-      // exact (workflow_name, node_name) match first, then global (* / *) fallback
-      const appSchema = getAppSchema();
-      let connectionId: string | null = null;
-      const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
       try {
-        connectionId = await resolveConnectionId(
-          pool, workflow_name, node_name, integration_id, appSchema,
+        const { connectionId, credentials } = await resolveCredentials(
+          integration_id, workflow_name, node_name,
         );
-      } finally {
-        await pool.end();
-      }
-
-      if (!connectionId) {
-        return {
-          error:
-            `No connection configured for integration "${integration_id}". ` +
-            `Use the Dev UI to connect an account first.`,
-        };
-      }
-
-      try {
-        const provider = await createProvider(env);
-        const credentials = await provider.fetchCredentials(integration_id, connectionId);
 
         return {
           connection_id: connectionId,
@@ -131,7 +75,7 @@ export const getConnectionInfoFactory: ApiFactory<
         };
       } catch (err) {
         return {
-          error: `Failed to fetch connection: ${err instanceof Error ? err.message : String(err)}`,
+          error: err instanceof Error ? err.message : String(err),
         };
       }
     },

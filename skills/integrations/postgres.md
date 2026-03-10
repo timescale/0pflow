@@ -70,58 +70,70 @@ The project already includes `postgres` (postgres.js). No additional dependencie
 
 ## Schema Exploration
 
-Use these commands to explore the database schema dynamically. No pre-generation needed.
+Use the sandbox `bash` tool with `credentials` to run `psql` commands. Credentials are resolved server-side and injected as `PG*` environment variables — they never appear in the command.
 
-First, fetch the connection string using the `getConnectionInfo` MCP tool. Then compose the URL for `psql`:
+Use the following `credentials` array for all `psql` commands (substitute the actual workflow and node names):
 
-```bash
-psql "postgresql://<username>:<password>@<host>:<port>/<database>?sslmode=<sslmode>" -c '\dt'
+```json
+{
+  "credentials": [{
+    "integration_id": "postgres",
+    "workflow_name": "<workflow_name>",
+    "node_name": "<node_name>",
+    "env_mapping": {
+      "PGHOST": "connectionConfig.host",
+      "PGPORT": "connectionConfig.port",
+      "PGUSER": "raw.username",
+      "PGPASSWORD": "raw.password",
+      "PGDATABASE": "connectionConfig.database",
+      "PGSSLMODE": "connectionConfig.sslmode"
+    }
+  }]
+}
 ```
-
-Replace the placeholders with values from `getConnectionInfo` response.
 
 ### List All Schemas
 
 ```bash
-psql "$CONN_URL" -c '\dn'
+psql -c '\dn'
 ```
 
 ### List All Tables
 
 ```bash
-psql "$CONN_URL" -c '\dt' # all tables in schemas in search_path
-psql "$CONN_URL" -c '\dt myschema.*' # all tables in a specific schema
+psql -c '\dt'                  # all tables in schemas in search_path
+psql -c '\dt myschema.*'       # all tables in a specific schema
 ```
 
 ### Search Tables by Keyword
 
 ```bash
-psql "$CONN_URL" -c '\dt *user*' # all tables containing "user" in any schema in search_path
-psql "$CONN_URL" -c '\dt myschema.*user*' # all tables containing "user" in a specific schema
+psql -c '\dt *user*'           # all tables containing "user" in any schema in search_path
+psql -c '\dt myschema.*user*'  # all tables containing "user" in a specific schema
 ```
 
 ### Search Columns by Keyword
 
 ```bash
-psql "$CONN_URL" -c "SELECT table_name, column_name, data_type FROM information_schema.columns WHERE column_name LIKE '%email%';"
+psql -c "SELECT table_name, column_name, data_type FROM information_schema.columns WHERE column_name LIKE '%email%';"
 ```
 
 ### Describe a Table
 
 ```bash
-psql "$CONN_URL" -c '\d users'
+psql -c '\d users'
 ```
 
 ### Find Foreign Keys
 
 ```bash
-psql "$CONN_URL" -c '\d+ users'
+psql -c '\d+ users'
 ```
 
 ### Sample Data
 
 ```bash
-psql "$CONN_URL" -c 'SELECT * FROM users LIMIT 3;'
+psql -c 'SELECT * FROM users LIMIT 3;'
 ```
 
 ---
@@ -336,13 +348,10 @@ Agent: I'm using the PostgreSQL integration skill.
 [Pre-flight] Checking for PostgreSQL client... Not found.
 [Pre-flight] Checking for credentials via getConnectionInfo...
 
-Connection found:
-- Host: analytics-db.example.com
-- Database: analytics
-- Username: readonly_user
+Connection found for integration "postgres".
 
-**Exploring database:**
-$ psql "postgresql://readonly_user:***@analytics-db.example.com:5432/analytics?sslmode=require" -c '\dt'
+**Exploring database** (using bash with credentials — no plaintext passwords):
+$ psql -c '\dt'
 
  Schema |   Name   | Type
 --------+----------+-------
@@ -350,7 +359,7 @@ $ psql "postgresql://readonly_user:***@analytics-db.example.com:5432/analytics?s
  public | orders   | table
  public | products | table
 
-$ psql "$CONN_URL" -c '\d users'
+$ psql -c '\d users'
 
    Column   |           Type           | Nullable |    Default
 ------------+--------------------------+----------+----------------
