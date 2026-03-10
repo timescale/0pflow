@@ -39,6 +39,12 @@ export interface IntegrationProvider {
     credentials: Record<string, string>;
     connectionConfig?: Record<string, string>;
   }): Promise<{ connection_id: string }>;
+
+  /** Delete a connection from the credential provider (Nango) */
+  deleteConnection(
+    integrationId: string,
+    connectionId: string,
+  ): Promise<void>;
 }
 
 /**

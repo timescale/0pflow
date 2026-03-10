@@ -86,3 +86,21 @@ export async function deleteConnection(
     [workflowName, nodeName, integrationId],
   );
 }
+
+/**
+ * Delete all connection mappings for a specific integration + connection_id pair.
+ * Used when a Nango connection is deleted to clean up all references.
+ */
+export async function deleteConnectionByConnectionId(
+  pool: pg.Pool,
+  integrationId: string,
+  connectionId: string,
+  schema: string,
+): Promise<void> {
+  await pool.query(
+    `DELETE FROM ${table(schema)}
+    WHERE integration_id = $1
+      AND connection_id = $2`,
+    [integrationId, connectionId],
+  );
+}

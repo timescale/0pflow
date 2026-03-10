@@ -17,9 +17,10 @@ export function IntegrationSection({
   nodeName,
   connectionsApi,
 }: IntegrationSectionProps) {
-  const { nangoConnections, loading: nangoLoading, refetch } = useNangoConnections(integrationId, connectionsApi.mutationVersion);
+  const { nangoConnections, loading: nangoLoading, refetch } = useNangoConnections(integrationId);
   const [connecting, setConnecting] = useState(false);
   const [showCustomForm, setShowCustomForm] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [optimisticValue, setOptimisticValue] = useState<string | null>(null);
 
   const current = connectionsApi.getForNode(workflowName, nodeName, integrationId);
@@ -118,6 +119,47 @@ export function IntegrationSection({
     [refetch, handleSelect, workflowName, connectionsApi, integrationId],
   );
 
+  const handleDelete = useCallback(
+    async (connectionId: string, displayName: string) => {
+      if (!window.confirm(`Delete connection "${displayName}"? This will remove the credentials permanently.`)) return;
+      setDeleting(connectionId);
+      try {
+        const res = await fetch("/dev/api/nango/delete-connection", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            integration_id: integrationId,
+            connection_id: connectionId,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          console.error("Failed to delete connection:", (data as { error?: string }).error);
+        }
+        refetch();
+        connectionsApi.refetch();
+      } finally {
+        setDeleting(null);
+      }
+    },
+    [integrationId, refetch, connectionsApi],
+  );
+
+  const activeId = optimisticValue ?? current?.connection_id;
+
+  // Compact chip for integrations with no connections
+  if (!showCustomForm && nangoConnections.length === 0 && !nangoLoading) {
+    return (
+      <button
+        onClick={handleConnect}
+        disabled={connecting}
+        className="text-[11px] px-3 py-1 rounded-full border border-[#e8e4df] text-[#787068] hover:bg-[#f5f2ee] transition-colors cursor-pointer disabled:opacity-50 capitalize"
+      >
+        {connecting ? "..." : `+ ${integrationId}`}
+      </button>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
@@ -129,7 +171,7 @@ export function IntegrationSection({
           disabled={connecting || showCustomForm}
           className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#e8e4df] text-[#787068] hover:bg-[#d4cfc8] transition-colors cursor-pointer disabled:opacity-50"
         >
-          {connecting ? "..." : "Connect"}
+          {connecting ? "..." : "Add Connection"}
         </button>
       </div>
 
@@ -140,27 +182,47 @@ export function IntegrationSection({
           onSuccess={handleCustomFormSuccess}
           onCancel={() => setShowCustomForm(false)}
         />
-      ) : nangoConnections.length === 0 ? (
-        nangoLoading ? (
-          <p className="text-[11px] text-[#a8a099] italic">Loading connections...</p>
-        ) : (
-          <p className="text-[11px] text-[#a8a099] italic">
-            No connections. Click Connect to add one.
-          </p>
-        )
+      ) : nangoLoading ? (
+        <p className="text-[11px] text-[#a8a099] italic">Loading...</p>
       ) : (
-        <select
-          value={optimisticValue ?? current?.connection_id ?? ""}
-          onChange={(e) => handleSelect(e.target.value)}
-          className="text-[12px] px-2 py-1 rounded-md border border-border bg-background text-foreground"
-        >
-          <option value="">Select a connection...</option>
-          {nangoConnections.map((nc) => (
-            <option key={nc.connection_id} value={nc.connection_id}>
-              {nc.display_name}
-            </option>
-          ))}
-        </select>
+        <div className="rounded-md bg-[#faf8f6] border border-[#ece8e3]">
+          {nangoConnections.map((nc, i) => {
+            const isActive = nc.connection_id === activeId;
+            const isDeleting = nc.connection_id === deleting;
+            return (
+              <div
+                key={nc.connection_id}
+                className={`group flex items-center justify-between gap-2 px-3 py-1.5 text-[12px] text-[#787068] ${
+                  i > 0 ? "border-t border-[#ece8e3]" : ""
+                }`}
+              >
+                <span className="truncate min-w-0 flex-1">{nc.display_name}</span>
+                <span className="flex items-center gap-2 flex-shrink-0">
+                  {isActive ? (
+                    <span className="text-[10px] text-green-600">default</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleSelect(nc.connection_id)}
+                      className="text-[10px] text-[#a8a099] hover:text-[#787068] cursor-pointer"
+                    >
+                      set default
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(nc.connection_id, nc.display_name)}
+                    disabled={isDeleting}
+                    className="text-[#c4bfb8] hover:text-red-400 transition-colors cursor-pointer disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                    title="Delete connection"
+                  >
+                    {isDeleting ? "…" : "✕"}
+                  </button>
+                </span>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

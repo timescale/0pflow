@@ -56,11 +56,20 @@ export async function getConnectionDisplayName(
   connectionId: string,
   rawCredentials: RawCredentials | undefined,
   connectionConfig?: RawCredentials,
+  createdAt?: string | Date,
 ): Promise<string> {
   const resolver = resolvers[integrationId];
   if (resolver) {
     const name = await resolver(rawCredentials ?? {}, connectionConfig);
     if (name) return name;
+  }
+  // If connectionId looks like a UUID, append creation date for readability
+  if (createdAt && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(connectionId)) {
+    const date = new Date(createdAt);
+    if (!isNaN(date.getTime())) {
+      const short = date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      return `${connectionId.slice(0, 8)}… (Created on ${short})`;
+    }
   }
   return connectionId;
 }

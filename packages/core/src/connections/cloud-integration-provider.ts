@@ -34,13 +34,14 @@ export class CloudIntegrationProvider implements IntegrationProvider {
     const data = (await apiCall(
       "GET",
       `/api/integrations/${encodeURIComponent(integrationId)}/connections`,
-    )) as Array<{ connection_id: string; provider_config_key: string }>;
+    )) as Array<{ connection_id: string; provider_config_key: string; created_at?: string; created?: string }>;
     return Promise.all(
       data.map(async (c) => {
         let displayName = c.connection_id;
+        const createdAt = c.created_at ?? c.created;
         try {
           const creds = await this.fetchCredentials(integrationId, c.connection_id);
-          displayName = await getConnectionDisplayName(integrationId, c.connection_id, creds.raw, creds.connectionConfig);
+          displayName = await getConnectionDisplayName(integrationId, c.connection_id, creds.raw, creds.connectionConfig, createdAt);
         } catch {
           // Fall back to connection_id if fetch fails
         }
@@ -75,5 +76,15 @@ export class CloudIntegrationProvider implements IntegrationProvider {
       connection_config: params.connectionConfig,
     })) as { connection_id: string };
     return data;
+  }
+
+  async deleteConnection(
+    integrationId: string,
+    connectionId: string,
+  ): Promise<void> {
+    await apiCall("POST", "/api/connections/delete", {
+      integration_id: integrationId,
+      connection_id: connectionId,
+    });
   }
 }

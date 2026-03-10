@@ -6,6 +6,7 @@ import {
   listConnections,
   upsertConnection,
   deleteConnection,
+  deleteConnectionByConnectionId,
 } from "../connections/index.js";
 import type { IntegrationProvider } from "../connections/integration-provider.js";
 import { parseOutput } from "../cli/trace.js";
@@ -191,6 +192,29 @@ export async function handleApiRequest(
     } catch (err) {
       jsonResponse(res, 500, {
         error: err instanceof Error ? err.message : "Failed to create connection",
+      });
+    }
+    return true;
+  }
+
+  // POST /api/nango/delete-connection
+  if (url === "/api/nango/delete-connection" && method === "POST") {
+    const body = (await parseBody(req)) as {
+      integration_id?: string;
+      connection_id?: string;
+    };
+    if (!body.integration_id || !body.connection_id) {
+      jsonResponse(res, 400, { error: "integration_id and connection_id are required" });
+      return true;
+    }
+    try {
+      await ctx.integrationProvider.deleteConnection(body.integration_id, body.connection_id);
+      // Also clean up any local DB mappings that reference this connection
+      await deleteConnectionByConnectionId(ctx.pool, body.integration_id, body.connection_id, ctx.appSchema);
+      jsonResponse(res, 200, { ok: true });
+    } catch (err) {
+      jsonResponse(res, 500, {
+        error: err instanceof Error ? err.message : "Failed to delete connection",
       });
     }
     return true;

@@ -55,11 +55,12 @@ export class LocalIntegrationProvider implements IntegrationProvider {
         c.provider_config_key === integrationId,
     );
     return Promise.all(
-      filtered.map(async (c: { connection_id: string; provider_config_key: string }) => {
+      filtered.map(async (c: { connection_id: string; provider_config_key: string; created_at?: string; created?: string }) => {
         let displayName = c.connection_id;
+        const createdAt = c.created_at ?? c.created;
         try {
           const conn = await this.nango.getConnection(integrationId, c.connection_id);
-          displayName = await getConnectionDisplayName(integrationId, c.connection_id, conn.credentials, conn.connection_config);
+          displayName = await getConnectionDisplayName(integrationId, c.connection_id, conn.credentials, conn.connection_config, createdAt);
         } catch {
           // Fall back to connection_id if fetch fails
         }
@@ -117,6 +118,13 @@ export class LocalIntegrationProvider implements IntegrationProvider {
     }
 
     return { connection_id: params.connectionId };
+  }
+
+  async deleteConnection(
+    integrationId: string,
+    connectionId: string,
+  ): Promise<void> {
+    await this.nango.deleteConnection(integrationId, connectionId);
   }
 }
 

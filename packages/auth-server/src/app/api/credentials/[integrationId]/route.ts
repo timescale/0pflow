@@ -31,7 +31,7 @@ export async function GET(
     // Verify the connection belongs to the requesting user
     const connAny = connection as unknown as { end_user?: { id: string } | null };
     const endUserId = connAny.end_user?.id;
-    if (endUserId && endUserId !== auth.userId) {
+    if (endUserId !== auth.userId) {
       return NextResponse.json(
         { error: "Connection not found" },
         { status: 404 },
