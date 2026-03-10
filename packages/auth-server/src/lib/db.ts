@@ -17,7 +17,7 @@ export async function getPool(): Promise<pg.Pool> {
     } catch (err) {
       // Reset so next call retries instead of returning a broken pool
       pool = null;
-      const host = new URL(connectionString).host;
+      const host = new URL(process.env.DATABASE_URL ?? "").host;
       throw new Error(
         `Failed to connect to metadata database (DATABASE_URL) at ${host}: ${err instanceof Error ? err.message : String(err)}`,
       );
