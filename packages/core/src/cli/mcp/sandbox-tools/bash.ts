@@ -6,7 +6,7 @@ import { resolveCredentials } from "../lib/resolve-credentials.js";
 import type { ServerContext } from "../types.js";
 
 const DEFAULT_TIMEOUT = 120_000;
-const DEFAULT_CWD = "/data/app";
+const DEFAULT_CWD = process.env.FLY_APP_NAME ? "/data/app" : process.cwd();
 
 const credentialSchema = z.object({
   integration_id: z
@@ -37,7 +37,7 @@ const inputSchema = {
     .string()
     .optional()
     .default(DEFAULT_CWD)
-    .describe("Working directory (default: /data/app)"),
+    .describe(`Working directory (default: ${DEFAULT_CWD})`),
   credentials: z
     .array(credentialSchema)
     .optional()

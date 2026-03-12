@@ -127,16 +127,29 @@ export async function handleAuthCallback(
   return true;
 }
 
+/** Shared secret for internal service auth (e.g. embedded terminal → MCP). */
+let internalToken: string | null = null;
+
+/** Set the internal shared secret. Called once at dev-server startup. */
+export function setInternalToken(token: string): void {
+  internalToken = token;
+}
+
 /**
  * Check if the current request is authenticated.
  */
 export async function authenticateRequest(
   req: IncomingMessage,
 ): Promise<AuthClaims | null> {
-  // 1. Try Authorization: Bearer header (for MCP HTTP transport)
+  // 1. Try Authorization: Bearer header
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith("Bearer ")) {
-    return verifyToken(authHeader.slice(7));
+    const bearer = authHeader.slice(7);
+    // Accept internal shared secret (returns synthetic claims)
+    if (internalToken && bearer === internalToken) {
+      return { sub: "internal", app: FLY_APP_NAME ?? "local", login: "internal" };
+    }
+    return verifyToken(bearer);
   }
   // 2. Fall back to cookie (for browser-based dev UI)
   const token = getCookie(req, COOKIE_NAME);

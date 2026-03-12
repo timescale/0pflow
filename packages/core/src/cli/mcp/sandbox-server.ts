@@ -4,7 +4,7 @@ import { version } from "./config.js";
 import type { ServerContext } from "./types.js";
 import { getSandboxApiFactories } from "./sandbox-tools/index.js";
 
-export const PROJECT_ROOT = "/data/app";
+export const PROJECT_ROOT = process.env.FLY_APP_NAME ? "/data/app" : process.cwd();
 
 export const serverInfo = {
   name: "crayon-sandbox-tools",
@@ -17,11 +17,16 @@ export function buildInstructions(): string {
   const sections: string[] = [];
 
   // ── Sandbox environment ──────────────────────────────────────
+  const isCloud = !!process.env.FLY_APP_NAME;
   const envLines = [
     "## Sandbox Environment",
     "",
-    "You are connected to a remote cloud sandbox via MCP.",
-    "All file operations, bash commands, and crayon tools run on the sandbox, not on the user's local machine.",
+    isCloud
+      ? "You are connected to a remote cloud sandbox via MCP."
+      : "You are connected to a local crayon dev server via MCP.",
+    isCloud
+      ? "All file operations, bash commands, and crayon tools run on the sandbox, not on the user's local machine."
+      : "All crayon tools run on the local dev server.",
     `Project root: ${PROJECT_ROOT}`,
   ];
 

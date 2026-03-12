@@ -9,7 +9,6 @@ set -e
 #
 # Prerequisites:
 #   - ngrok installed (brew install ngrok)
-#   - docker compose up -d in packages/auth-server/
 #   - .env.local configured in packages/auth-server/
 
 NGROK_PID=""

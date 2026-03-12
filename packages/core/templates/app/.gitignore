@@ -41,3 +41,6 @@ yarn-error.log*
 
 # idea files
 .idea
+
+# claude code project config (contains MCP auth tokens)
+.claude/

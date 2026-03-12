@@ -610,12 +610,6 @@ program
       // Dev UI can work without env (connections API just won't be available)
     }
 
-    // Detect dev mode (running from monorepo source) for --plugin-dir
-    const { packageRoot } = await import("./mcp/config.js");
-    const monorepoRoot = resolve(packageRoot, "..", "..");
-    const { existsSync } = await import("node:fs");
-    const pluginDir = existsSync(resolve(monorepoRoot, "packages", "core")) ? monorepoRoot : undefined;
-
     const { startDevServer } = await import("../dev-ui/index.js");
     await startDevServer({
       projectRoot: process.cwd(),
@@ -623,7 +617,6 @@ program
       host: options.host,
       databaseUrl: process.env.DATABASE_URL,
       nangoSecretKey: process.env.NANGO_SECRET_KEY,
-      claudePluginDir: pluginDir,
       claudeSkipPermissions: options.dangerouslySkipPermissions,
       verbose: options.verbose,
     });

@@ -1,6 +1,7 @@
 import { exec } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { appendFile, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import * as dotenv from "dotenv";
@@ -60,6 +61,20 @@ export async function scaffoldApp({
     });
 
     await createCrayonDirectories(appPath);
+
+    // Generate INTERNAL_TOKEN for MCP auth and append to .env
+    const internalToken = randomBytes(32).toString("hex");
+    await appendFile(join(appPath, ".env"), `\nINTERNAL_TOKEN="${internalToken}"\n`);
+
+    // Register MCP server with Claude Code (project-scoped)
+    try {
+      await execAsync(
+        `claude mcp add --scope project --transport http crayon-sandbox http://localhost:4173/dev/mcp --header "Authorization: Bearer ${internalToken}"`,
+        appPath,
+      );
+    } catch {
+      // claude CLI may not be available (e.g., cloud first boot)
+    }
 
     // In dev mode, link local crayon packages
     if (isDevMode()) {

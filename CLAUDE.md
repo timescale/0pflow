@@ -161,7 +161,7 @@ To test local core changes on a cloud dev machine:
 
 3. **Create a new cloud machine using the local auth server:**
    ```bash
-   CRAYON_SERVER_URL=http://localhost:3000 pnpm --filter runcrayon exec node dist/cli/index.js cloud run
+   CRAYON_SERVER_URL=http://localhost:3000 pnpm --filter runcrayon exec tsx src/cli/index.ts cloud run
    ```
 
 4. **Open the dev UI** at `https://<fly-app-name>.fly.dev/dev/`

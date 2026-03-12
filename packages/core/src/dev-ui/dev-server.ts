@@ -13,6 +13,7 @@ import { handleDeployRequest } from "./deploy-api.js";
 import { proxyToUserApp } from "./proxy.js";
 import {
   isAuthEnabled,
+  setInternalToken,
   handleAuthCallback,
   authenticateRequest as authenticateDevRequest,
   redirectToAuth,
@@ -59,12 +60,20 @@ export interface DevServerOptions {
   verbose?: boolean;
   databaseUrl?: string;
   nangoSecretKey?: string;
-  claudePluginDir?: string;
   claudeSkipPermissions?: boolean;
 }
 
 export async function startDevServer(options: DevServerOptions) {
   const { projectRoot, port = 4173, host = false } = options;
+
+  // Set cwd to project root so MCP tools (which use process.cwd()) resolve paths correctly.
+  process.chdir(projectRoot);
+
+  // Shared secret for MCP endpoint auth — generated once during scaffolding and stored in .env
+  const internalToken = process.env.INTERNAL_TOKEN;
+  if (internalToken) {
+    setInternalToken(internalToken);
+  }
 
   // Find package root (works from both src/ and dist/)
   let pkgRoot = dirname(fileURLToPath(import.meta.url));
@@ -262,7 +271,6 @@ export async function startDevServer(options: DevServerOptions) {
     ptyManager = createPtyManager({
       projectRoot,
       claudeArgs: [
-        ...(options.claudePluginDir ? ["--plugin-dir", options.claudePluginDir] : []),
         ...(options.claudeSkipPermissions ? ["--dangerously-skip-permissions"] : []),
       ],
       onData: (data) => broadcast({ type: "pty-data", data }),

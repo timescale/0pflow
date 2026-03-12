@@ -1,4 +1,4 @@
-import { exec, execSync } from "node:child_process";
+import { exec, execSync, spawn } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { promisify } from "node:util";
@@ -11,14 +11,6 @@ import {
   createDatabase,
   setupAppSchema,
 } from "./mcp/lib/scaffolding.js";
-import {
-  readSettings,
-  buildMcpCommand,
-  writeSettings,
-  addMarketplace,
-  installPlugin,
-  uninstallPlugin,
-} from "./install.js";
 
 function isClaudeAvailable(): boolean {
   try {
@@ -267,27 +259,27 @@ async function launchDevServer(cwd: string, { yolo = false }: { yolo?: boolean }
     // Dev UI can work without env
   }
 
-  // Detect dev mode (running from monorepo source) for --plugin-dir
-  const { packageRoot } = await import("./mcp/config.js");
-  const monorepoRoot = resolve(packageRoot, "..", "..");
-  const pluginDir = existsSync(resolve(monorepoRoot, "packages", "core")) ? monorepoRoot : undefined;
-
   const { startDevServer } = await import("../dev-ui/index.js");
   const { url } = await startDevServer({
     projectRoot: cwd,
     databaseUrl: process.env.DATABASE_URL,
     nangoSecretKey: process.env.NANGO_SECRET_KEY,
-    claudePluginDir: pluginDir,
     claudeSkipPermissions: yolo,
   });
 
-  // Open browser
+  // Open dev UI in browser
   try {
     const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
     execSync(`${cmd} ${url}`, { stdio: "ignore" });
   } catch {
     // Non-fatal — user can open manually
   }
+
+  // Launch Claude — MCP server was registered during scaffolding
+  const claude = spawn("claude", [
+    ...(yolo ? ["--dangerously-skip-permissions"] : []),
+  ], { stdio: "inherit", cwd });
+  claude.on("exit", (code) => process.exit(code ?? 0));
 }
 
 export async function runRun(): Promise<void> {
@@ -296,37 +288,6 @@ export async function runRun(): Promise<void> {
   if (!isClaudeAvailable()) {
     p.log.error("Claude Code CLI not found. Install it from https://claude.ai/code");
     process.exit(1);
-  }
-
-  // ── Always install/update plugin ────────────────────────────────────
-  {
-    const s = p.spinner();
-    s.start("Updating crayon plugin...");
-    try {
-      const mcpResult = buildMcpCommand();
-      writeSettings({
-        mcpCommand: mcpResult.command,
-        installedAt: new Date().toISOString(),
-      });
-      // In dev mode (local .ts source), skip marketplace/plugin install since
-      // the dev server loads the plugin via --plugin-dir instead.
-      if (mcpResult.isLocal) {
-        // Remove any previously installed marketplace plugin to avoid
-        // duplicates — dev server uses --plugin-dir instead.
-        uninstallPlugin("ignore");
-        s.stop(pc.green("Plugin ready (dev mode)"));
-      } else {
-        addMarketplace(mcpResult, "ignore");
-        const result = installPlugin("ignore");
-        if (result.success) {
-          s.stop(pc.green("Plugin up to date"));
-        } else {
-          s.stop(pc.yellow("Plugin update skipped (can retry with 'crayon install --force')"));
-        }
-      }
-    } catch (err) {
-      s.stop(pc.yellow(`Plugin update failed: ${err instanceof Error ? err.message : String(err)}`));
-    }
   }
 
   // ── Existing project (CWD) → launch directly ───────────────────────
