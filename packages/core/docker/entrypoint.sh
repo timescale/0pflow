@@ -18,11 +18,6 @@ fi
 echo "$DEV_USER ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/$DEV_USER"
 DEV_HOME=$(eval echo "~$DEV_USER")
 
-# Fix up plugin paths — skel has __HOMEDIR__ placeholders from build time
-for f in "$DEV_HOME/.claude/plugins/known_marketplaces.json" "$DEV_HOME/.claude/plugins/installed_plugins.json"; do
-  [ -f "$f" ] && sed -i "s|__HOMEDIR__|$DEV_HOME|g" "$f"
-done
-
 # ── Set up Claude Code config + credentials in user's home ────
 log "Setting up credentials..."
 mkdir -p "$DEV_HOME/.claude"

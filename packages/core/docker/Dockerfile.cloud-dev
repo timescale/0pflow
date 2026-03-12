@@ -14,8 +14,7 @@ ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 # This means users can run `npm install` without extra flags and still hit the cache.
 RUN npm config set cache /npm-cache --global
 
-# Install Claude Code CLI early so this layer is cached independently of crayon changes.
-# The _setup user is reused later by `crayon install` to register the plugin.
+# Install Claude Code CLI and bake into /etc/skel so runtime users get it automatically.
 RUN groupadd -f devs && \
     useradd -m -s /bin/bash -g devs _setup && \
     su -s /bin/bash _setup -c "curl -fsSL https://claude.ai/install.sh | bash" && \
@@ -69,15 +68,9 @@ RUN if [ "$CRAYON_SOURCE" = "local" ] && ls /tmp/build/runcrayon-*.tgz 1>/dev/nu
 # /node_modules found by Node.js via parent-directory resolution from /data/app.
 ENV PATH=/node_modules/.bin:$PATH
 
-# Register crayon plugin with the _setup user created earlier, then bake into /etc/skel.
-# useradd -m copies /etc/skel into new home dirs, so runtime users get Claude Code
-# + plugin/marketplace registration without the slow setup on every boot.
-RUN CRAYON="$(npm prefix -g)/bin/crayon" && \
-    su -s /bin/bash _setup -c "$CRAYON install --force" && \
-    test -f /home/_setup/.claude/settings.json || { echo "ERROR: crayon plugin not registered"; exit 1; } && \
-    cp -a /home/_setup/. /etc/skel/ && \
+# Bake _setup's home (with Claude CLI) into /etc/skel so useradd -m copies it to new users.
+RUN cp -a /home/_setup/. /etc/skel/ && \
     rm -f /etc/skel/.claude/.credentials.json && \
-    sed -i 's|/home/_setup|__HOMEDIR__|g' /etc/skel/.claude/plugins/known_marketplaces.json /etc/skel/.claude/plugins/installed_plugins.json && \
     CLAUDE_VER=$(basename "$(readlink /etc/skel/.local/bin/claude)") && \
     ln -sf "../share/claude/versions/$CLAUDE_VER" /etc/skel/.local/bin/claude && \
     ln -sf /etc/skel/.local/bin/claude /usr/local/bin/claude && \
