@@ -12,11 +12,7 @@
     "@biomejs/biome": "^2.4.6",
     "typescript": "^5.9.3"
   },
-  "pnpm": {
-    "overrides": {
-      "@tigerdata/mcp-boilerplate": "file:packages/core/docker/tigerdata-mcp-boilerplate-1.1.0.tgz"
-    }
-  },
+  "pnpm": {},
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=20"

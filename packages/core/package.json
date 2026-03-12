@@ -38,7 +38,7 @@
     "@dbos-inc/dbos-sdk": "^4.10.15",
     "@mozilla/readability": "^0.6.0",
     "@nangohq/node": "^0.45.1",
-    "@tigerdata/mcp-boilerplate": "file:docker/tigerdata-mcp-boilerplate-1.1.0.tgz",
+    "@tigerdata/mcp-boilerplate": "^1.2.0",
     "ai": "^6.0.116",
     "chokidar": "^4.0.3",
     "cli-table3": "^0.6.5",

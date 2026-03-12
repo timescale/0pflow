@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@tigerdata/mcp-boilerplate': file:packages/core/docker/tigerdata-mcp-boilerplate-1.1.0.tgz
-
 importers:
 
   .:
@@ -79,8 +76,8 @@ importers:
         specifier: ^0.45.1
         version: 0.45.1
       '@tigerdata/mcp-boilerplate':
-        specifier: file:docker/tigerdata-mcp-boilerplate-1.1.0.tgz
-        version: file:packages/core/docker/tigerdata-mcp-boilerplate-1.1.0.tgz(@cfworker/json-schema@4.1.1)(@opentelemetry/core@2.6.0(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@25.4.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
+        specifier: ^1.2.0
+        version: 1.2.0(@cfworker/json-schema@4.1.1)(@opentelemetry/core@2.6.0(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@25.4.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
       ai:
         specifier: ^6.0.116
         version: 6.0.116(zod@4.3.6)
@@ -2532,9 +2529,8 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
-  '@tigerdata/mcp-boilerplate@file:packages/core/docker/tigerdata-mcp-boilerplate-1.1.0.tgz':
-    resolution: {integrity: sha512-7t/B2r33x9q7Da6aZ2LAXu/76AXSn1gcBexVyvPjgqcWYyrO5CnLv8yoHdbbkXbjR182bER5soc2IkToBfKGEA==, tarball: file:packages/core/docker/tigerdata-mcp-boilerplate-1.1.0.tgz}
-    version: 1.1.0
+  '@tigerdata/mcp-boilerplate@1.2.0':
+    resolution: {integrity: sha512-yRHDdqLH/cRTHPAKBFINIq1acG954LalJKrGV7JFOSVX8A7AdwRxGUFULxe+96N9N3C1kJE2ib9IMrukp6wMww==}
     peerDependencies:
       zod: ^3.25 || ^4.0
 
@@ -7435,7 +7431,7 @@ snapshots:
       tailwindcss: 4.2.1
       vite: 7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
 
-  '@tigerdata/mcp-boilerplate@file:packages/core/docker/tigerdata-mcp-boilerplate-1.1.0.tgz(@cfworker/json-schema@4.1.1)(@opentelemetry/core@2.6.0(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@25.4.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
+  '@tigerdata/mcp-boilerplate@1.2.0(@cfworker/json-schema@4.1.1)(@opentelemetry/core@2.6.0(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@25.4.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
     dependencies:
       '@mcp-use/inspector': 0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@25.4.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(express@5.2.1)(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(yaml@2.8.2)(zod@4.3.6)
       '@modelcontextprotocol/sdk': 1.27.1(@cfworker/json-schema@4.1.1)(zod@4.3.6)
@@ -7526,7 +7522,7 @@ snapshots:
 
   '@types/bunyan@1.8.11':
     dependencies:
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
 
   '@types/chai@5.2.3':
     dependencies:
@@ -7595,13 +7591,13 @@ snapshots:
 
   '@types/memcached@2.2.10':
     dependencies:
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
 
   '@types/ms@2.1.0': {}
 
   '@types/mysql@2.15.27':
     dependencies:
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
 
   '@types/node@22.19.15':
     dependencies:
@@ -7613,7 +7609,7 @@ snapshots:
 
   '@types/oracledb@6.5.2':
     dependencies:
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
 
   '@types/pg-pool@2.0.6':
     dependencies:
@@ -7621,7 +7617,7 @@ snapshots:
 
   '@types/pg@8.15.6':
     dependencies:
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
       pg-protocol: 1.13.0
       pg-types: 2.2.0
 
@@ -7667,7 +7663,7 @@ snapshots:
 
   '@types/tedious@4.0.14':
     dependencies:
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
 
   '@types/trusted-types@2.0.7':
     optional: true
@@ -9421,7 +9417,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
       long: 5.3.2
 
   proxy-addr@2.0.7:

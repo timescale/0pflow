@@ -32,12 +32,7 @@ pnpm --filter runcrayon build
 echo "==> Packing tarball..."
 cd "$CORE_DIR"
 rm -f docker/runcrayon-*.tgz
-# pnpm overrides may rewrite file: paths into package.json; temporarily
-# restore the registry version before packing so the tarball works in Docker.
-cp package.json package.json.bak
-sed -i '' 's|"@tigerdata/mcp-boilerplate": "file:[^"]*"|"@tigerdata/mcp-boilerplate": "^1.1.0"|' package.json
 npm pack --pack-destination docker/
-mv package.json.bak package.json
 cp templates/app/package.json docker/template-package.json
 
 echo "==> Building and pushing Docker image (tag: $TAG)..."
