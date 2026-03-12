@@ -12,11 +12,12 @@ if [ -t 2 ]; then
   GREEN='\033[0;32m'
   YELLOW='\033[0;33m'
   CYAN='\033[0;36m'
+  MAGENTA='\033[0;35m'
   BOLD='\033[1m'
   DIM='\033[2m'
   RESET='\033[0m'
 else
-  RED='' GREEN='' YELLOW='' CYAN='' BOLD='' DIM='' RESET=''
+  RED='' GREEN='' YELLOW='' CYAN='' MAGENTA='' BOLD='' DIM='' RESET=''
 fi
 
 info()    { printf "${CYAN}  ...${RESET}  %s\n" "$*" >&2; }
@@ -31,16 +32,13 @@ has_cmd() { command -v "$1" >/dev/null 2>&1; }
 # ── Banner ───────────────────────────────────────────────────────────────────
 
 print_banner() {
-  printf "\n${RED}"
-  cat >&2 << 'BANNER'
-   ___        __ _
-  / _ \ _ __ / _| | _____      __
- | | | | '_ \ |_| |/ _ \ \ /\ / /
- | |_| | |_) |  _| | (_) \ V  V /
-  \___/| .__/|_| |_|\___/ \_/\_/
-       |_|
-BANNER
-  printf "${RESET}\n" >&2
+  printf '\n' >&2
+  printf '%b%s%b\n' "$RED"     '   ___ _ __ __ _ _   _  ___  _ __'    "$RESET" >&2
+  printf '%b%s%b\n' "$YELLOW"  "  / __| '__/ _\` | | | |/ _ \\| '_ \\" "$RESET" >&2
+  printf '%b%s%b\n' "$GREEN"   ' | (__| | | (_| | |_| | (_) | | | |'  "$RESET" >&2
+  printf '%b%s%b\n' "$CYAN"    '  \___|_|  \__,_|\__, |\___/|_| |_|'  "$RESET" >&2
+  printf '%b%s%b\n' "$MAGENTA" '                 |___/'                "$RESET" >&2
+  printf '\n' >&2
 }
 
 # ── OS detection ─────────────────────────────────────────────────────────────
@@ -56,7 +54,7 @@ detect_os() {
 # ── Step 1: Node.js ─────────────────────────────────────────────────────────
 
 install_node() {
-  step "Step 1/2: Node.js"
+  step "Step 1/3: Node.js"
 
   if has_cmd node; then
     local node_version node_major
@@ -89,10 +87,9 @@ install_node() {
   fi
 }
 
-# ── Step 2: Claude Code CLI ─────────────────────────────────────────────────
+# ── Step 3: Claude Code CLI ─────────────────────────────────────────────────
 
 install_claude() {
-  step "Step 2/2: Claude Code CLI"
 
   if has_cmd claude; then
     success "Claude Code CLI found"
@@ -117,58 +114,57 @@ install_claude() {
   fi
 }
 
-# ── Shell alias ──────────────────────────────────────────────────────────────
+# ── CLI script ───────────────────────────────────────────────────────────────
 
-setup_alias() {
-  local alias_line="alias crayon='npx -y --prefer-online --loglevel=error runcrayon@dev'"
-  local alias_comment="# crayon CLI alias"
-  local added_to=""
+setup_script() {
+  local bin_dir="${HOME}/.local/bin"
+  local script_path="${bin_dir}/crayon"
 
-  add_to_rc() {
-    local rc_file="$1"
-    if [ -f "$rc_file" ] || [ "${2:-}" = "create" ]; then
-      if grep -qF "alias crayon=" "$rc_file" 2>/dev/null; then
-        # Replace existing alias (remove old comment + alias lines)
-        local tmp
-        tmp=$(mktemp)
-        grep -vF "alias crayon=" "$rc_file" | grep -vF "# crayon CLI alias" > "$tmp"
-        printf '\n%s\n%s\n' "$alias_comment" "$alias_line" >> "$tmp"
-        mv "$tmp" "$rc_file"
-      else
-        printf '\n%s\n%s\n' "$alias_comment" "$alias_line" >> "$rc_file"
-      fi
-      added_to="${added_to:+${added_to}, }${rc_file}"
+  mkdir -p "$bin_dir"
+
+  cat > "$script_path" << 'SCRIPT'
+#!/usr/bin/env sh
+exec npx -y --prefer-online --loglevel=error runcrayon@dev "$@"
+SCRIPT
+  chmod +x "$script_path"
+
+  # Ensure ~/.local/bin is in PATH
+  if echo "$PATH" | tr ':' '\n' | grep -qx "$bin_dir"; then
+    success "~/.local/bin already in PATH"
+  else
+    PATH_UPDATED=true
+    local rc_file
+    case "$(basename "${SHELL:-/bin/bash}")" in
+      zsh)  rc_file="${HOME}/.zshrc" ;;
+      *)    rc_file="${HOME}/.bashrc" ;;
+    esac
+
+    if ! grep -qF '/.local/bin' "$rc_file" 2>/dev/null; then
+      printf '\n# crayon CLI\nexport PATH="${HOME}/.local/bin:${PATH}"\n' >> "$rc_file"
+      success "Added ~/.local/bin to PATH in ${rc_file}"
+    else
+      success "~/.local/bin already in PATH via ${rc_file}"
     fi
-  }
 
-  local user_shell
-  user_shell=$(basename "${SHELL:-/bin/bash}")
-
-  case "$user_shell" in
-    zsh)
-      add_to_rc "${HOME}/.zshrc"
-      ;;
-    bash)
-      if [ "$OS" = "macos" ] && [ -f "${HOME}/.bash_profile" ]; then
-        add_to_rc "${HOME}/.bash_profile"
-      fi
-      add_to_rc "${HOME}/.bashrc"
-      ;;
-    *)
-      [ -f "${HOME}/.zshrc" ] && add_to_rc "${HOME}/.zshrc"
-      [ -f "${HOME}/.bashrc" ] && add_to_rc "${HOME}/.bashrc"
-      ;;
-  esac
-
-  # Fallback: create .bashrc if nothing was written
-  if [ -z "$added_to" ]; then
-    add_to_rc "${HOME}/.bashrc" "create"
+    export PATH="${bin_dir}:${PATH}"
   fi
 
-  success "Added shell alias to ${added_to}"
+  # Clean up old alias from rc files if present
+  for rc in "${HOME}/.zshrc" "${HOME}/.bashrc" "${HOME}/.bash_profile"; do
+    if grep -qF "alias crayon=" "$rc" 2>/dev/null; then
+      local tmp
+      tmp=$(mktemp)
+      grep -vF "alias crayon=" "$rc" | grep -vF "# crayon CLI alias" > "$tmp"
+      mv "$tmp" "$rc"
+    fi
+  done
+
+  success "Installed crayon to ${script_path}"
 }
 
 # ── Main ─────────────────────────────────────────────────────────────────────
+
+PATH_UPDATED=false
 
 main() {
   print_banner
@@ -177,19 +173,21 @@ main() {
   printf "${DIM}  Detected: %s (%s)${RESET}\n" "$OS" "$(uname -m)" >&2
 
   install_node
-  install_claude
-  setup_alias
 
-  # Determine which rc file to source
-  local rc_file="${HOME}/.zshrc"
-  case "$(basename "${SHELL:-/bin/bash}")" in
-    bash) rc_file="${HOME}/.bashrc" ;;
-  esac
+  step "Step 2/3: Crayon CLI"
+  setup_script
+
+  step "Step 3/3: Claude Code CLI"
+  install_claude
 
   printf "\n"
   printf "${GREEN}${BOLD}  Installation complete!${RESET}\n\n" >&2
   printf "${BOLD}  To get started, run:${RESET}\n\n" >&2
-  printf "${CYAN}    source ${rc_file}; crayon cloud run${RESET}\n\n" >&2
+  if $PATH_UPDATED; then
+    printf "${CYAN}    export PATH=\"\${HOME}/.local/bin:\${PATH}\"; crayon cloud run${RESET}\n\n" >&2
+  else
+    printf "${CYAN}    crayon cloud run${RESET}\n\n" >&2
+  fi
 }
 
 main "$@"
