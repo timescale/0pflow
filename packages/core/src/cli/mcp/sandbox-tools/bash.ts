@@ -2,7 +2,7 @@ import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { execFile } from "node:child_process";
 import { z } from "zod";
 import type { ConnectionCredentials } from "../../../types.js";
-import { resolveCredentials } from "../lib/resolve-credentials.js";
+import { resolveCredentials } from "../../../connections/manager.js";
 import type { ServerContext } from "../types.js";
 
 const DEFAULT_TIMEOUT = 120_000;

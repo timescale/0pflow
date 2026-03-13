@@ -1,7 +1,7 @@
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
 import type { ServerContext } from "../types.js";
-import { createProvider } from "../lib/resolve-credentials.js";
+import { getProvider } from "../../../connections/manager.js";
 
 const inputSchema = {} as const;
 
@@ -36,8 +36,7 @@ export const listIntegrationsFactory: ApiFactory<
     },
     fn: async (): Promise<OutputSchema> => {
       try {
-        const provider = await createProvider();
-        const integrations = await provider.listIntegrations();
+        const integrations = await getProvider().listIntegrations();
         return { integrations };
       } catch (err) {
         return {

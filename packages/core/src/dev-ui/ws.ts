@@ -11,7 +11,9 @@ export type WSMessage =
   // PTY messages (server → client)
   | { type: "pty-data"; data: string }
   | { type: "pty-exit"; data: { code: number } }
-  | { type: "pty-spawned"; data: { pid: number } };
+  | { type: "pty-spawned"; data: { pid: number } }
+  // Connection mapping changes (triggers frontend refetch)
+  | { type: "connections-changed" };
 
 export type WSClientMessage =
   | { type: "pty-input"; data: string }

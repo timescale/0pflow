@@ -111,6 +111,10 @@ export function useDAGSocket() {
               new CustomEvent("spawned", { detail: message.data.pid }),
             );
             break;
+
+          case "connections-changed":
+            window.dispatchEvent(new CustomEvent("connections-changed"));
+            break;
         }
       } catch {
         // Ignore malformed messages

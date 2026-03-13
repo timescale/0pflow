@@ -50,7 +50,8 @@ export type WSMessage =
   // PTY messages (server → client)
   | { type: "pty-data"; data: string }
   | { type: "pty-exit"; data: { code: number } }
-  | { type: "pty-spawned"; data: { pid: number } };
+  | { type: "pty-spawned"; data: { pid: number } }
+  | { type: "connections-changed" };
 
 // ---- Run History types ----
 

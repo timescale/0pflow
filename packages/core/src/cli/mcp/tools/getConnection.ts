@@ -1,7 +1,7 @@
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
 import type { ServerContext } from "../types.js";
-import { resolveCredentials } from "../lib/resolve-credentials.js";
+import { resolveCredentials, getAddConnectionUrl } from "../../../connections/manager.js";
 
 const inputSchema = {
   integration_id: z
@@ -74,8 +74,12 @@ export const getConnectionFactory: ApiFactory<
           access_token: credentials.token,
         };
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const credentialsUrl = getAddConnectionUrl(integration_id, workflow_name, node_name);
+        const urlHint = credentialsUrl ? ` Add a connection at: ${credentialsUrl}` : "";
         return {
-          error: err instanceof Error ? err.message : String(err),
+          error: `${msg} Use list_connections to check for existing connections, ` +
+            `then assign_connection to assign one.${urlHint}`,
         };
       }
     },

@@ -38,6 +38,13 @@ export function useConnections() {
     fetchConnections();
   }, [fetchConnections]);
 
+  // Refetch when notified of external changes (e.g. MCP tool assigned a connection)
+  useEffect(() => {
+    const handler = () => { fetchConnections(); };
+    window.addEventListener("connections-changed", handler);
+    return () => window.removeEventListener("connections-changed", handler);
+  }, [fetchConnections]);
+
   const upsert = useCallback(
     async (mapping: Omit<ConnectionMapping, "updated_at">) => {
       await fetch("/dev/api/connections", {

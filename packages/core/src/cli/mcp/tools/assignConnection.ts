@@ -1,7 +1,7 @@
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
 import type { ServerContext } from "../types.js";
-import { assignConnection } from "../lib/resolve-credentials.js";
+import { assignConnection } from "../../../connections/manager.js";
 
 const inputSchema = {
   integration_id: z

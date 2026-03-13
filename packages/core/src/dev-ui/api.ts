@@ -2,14 +2,9 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type pg from "pg";
-import {
-  listConnections,
-  upsertConnection,
-  deleteConnection,
-  deleteConnectionByConnectionId,
-} from "../connections/index.js";
 import type { IntegrationProvider } from "../connections/integration-provider.js";
 import { parseOutput } from "../cli/trace.js";
+import { assignConnection, unassignConnection, unassignConnectionById, listConnectionMappings } from "../connections/manager.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -72,7 +67,7 @@ export async function handleApiRequest(
 
   // GET /api/connections
   if (url === "/api/connections" && method === "GET") {
-    const connections = await listConnections(ctx.pool, ctx.appSchema);
+    const connections = await listConnectionMappings();
     jsonResponse(res, 200, connections);
     return true;
   }
@@ -89,12 +84,12 @@ export async function handleApiRequest(
       jsonResponse(res, 400, { error: "integration_id and connection_id are required" });
       return true;
     }
-    await upsertConnection(ctx.pool, {
-      workflow_name: body.workflow_name ?? "*",
-      node_name: body.node_name ?? "*",
-      integration_id: body.integration_id,
-      connection_id: body.connection_id,
-    }, ctx.appSchema);
+    await assignConnection(
+      body.integration_id,
+      body.connection_id,
+      body.workflow_name ?? "*",
+      body.node_name ?? "*",
+    );
     jsonResponse(res, 200, { ok: true });
     return true;
   }
@@ -110,12 +105,10 @@ export async function handleApiRequest(
       jsonResponse(res, 400, { error: "integration_id is required" });
       return true;
     }
-    await deleteConnection(
-      ctx.pool,
+    await unassignConnection(
       body.workflow_name ?? "*",
       body.node_name ?? "*",
       body.integration_id,
-      ctx.appSchema,
     );
     jsonResponse(res, 200, { ok: true });
     return true;
@@ -210,7 +203,7 @@ export async function handleApiRequest(
     try {
       await ctx.integrationProvider.deleteConnection(body.integration_id, body.connection_id);
       // Also clean up any local DB mappings that reference this connection
-      await deleteConnectionByConnectionId(ctx.pool, body.integration_id, body.connection_id, ctx.appSchema);
+      await unassignConnectionById(body.integration_id, body.connection_id);
       jsonResponse(res, 200, { ok: true });
     } catch (err) {
       jsonResponse(res, 500, {

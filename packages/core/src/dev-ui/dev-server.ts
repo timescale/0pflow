@@ -21,6 +21,7 @@ import {
 } from "./auth.js";
 import { createIntegrationProvider } from "../connections/integration-provider.js";
 import { ensureConnectionsTable } from "../connections/schema.js";
+import { configureConnectionManager, onConnectionChange } from "../connections/manager.js";
 import { getAppSchema } from "../cli/app.js";
 import pg from "pg";
 
@@ -283,6 +284,10 @@ export async function startDevServer(options: DevServerOptions) {
     }
   }
 
+  // Configure the connection manager with the shared pool and subscribe to changes
+  configureConnectionManager(pool!, appSchema, integrationProvider);
+  const unsubConnectionChange = onConnectionChange(() => broadcast({ type: "connections-changed" }));
+
   // Create file watcher that broadcasts changes
   watcher = createWatcher({
     projectRoot,
@@ -361,6 +366,7 @@ export async function startDevServer(options: DevServerOptions) {
   }
 
   const cleanup = async () => {
+    unsubConnectionChange();
     ptyManager?.kill();
     try {
       const { cleanupMcp } = await import("./mcp-handler.js");
