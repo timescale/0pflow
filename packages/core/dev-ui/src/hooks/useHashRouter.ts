@@ -2,29 +2,55 @@ import { useState, useEffect, useCallback } from "react";
 
 export type Page = "dashboard" | "canvas" | "credentials";
 
+export interface ConnectTarget {
+  integrationId: string;
+  workflowName: string;
+  nodeName: string;
+}
+
 interface RouterState {
   page: Page;
   workflow: string | null;
+  connectTarget: ConnectTarget | null;
 }
 
 function parseHash(): RouterState {
   const hash = window.location.hash.replace(/^#\/?/, "");
   if (hash === "dashboard") {
-    return { page: "dashboard", workflow: null };
+    return { page: "dashboard", workflow: null, connectTarget: null };
   }
   if (!hash) {
-    return { page: "canvas", workflow: null };
+    return { page: "canvas", workflow: null, connectTarget: null };
   }
   if (hash === "credentials") {
-    return { page: "credentials", workflow: null };
+    return { page: "credentials", workflow: null, connectTarget: null };
+  }
+  // credentials/<integration>/<workflow>/<node> — deep-link to add connection
+  if (hash.startsWith("credentials/")) {
+    const parts = hash.slice("credentials/".length).split("/").map(decodeURIComponent);
+    if (parts.length >= 3 && parts[0]) {
+      return {
+        page: "credentials",
+        workflow: null,
+        connectTarget: { integrationId: parts[0], workflowName: parts[1], nodeName: parts[2] },
+      };
+    }
+    if (parts[0]) {
+      return {
+        page: "credentials",
+        workflow: null,
+        connectTarget: { integrationId: parts[0], workflowName: "*", nodeName: "*" },
+      };
+    }
+    return { page: "credentials", workflow: null, connectTarget: null };
   }
   if (hash === "canvas") {
-    return { page: "canvas", workflow: null };
+    return { page: "canvas", workflow: null, connectTarget: null };
   }
   if (hash.startsWith("canvas/")) {
-    return { page: "canvas", workflow: decodeURIComponent(hash.slice("canvas/".length)) || null };
+    return { page: "canvas", workflow: decodeURIComponent(hash.slice("canvas/".length)) || null, connectTarget: null };
   }
-  return { page: "canvas", workflow: null };
+  return { page: "canvas", workflow: null, connectTarget: null };
 }
 
 function buildHash(page: Page, workflow: string | null): string {
@@ -50,18 +76,19 @@ export function useHashRouter() {
     if (newHash !== window.location.hash) {
       window.history.pushState(null, "", newHash);
     }
-    setState({ page, workflow: page === "canvas" ? wf : state.workflow });
+    setState({ page, workflow: page === "canvas" ? wf : state.workflow, connectTarget: null });
   }, [state.workflow]);
 
   const selectWorkflow = useCallback((workflowName: string) => {
     const newHash = buildHash("canvas", workflowName);
     window.history.pushState(null, "", newHash);
-    setState({ page: "canvas", workflow: workflowName });
+    setState({ page: "canvas", workflow: workflowName, connectTarget: null });
   }, []);
 
   return {
     page: state.page,
     selectedWorkflow: state.workflow,
+    connectTarget: state.connectTarget,
     navigate,
     selectWorkflow,
   };

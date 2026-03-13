@@ -6,7 +6,7 @@ Guide for generating typed Salesforce query nodes using GraphQL with `graphql-re
 
 ## CRITICAL: Connection Required
 
-**This entire setup requires a live Salesforce connection.** Before doing ANYTHING below, `get_connection_info` for `"salesforce"` must succeed. If it fails (no connection configured or authentication error), **STOP — do not proceed with any steps in this file.** Do not create directories, scripts, client files, or any integration infrastructure. Tell the user to connect Salesforce via the Credentials page in the Dev UI sidebar (in a cloud sandbox, this is the browser tab they already have open). Then say "continue" when ready.
+**This entire setup requires a live Salesforce connection.** Before doing ANYTHING below, `get_connection` for `"salesforce"` must succeed. If it fails (no connection configured or authentication error), **STOP — do not proceed with any steps in this file.** Do not create directories, scripts, client files, or any integration infrastructure. Tell the user to connect Salesforce via the Credentials page in the Dev UI sidebar (in a cloud sandbox, this is the browser tab they already have open). Then say "continue" when ready.
 
 ---
 
@@ -37,10 +37,10 @@ If not: "I don't see a Salesforce SDK in your project. Would you like me to set 
 
 ### 2. Get Credentials
 
-**Use the `get_connection_info` tool** to look up the Salesforce connection:
+**Use the `get_connection` tool** to look up the Salesforce connection:
 
 ```
-get_connection_info({ integration_id: "salesforce", workflow_name: "lead-enrichment", node_name: "query-salesforce-leads" })
+get_connection({ integration_id: "salesforce", workflow_name: "lead-enrichment", node_name: "query-salesforce-leads" })
 ```
 
 This returns:
@@ -50,7 +50,7 @@ This returns:
 
 **Do NOT write access tokens to `.env`.** Tokens are short-lived and fetched on the fly via the integration provider.
 
-**If `get_connection_info` fails** (no connection configured or authentication error), tell the user that:
+**If `get_connection` fails** (no connection configured or authentication error), tell the user that:
 No Salesforce connection found. Set it up by clicking on the node in the Dev UI canvas at `<sandbox-url>/dev/#/canvas/<workflow-name>`. Then say "continue" when ready.
 
 ### 3. Check for Dependencies
@@ -92,7 +92,7 @@ src/crayon/integrations/salesforce/
 
 ### Step 1: Resolve Salesforce Domain
 
-The domain should already be in `.env` from the pre-flight checks (via `get_connection_info`).
+The domain should already be in `.env` from the pre-flight checks (via `get_connection`).
 
 If not present, ask: "What is your Salesforce domain?"
 - Production: `https://yourcompany.my.salesforce.com`
@@ -123,7 +123,7 @@ This TypeScript config generates a fully typed SDK using `graphql-request`.
 
 ### Step 5: Add Package Scripts
 
-Use the `connection_id` from `get_connection_info` in the fetch-schema command:
+Use the `connection_id` from `get_connection` in the fetch-schema command:
 
 ```json
 {
@@ -135,7 +135,7 @@ Use the `connection_id` from `get_connection_info` in the fetch-schema command:
 }
 ```
 
-Replace `<CONNECTION_ID>` with the actual `connection_id` returned by `get_connection_info`.
+Replace `<CONNECTION_ID>` with the actual `connection_id` returned by `get_connection`.
 
 For projects with no known connection ID, use `--domain` instead:
 ```json
@@ -375,7 +375,7 @@ Agent: I'm using the Salesforce integration skill.
 
 [Pre-flight] No Salesforce SDK found. Setting up...
 
-[Calls get_connection_info({ integration_id: "salesforce", workflow_name: "lead-enrichment", node_name: "salesforce-get-lead" })]
+[Calls get_connection({ integration_id: "salesforce", workflow_name: "lead-enrichment", node_name: "salesforce-get-lead" })]
 → Got connection_id: acc5892d-...
 → Confirmed instance_url: https://mycompany.my.salesforce.com
 

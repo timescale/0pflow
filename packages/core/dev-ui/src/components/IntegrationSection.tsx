@@ -10,6 +10,8 @@ interface IntegrationSectionProps {
   workflowName: string;
   nodeName: string;
   connectionsApi: ReturnType<typeof useConnections>;
+  /** Auto-trigger the connect flow on mount (used by deep-links). */
+  autoConnect?: boolean;
 }
 
 export function IntegrationSection({
@@ -17,6 +19,7 @@ export function IntegrationSection({
   workflowName,
   nodeName,
   connectionsApi,
+  autoConnect,
 }: IntegrationSectionProps) {
   const { nangoConnections, loading: nangoLoading, refetch } = useNangoConnections(integrationId);
   const [connecting, setConnecting] = useState(false);
@@ -49,6 +52,9 @@ export function IntegrationSection({
       handleSelect(nangoConnections[0].connection_id);
     }
   }, [nangoLoading, nangoConnections, current, handleSelect]);
+
+  // Auto-trigger connect flow when deep-linked with autoConnect
+  const [autoConnectFired, setAutoConnectFired] = useState(false);
 
   const handleConnect = useCallback(async () => {
     // For integrations with custom forms, show the form instead of Nango Connect
@@ -145,6 +151,14 @@ export function IntegrationSection({
     },
     [integrationId, refetch, connectionsApi],
   );
+
+  // Fire auto-connect once after loading finishes
+  useEffect(() => {
+    if (autoConnect && !autoConnectFired && !nangoLoading) {
+      setAutoConnectFired(true);
+      handleConnect();
+    }
+  }, [autoConnect, autoConnectFired, nangoLoading, handleConnect]);
 
   const activeId = optimisticValue ?? current?.connection_id;
 

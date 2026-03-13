@@ -1,10 +1,7 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
-import * as dotenv from "dotenv";
 import type { ServerContext } from "../types.js";
-import { createIntegrationProvider } from "../../../connections/integration-provider.js";
+import { createProvider } from "../lib/resolve-credentials.js";
 
 const inputSchema = {} as const;
 
@@ -22,22 +19,6 @@ type OutputSchema = {
   integrations: Array<{ id: string; provider: string }>;
   error?: string;
 };
-
-/**
- * Create an IntegrationProvider based on available env vars.
- * NANGO_SECRET_KEY → local, otherwise → cloud (auto-auth).
- */
-async function createProvider() {
-  // Check .env file for NANGO_SECRET_KEY
-  const envPath = join(process.cwd(), ".env");
-  let nangoSecretKey: string | undefined;
-  if (existsSync(envPath)) {
-    const content = readFileSync(envPath, "utf-8");
-    const env = dotenv.parse(content);
-    nangoSecretKey = env.NANGO_SECRET_KEY;
-  }
-  return createIntegrationProvider(nangoSecretKey);
-}
 
 export const listIntegrationsFactory: ApiFactory<
   ServerContext,

@@ -42,7 +42,11 @@ Before drafting, gather the information needed:
    - Invoke `/crayon:integrations` to determine which SDK/library/API to use
    - For listed integrations: read the specific file (e.g., `salesforce.md`)
    - For unlisted systems: read `unlisted.md` and research the best option
-   - **CRITICAL — Connection Gate:** Call `get_connection_info` for each integration the node needs. **If the call fails** (no connection configured), you MUST stop immediately. Do NOT create SDK files, client code, integration directories, or any implementation that depends on a live connection. Tell the user which connections are missing and ask them to set them up by clicking on the node in the Dev UI canvas at `<sandbox-url>/dev/#/canvas/<workflow-name>`. Then say "continue" when ready.
+   - **CRITICAL — Connection Gate:** For each integration the node needs:
+     1. Call `get_connection` with the integration ID, workflow name, and node name. **If it succeeds**, the connection is already assigned — proceed with implementation using the returned config.
+     2. **If it fails** (no connection assigned), call `list_connections` for that integration to see all available connections.
+        - **If connections exist:** Present them to the user and ask which one to use. Then call `assign_connection` to map the chosen connection to the workflow/node. Finally call `get_connection` again to retrieve provider-specific config (e.g., Salesforce `instance_url`).
+        - **If no connections exist:** You MUST stop immediately. Do NOT create SDK files, client code, integration directories, or any implementation that depends on a live connection. Tell the user which connections are missing. If `list_connections` returned a `credentials_page_url`, tell the user to visit that URL to add a connection. Otherwise tell them to open the Dev UI Credentials page. Then say "continue" when ready.
 
 2. **For agent nodes**, check AI SDK provider docs for available tools:
    - **OpenAI:** https://ai-sdk.dev/providers/ai-sdk-providers/openai

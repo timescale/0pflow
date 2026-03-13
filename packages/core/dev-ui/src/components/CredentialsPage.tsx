@@ -3,6 +3,7 @@ import { IntegrationSection } from "./IntegrationSection";
 import type { useConnections } from "../hooks/useConnections";
 import { useNangoIntegrations, useNangoConnections } from "../hooks/useConnections";
 import type { WorkflowDAG } from "../types";
+import type { ConnectTarget } from "../hooks/useHashRouter";
 
 /** Invisible probe: reports whether an integration has connections */
 function ConnectionProbe({ integrationId, onResult }: {
@@ -20,10 +21,11 @@ function ConnectionProbe({ integrationId, onResult }: {
 interface CredentialsPageProps {
   workflows: WorkflowDAG[];
   connectionsApi: ReturnType<typeof useConnections>;
+  connectTarget?: ConnectTarget | null;
   onBack: () => void;
 }
 
-export function CredentialsPage({ workflows, connectionsApi, onBack }: CredentialsPageProps) {
+export function CredentialsPage({ workflows, connectionsApi, connectTarget, onBack }: CredentialsPageProps) {
   const { integrations: nangoIntegrations, loading } = useNangoIntegrations();
   const [connectionStatus, setConnectionStatus] = useState<Record<string, boolean>>({});
 
@@ -101,6 +103,21 @@ export function CredentialsPage({ workflows, connectionsApi, onBack }: Credentia
             onResult={handleProbeResult}
           />
         ))}
+
+        {/* Deep-link: show targeted integration with auto-connect */}
+        {connectTarget && (
+          <div className="mb-6">
+            <div className="rounded-lg border border-[#e8e4df] bg-white px-4 py-3.5">
+              <IntegrationSection
+                integrationId={connectTarget.integrationId}
+                workflowName={connectTarget.workflowName}
+                nodeName={connectTarget.nodeName}
+                connectionsApi={connectionsApi}
+                autoConnect
+              />
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="rounded-lg border border-[#e8e4df] bg-white p-4">

@@ -1,5 +1,7 @@
 import { listIntegrationsFactory } from "./listIntegrations.js";
-import { getConnectionInfoFactory } from "./getConnectionInfo.js";
+import { listConnectionsFactory } from "./listConnections.js";
+import { getConnectionFactory } from "./getConnection.js";
+import { assignConnectionFactory } from "./assignConnection.js";
 
 import { listWorkflowsFactory } from "./listWorkflows.js";
 import { runWorkflowFactory } from "./runWorkflow.js";
@@ -12,7 +14,9 @@ import { getSkillGuideFactory } from "./getSkillGuide.js";
 export async function getApiFactories() {
   return [
     listIntegrationsFactory,
-    getConnectionInfoFactory,
+    listConnectionsFactory,
+    getConnectionFactory,
+    assignConnectionFactory,
 
     listWorkflowsFactory,
     runWorkflowFactory,

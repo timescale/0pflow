@@ -45,17 +45,17 @@ type OutputSchema = {
   error?: string;
 };
 
-export const getConnectionInfoFactory: ApiFactory<
+export const getConnectionFactory: ApiFactory<
   ServerContext,
   typeof inputSchema,
   typeof outputSchema
 > = () => {
   return {
-    name: "get_connection_info",
+    name: "get_connection",
     config: {
-      title: "Get Connection Info",
+      title: "Get Connection",
       description:
-        "Get metadata for a configured integration connection. " +
+        "Get the assigned connection for a workflow/node. " +
         "Resolves the connection ID from the crayon_connections table, " +
         "then fetches connection details via IntegrationProvider (local Nango or cloud).",
       inputSchema,

@@ -35,9 +35,9 @@ claude --plugin-dir /path/to/crayon
 
 ### MCP Tools
 
-9 tools exposed via MCP (crayon-sandbox):
+13 tools exposed via MCP (crayon-sandbox):
 
-- `listIntegrations` / `getConnectionInfo` - OAuth connection management
+- `listIntegrations` / `listConnections` / `getConnection` / `assignConnection` - OAuth connection management
 - `listWorkflows` / `runWorkflow` / `runNode` - Workflow execution
 - `listRuns` / `getRun` / `getTrace` - Run history and tracing
 

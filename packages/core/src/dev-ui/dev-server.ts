@@ -341,6 +341,9 @@ export async function startDevServer(options: DevServerOptions) {
     ? `https://${flyAppName}.fly.dev/dev/`
     : `http://localhost:${actualPort}/dev/`;
 
+  // Expose the dev UI base URL so MCP tools can construct deep-links
+  process.env.CRAYON_DEV_URL = url;
+
   if (!options.quiet) {
     console.log(`\n  Open your browser to ${url}\n`);
     if (actualPort !== port) {

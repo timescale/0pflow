@@ -186,6 +186,7 @@ export function App() {
           <CredentialsPage
             workflows={state.workflows}
             connectionsApi={connectionsApi}
+            connectTarget={router.connectTarget}
             onBack={() => router.navigate("dashboard")}
           />
         ) : (

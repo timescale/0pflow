@@ -48,10 +48,10 @@ If not: "I don't see a PostgreSQL client in your project. Would you like me to s
 
 ### 3. Check for Credentials
 
-Use the `getConnectionInfo` MCP tool to check if a postgres connection is configured:
+Use the `get_connection` MCP tool to check if a postgres connection is configured:
 
 ```
-getConnectionInfo({ integration_id: "postgres" })
+get_connection({ integration_id: "postgres" })
 ```
 
 If no connection exists, tell the user:
@@ -346,7 +346,7 @@ Agent: I'm using the PostgreSQL integration skill.
 
 [Pre-flight] Checking for psql... Found.
 [Pre-flight] Checking for PostgreSQL client... Not found.
-[Pre-flight] Checking for credentials via getConnectionInfo...
+[Pre-flight] Checking for credentials via get_connection...
 
 Connection found for integration "postgres".
 
