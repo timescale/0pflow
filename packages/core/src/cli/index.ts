@@ -700,4 +700,9 @@ program
     console.log(pc.green("Logged out. Credentials removed from ~/.crayon/credentials"));
   });
 
+// Default to `cloud run` when invoked with no subcommand
+if (process.argv.length <= 2) {
+  process.argv.push("cloud", "run");
+}
+
 program.parse();

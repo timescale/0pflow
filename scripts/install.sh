@@ -184,16 +184,16 @@ main() {
   printf "${GREEN}${BOLD}  Installation complete!${RESET}\n\n" >&2
   printf "${BOLD}  To get started, run:${RESET}\n\n" >&2
   if $PATH_UPDATED; then
-    printf "${CYAN}    export PATH=\"\${HOME}/.local/bin:\${PATH}\"; crayon cloud run${RESET}\n\n" >&2
+    printf "${CYAN}    export PATH=\"\${HOME}/.local/bin:\${PATH}\"; crayon${RESET}\n\n" >&2
   else
-    printf "${CYAN}    crayon cloud run${RESET}\n\n" >&2
+    printf "${CYAN}    crayon${RESET}\n\n" >&2
   fi
 
   if [ -t 0 ]; then
     printf "${BOLD}  Launch now? [Y/n]${RESET} " >&2
     read -r answer
     case "$answer" in
-      [yY]*|"") exec "${HOME}/.local/bin/crayon" cloud run ;;
+      [yY]*|"") exec "${HOME}/.local/bin/crayon" ;;
     esac
   fi
 }
