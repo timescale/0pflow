@@ -125,26 +125,73 @@ export async function runCloudRun(): Promise<void> {
 
     if (choice !== "__new__") {
       const existing = existingSandboxes.find((m) => m.app_name === choice);
+      const flyState = existing?.fly_state ?? "unknown";
+      p.log.info(`Status: ${pc.bold(flyState)}`);
+
+      // Start the machine if it's stopped or suspended
+      if (flyState === "stopped" || flyState === "suspended") {
+        const s = p.spinner();
+        s.start("Starting sandbox...");
+        try {
+          await apiCall("POST", "/api/cloud-dev/start", { appName: choice });
+        } catch (err) {
+          s.stop(pc.red("Failed to start sandbox"));
+          p.log.error(err instanceof Error ? err.message : String(err));
+          process.exit(1);
+        }
+
+        // Poll until running
+        const pollTimeout = 5 * 60 * 1000;
+        const pollInterval = 5000;
+        const pollStart = Date.now();
+
+        let started = false;
+        while (Date.now() - pollStart < pollTimeout) {
+          await new Promise((r) => setTimeout(r, pollInterval));
+          try {
+            const statusResult = (await apiCall(
+              "GET",
+              `/api/cloud-dev/status?appName=${encodeURIComponent(choice as string)}`,
+            )) as { status: string; url?: string; error?: string };
+
+            if (statusResult.status === "running") {
+              s.stop(pc.green("Sandbox is running!"));
+              started = true;
+              break;
+            }
+            if (statusResult.status === "error") {
+              s.stop(pc.red("Sandbox failed to start"));
+              if (statusResult.error) p.log.error(statusResult.error);
+              process.exit(1);
+            }
+            s.message(`Sandbox state: ${statusResult.status}...`);
+          } catch (err) {
+            p.log.warn(`Status check error: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
+        if (!started) {
+          s.stop(pc.yellow("Sandbox is still starting"));
+          p.log.info("Check status with: crayon cloud status");
+        }
+      }
+
       if (existing?.app_url) {
         const devUrl = existing.app_url.replace(/\/$/, "") + "/dev/";
         p.log.info(`Dev UI: ${pc.cyan(devUrl)}`);
+        openInBrowser(devUrl);
       }
-      p.log.info(`Status: ${pc.bold(existing?.fly_state ?? "unknown")}`);
-
-      // Open dev UI and register MCP + launch local Claude Code
-      if (existing?.app_url) openInBrowser(existing.app_url.replace(/\/$/, "") + "/dev/");
 
       const projectDir = ensureProjectDir(choice as string);
-      const s = p.spinner();
-      s.start("Registering sandbox MCP server...");
+      const s2 = p.spinner();
+      s2.start("Registering sandbox MCP server...");
       const ok = await registerSandboxMcp(choice as string, projectDir);
       if (ok) {
-        s.stop(pc.green("MCP server registered"));
+        s2.stop(pc.green("MCP server registered"));
         p.log.info("Launching Claude Code with sandbox access...");
         p.outro("");
         launchClaude(projectDir);
       } else {
-        s.stop(pc.yellow("MCP registration failed"));
+        s2.stop(pc.yellow("MCP registration failed"));
         p.outro(pc.green("Sandbox ready."));
       }
       return;

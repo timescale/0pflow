@@ -199,6 +199,26 @@ export async function stopMachine(
   }
 }
 
+/**
+ * Start a stopped or suspended machine.
+ */
+export async function startMachine(
+  appName: string,
+  machineId: string,
+): Promise<void> {
+  const response = await flyApiCall(
+    "POST",
+    `/v1/apps/${encodeURIComponent(appName)}/machines/${encodeURIComponent(machineId)}/start`,
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(
+      `Failed to start machine "${machineId}" (${response.status}): ${text}`,
+    );
+  }
+}
+
 // ── Machine queries ───────────────────────────────────────────────
 
 /**

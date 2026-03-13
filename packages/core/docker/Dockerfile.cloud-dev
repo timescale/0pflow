@@ -46,9 +46,6 @@ RUN cd /tmp/cache-build && \
     mv node_modules / && \
     rm -rf /tmp/cache-build
 
-# /npm-cache is pre-populated during build; world-writable so DEV_USER can use it.
-RUN chmod -R a+rwx /npm-cache
-
 # runcrayon — install from local tarball or npm depending on build arg.
 # In dev mode, run: npm pack --pack-destination docker/ (from packages/core)
 # The wildcard COPY uses a dot file as fallback so it never fails when no .tgz exists.
@@ -64,6 +61,10 @@ RUN if [ "$CRAYON_SOURCE" = "local" ] && ls /tmp/build/runcrayon-*.tgz 1>/dev/nu
     rm -rf /tmp/build && \
     rm -rf /node_modules/runcrayon && \
     ln -s "$(npm root -g)/runcrayon" /node_modules/runcrayon
+
+# /npm-cache is pre-populated during build; world-writable so DEV_USER can use it.
+# Must be AFTER all npm installs so newly cached entries also get the permissions.
+RUN chmod -R a+rwx /npm-cache
 
 # /node_modules found by Node.js via parent-directory resolution from /data/app.
 ENV PATH=/node_modules/.bin:$PATH
