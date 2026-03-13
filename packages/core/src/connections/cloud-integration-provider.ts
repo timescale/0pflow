@@ -30,7 +30,7 @@ export class CloudIntegrationProvider implements IntegrationProvider {
 
   async listConnections(
     integrationId: string,
-  ): Promise<Array<{ connection_id: string; provider_config_key: string; display_name: string }>> {
+  ): Promise<Array<{ connection_id: string; provider_config_key: string; display_name: string; created_at?: string }>> {
     const data = (await apiCall(
       "GET",
       `/api/integrations/${encodeURIComponent(integrationId)}/connections`,
@@ -49,6 +49,7 @@ export class CloudIntegrationProvider implements IntegrationProvider {
           connection_id: c.connection_id,
           provider_config_key: c.provider_config_key,
           display_name: displayName,
+          created_at: createdAt,
         };
       }),
     );

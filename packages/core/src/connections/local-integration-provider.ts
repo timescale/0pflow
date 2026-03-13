@@ -48,7 +48,7 @@ export class LocalIntegrationProvider implements IntegrationProvider {
 
   async listConnections(
     integrationId: string,
-  ): Promise<Array<{ connection_id: string; provider_config_key: string; display_name: string }>> {
+  ): Promise<Array<{ connection_id: string; provider_config_key: string; display_name: string; created_at?: string }>> {
     const result = await this.nango.listConnections();
     const filtered = (result.connections ?? []).filter(
       (c: { provider_config_key: string }) =>
@@ -68,6 +68,7 @@ export class LocalIntegrationProvider implements IntegrationProvider {
           connection_id: c.connection_id,
           provider_config_key: c.provider_config_key,
           display_name: displayName,
+          created_at: createdAt,
         };
       }),
     );

@@ -16,6 +16,7 @@ const outputSchema = {
     z.object({
       connection_id: z.string().describe("Unique connection identifier"),
       display_name: z.string().describe("Human-readable name for the connection"),
+      created_at: z.string().optional().describe("When the connection was created (ISO 8601)"),
     }),
   ).describe("Available connections for this integration"),
   add_connection_url: z.string().optional().describe("URL where the user can add a new connection via the Dev UI"),
@@ -23,7 +24,7 @@ const outputSchema = {
 } as const;
 
 type OutputSchema = {
-  connections: Array<{ connection_id: string; display_name: string }>;
+  connections: Array<{ connection_id: string; display_name: string; created_at?: string }>;
   add_connection_url?: string;
   error?: string;
 };
@@ -51,6 +52,7 @@ export const listConnectionsFactory: ApiFactory<
           connections: connections.map((c) => ({
             connection_id: c.connection_id,
             display_name: c.display_name,
+            created_at: c.created_at,
           })),
           add_connection_url: getAddConnectionUrl(integration_id),
         };
