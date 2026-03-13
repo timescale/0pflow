@@ -100,6 +100,7 @@ export function NodeDetailPopover({ node, position, onClose, workflowName, conne
       ref={popoverRef}
       style={{ left: clampedPos.left, top: clampedPos.top }}
       className="absolute z-50 w-[300px] bg-popover rounded-xl border border-border shadow-lg"
+      onMouseDown={(e) => e.stopPropagation()}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-accent">

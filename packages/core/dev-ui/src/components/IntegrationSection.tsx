@@ -156,6 +156,7 @@ export function IntegrationSection({
     }
   }, [autoConnect, autoConnectFired, nangoLoading, handleConnect]);
 
+  const isExactMatch = current?.workflow_name === workflowName && current?.node_name === nodeName;
   const activeId = optimisticValue ?? current?.connection_id;
 
   // Compact chip for integrations with no connections
@@ -218,15 +219,18 @@ export function IntegrationSection({
                   /* Pick mode: radio-style selection for node popover */
                   <button
                     type="button"
-                    onClick={() => !isActive && handleSelect(nc.connection_id)}
-                    className={`flex items-center gap-2 w-full text-left cursor-pointer ${isActive ? "" : "opacity-60 hover:opacity-100"} transition-opacity`}
+                    onClick={() => !(isActive && isExactMatch) && handleSelect(nc.connection_id)}
+                    className={`flex items-center gap-2 w-full text-left cursor-pointer ${isActive && isExactMatch ? "" : "opacity-60 hover:opacity-100"} transition-opacity`}
                   >
                     <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      isActive ? "border-green-500" : "border-[#c4bfb8]"
+                      isActive && isExactMatch ? "border-green-500" : "border-[#c4bfb8]"
                     }`}>
-                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+                      {isActive && isExactMatch && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
                     </span>
                     <span className="truncate min-w-0">{nc.display_name}</span>
+                    {isActive && !isExactMatch && (
+                      <span className="text-[10px] text-green-600 flex-shrink-0">default</span>
+                    )}
                   </button>
                 ) : (
                   /* Manage mode: full CRUD for global connections panel */
@@ -259,19 +263,15 @@ export function IntegrationSection({
               </div>
             );
           })}
-          {mode === "pick" && nangoConnections.length > 0 && (
-            <div className={`px-3 py-1.5 text-[12px] text-[#787068] ${nangoConnections.length > 0 ? "border-t border-[#ece8e3]" : ""}`}>
+          {mode === "pick" && isExactMatch && (
+            <div className="px-3 py-1.5 text-[12px] text-[#787068] border-t border-[#ece8e3]">
               <button
                 type="button"
-                onClick={() => activeId && connectionsApi.remove(workflowName, nodeName, integrationId)}
-                className={`flex items-center gap-2 w-full text-left cursor-pointer ${!activeId ? "" : "opacity-60 hover:opacity-100"} transition-opacity`}
+                onClick={() => connectionsApi.remove(workflowName, nodeName, integrationId)}
+                className="flex items-center gap-2 w-full text-left cursor-pointer opacity-60 hover:opacity-100 transition-opacity"
               >
-                <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                  !activeId ? "border-green-500" : "border-[#c4bfb8]"
-                }`}>
-                  {!activeId && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
-                </span>
-                <span className="text-[#a8a099] italic">None</span>
+                <span className="w-3.5 h-3.5 rounded-full border-2 border-[#c4bfb8] flex-shrink-0" />
+                <span className="text-[#a8a099] italic">Use default</span>
               </button>
             </div>
           )}
