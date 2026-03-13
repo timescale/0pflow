@@ -188,6 +188,14 @@ main() {
   else
     printf "${CYAN}    crayon cloud run${RESET}\n\n" >&2
   fi
+
+  if [ -t 0 ]; then
+    printf "${BOLD}  Launch now? [Y/n]${RESET} " >&2
+    read -r answer
+    case "$answer" in
+      [yY]*|"") exec "${HOME}/.local/bin/crayon" cloud run ;;
+    esac
+  fi
 }
 
 main "$@"
