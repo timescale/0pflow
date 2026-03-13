@@ -46,13 +46,6 @@ export function IntegrationSection({
     [connectionsApi, workflowName, nodeName, integrationId],
   );
 
-  // Auto-assign when there's exactly one connection and none is mapped
-  useEffect(() => {
-    if (!nangoLoading && nangoConnections.length === 1 && !current) {
-      handleSelect(nangoConnections[0].connection_id);
-    }
-  }, [nangoLoading, nangoConnections, current, handleSelect]);
-
   // Auto-trigger connect flow when deep-linked with autoConnect
   const [autoConnectFired, setAutoConnectFired] = useState(false);
 
