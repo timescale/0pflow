@@ -30,7 +30,7 @@ export const listIntegrationsFactory: ApiFactory<
     config: {
       title: "List Integrations",
       description:
-        "List available integrations. Uses NANGO_SECRET_KEY for local mode, or crayon cloud (auto-authenticates via browser if needed).",
+        "List available integrations configured in the credential provider.",
       inputSchema,
       outputSchema,
     },

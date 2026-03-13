@@ -19,7 +19,7 @@ const inputSchema = {
 } as const;
 
 const outputSchema = {
-  connection_id: z.string().optional().describe("The Nango connection ID"),
+  connection_id: z.string().optional().describe("The connection ID"),
   provider: z.string().optional().describe("Provider name (e.g., salesforce)"),
   connection_config: z
     .record(z.string(), z.unknown())
@@ -57,7 +57,7 @@ export const getConnectionFactory: ApiFactory<
       description:
         "Get the assigned connection for a workflow/node. " +
         "Resolves the connection ID from the crayon_connections table, " +
-        "then fetches connection details via IntegrationProvider (local Nango or cloud).",
+        "then fetches credentials from the credential provider.",
       inputSchema,
       outputSchema,
     },
