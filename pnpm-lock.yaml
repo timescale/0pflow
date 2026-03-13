@@ -77,7 +77,7 @@ importers:
         version: 0.45.1
       '@tigerdata/mcp-boilerplate':
         specifier: ^1.2.0
-        version: 1.2.0(@cfworker/json-schema@4.1.1)(@opentelemetry/core@2.6.0(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@25.4.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
+        version: 1.2.0(@cfworker/json-schema@4.1.1)(@opentelemetry/core@2.6.0(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@22.19.15)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
       ai:
         specifier: ^6.0.116
         version: 6.0.116(zod@4.3.6)
@@ -144,10 +144,13 @@ importers:
         version: 0.69.43
       '@tailwindcss/vite':
         specifier: ^4.2.1
-        version: 4.2.1(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
+        version: 4.2.1(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
+      '@types/node':
+        specifier: ^22.19.15
+        version: 22.19.15
       '@types/pg':
         specifier: ^8.18.0
         version: 8.18.0
@@ -162,7 +165,7 @@ importers:
         version: 8.18.1
       '@vitejs/plugin-react':
         specifier: ^4.7.0
-        version: 4.7.0(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
+        version: 4.7.0(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
       '@xterm/addon-fit':
         specifier: ^0.11.0
         version: 0.11.0
@@ -192,10 +195,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^6.4.1
-        version: 6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
+        version: 6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: ^4.0.18
-        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/ui:
     devDependencies:
@@ -5611,24 +5614,24 @@ snapshots:
       - supports-color
       - zod
 
-  '@mcp-use/cli@2.9.1(hagqtleviuncdnr2rjrujtdyjm)':
+  '@mcp-use/cli@2.9.1(42i64ib7bnzdf5jltidnyx3qdu)':
     dependencies:
-      '@mcp-use/inspector': 0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(express@5.2.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
-      '@tailwindcss/vite': 4.2.1(vite@7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
-      '@vitejs/plugin-react': 5.1.4(vite@7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@mcp-use/inspector': 0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(express@5.2.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
+      '@tailwindcss/vite': 4.2.1(vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@vitejs/plugin-react': 5.1.4(vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
       chalk: 5.6.2
       chokidar: 5.0.0
       commander: 14.0.3
       dotenv: 17.3.1
       esbuild: 0.27.3
       globby: 16.1.1
-      mcp-use: 1.13.1(gopd2nggakbmp7yqvdskko5iky)
+      mcp-use: 1.13.1(4iwfnzyxtu3mmu67du3o3a7lvi)
       open: 11.0.0
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
       react-router-dom: 7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       tsx: 4.21.0
-      vite: 7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
       ws: 8.19.0
       zod: 4.3.6
     transitivePeerDependencies:
@@ -5671,7 +5674,7 @@ snapshots:
       - vue
       - yaml
 
-  '@mcp-use/inspector@0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@25.4.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(express@5.2.1)(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(yaml@2.8.2)(zod@4.3.6)':
+  '@mcp-use/inspector@0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@22.19.15)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(express@5.2.1)(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(yaml@2.8.2)(zod@4.3.6)':
     dependencies:
       '@ai-sdk/react': 2.0.155(react@19.2.4)(zod@4.3.6)
       '@hono/node-server': 1.19.11(hono@4.12.7)
@@ -5692,7 +5695,7 @@ snapshots:
       '@radix-ui/react-tooltip': 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@scarf/scarf': 1.4.0
       '@tailwindcss/cli': 4.2.1
-      '@tailwindcss/vite': 4.2.1(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@tailwindcss/vite': 4.2.1(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
       '@types/react-syntax-highlighter': 15.5.13
       class-variance-authority: 0.7.1
       clsx: 2.1.1
@@ -5701,7 +5704,7 @@ snapshots:
       hono: 4.12.7
       lucide-react: 0.561.0(react@19.2.4)
       markdown-to-jsx: 9.7.9(react@19.2.4)
-      mcp-use: 1.13.1(hqknhapyl2xqurryuibxxchwpy)
+      mcp-use: 1.13.1(t6n76ujj4dwk6mbhfq5ccvb7mm)
       motion: 12.35.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       next-themes: 0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       open: 11.0.0
@@ -5755,7 +5758,7 @@ snapshots:
       - yaml
       - zod
 
-  '@mcp-use/inspector@0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(express@5.2.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
+  '@mcp-use/inspector@0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(express@5.2.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
     dependencies:
       '@ai-sdk/react': 2.0.155(react@19.2.4)(zod@4.3.6)
       '@hono/node-server': 1.19.11(hono@4.12.7)
@@ -5776,7 +5779,7 @@ snapshots:
       '@radix-ui/react-tooltip': 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@scarf/scarf': 1.4.0
       '@tailwindcss/cli': 4.2.1
-      '@tailwindcss/vite': 4.2.1(vite@7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@tailwindcss/vite': 4.2.1(vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
       '@types/react-syntax-highlighter': 15.5.13
       class-variance-authority: 0.7.1
       clsx: 2.1.1
@@ -5785,7 +5788,7 @@ snapshots:
       hono: 4.12.7
       lucide-react: 0.561.0(react@19.2.4)
       markdown-to-jsx: 9.7.9(react@19.2.4)
-      mcp-use: 1.13.1(hqknhapyl2xqurryuibxxchwpy)
+      mcp-use: 1.13.1(t6n76ujj4dwk6mbhfq5ccvb7mm)
       motion: 12.35.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       next-themes: 0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       open: 11.0.0
@@ -7417,23 +7420,23 @@ snapshots:
       '@tailwindcss/oxide-win32-arm64-msvc': 4.2.1
       '@tailwindcss/oxide-win32-x64-msvc': 4.2.1
 
-  '@tailwindcss/vite@4.2.1(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))':
+  '@tailwindcss/vite@4.2.1(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       '@tailwindcss/node': 4.2.1
       '@tailwindcss/oxide': 4.2.1
       tailwindcss: 4.2.1
-      vite: 6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
 
-  '@tailwindcss/vite@4.2.1(vite@7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))':
+  '@tailwindcss/vite@4.2.1(vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       '@tailwindcss/node': 4.2.1
       '@tailwindcss/oxide': 4.2.1
       tailwindcss: 4.2.1
-      vite: 7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
 
-  '@tigerdata/mcp-boilerplate@1.2.0(@cfworker/json-schema@4.1.1)(@opentelemetry/core@2.6.0(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@25.4.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
+  '@tigerdata/mcp-boilerplate@1.2.0(@cfworker/json-schema@4.1.1)(@opentelemetry/core@2.6.0(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@22.19.15)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
     dependencies:
-      '@mcp-use/inspector': 0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@25.4.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(express@5.2.1)(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(yaml@2.8.2)(zod@4.3.6)
+      '@mcp-use/inspector': 0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@22.19.15)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(express@5.2.1)(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(yaml@2.8.2)(zod@4.3.6)
       '@modelcontextprotocol/sdk': 1.27.1(@cfworker/json-schema@4.1.1)(zod@4.3.6)
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/auto-instrumentations-node': 0.67.3(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.6.0(@opentelemetry/api@1.9.0))
@@ -7518,7 +7521,7 @@ snapshots:
   '@types/body-parser@1.19.6':
     dependencies:
       '@types/connect': 3.4.38
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
 
   '@types/bunyan@1.8.11':
     dependencies:
@@ -7531,7 +7534,7 @@ snapshots:
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
 
   '@types/d3-color@3.1.3': {}
 
@@ -7568,7 +7571,7 @@ snapshots:
 
   '@types/express-serve-static-core@5.1.1':
     dependencies:
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
       '@types/qs': 6.15.0
       '@types/range-parser': 1.2.7
       '@types/send': 1.2.1
@@ -7606,6 +7609,7 @@ snapshots:
   '@types/node@25.4.0':
     dependencies:
       undici-types: 7.18.2
+    optional: true
 
   '@types/oracledb@6.5.2':
     dependencies:
@@ -7654,12 +7658,12 @@ snapshots:
 
   '@types/send@1.2.1':
     dependencies:
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
 
   '@types/serve-static@2.2.0':
     dependencies:
       '@types/http-errors': 2.0.5
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
 
   '@types/tedious@4.0.14':
     dependencies:
@@ -7676,13 +7680,13 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
 
   '@ungap/structured-clone@1.3.0': {}
 
   '@vercel/oidc@3.1.0': {}
 
-  '@vitejs/plugin-react@4.7.0(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))':
+  '@vitejs/plugin-react@4.7.0(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.29.0)
@@ -7690,11 +7694,11 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.27
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
-      vite: 6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
     transitivePeerDependencies:
       - supports-color
 
-  '@vitejs/plugin-react@5.1.4(vite@7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))':
+  '@vitejs/plugin-react@5.1.4(vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.29.0)
@@ -7702,7 +7706,7 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-rc.3
       '@types/babel__core': 7.20.5
       react-refresh: 0.18.0
-      vite: 7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -7714,6 +7718,14 @@ snapshots:
       '@vitest/utils': 4.0.18
       chai: 6.2.2
       tinyrainbow: 3.0.3
+
+  '@vitest/mocker@4.0.18(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))':
+    dependencies:
+      '@vitest/spy': 4.0.18
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
 
   '@vitest/mocker@4.0.18(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
@@ -8777,12 +8789,12 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
-  mcp-use@1.13.1(gopd2nggakbmp7yqvdskko5iky):
+  mcp-use@1.13.1(4iwfnzyxtu3mmu67du3o3a7lvi):
     dependencies:
       '@hono/node-server': 1.19.11(hono@4.12.7)
       '@mcp-ui/server': 5.16.3(@cfworker/json-schema@4.1.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(zod@4.3.6)
-      '@mcp-use/cli': 2.9.1(hagqtleviuncdnr2rjrujtdyjm)
-      '@mcp-use/inspector': 0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(express@5.2.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
+      '@mcp-use/cli': 2.9.1(42i64ib7bnzdf5jltidnyx3qdu)
+      '@mcp-use/inspector': 0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(express@5.2.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
       '@modelcontextprotocol/sdk': 1.27.1(@cfworker/json-schema@4.1.1)(zod@4.3.6)
       express: 5.2.1
       hono: 4.12.7
@@ -8809,26 +8821,37 @@ snapshots:
       - '@opentelemetry/exporter-trace-otlp-proto'
       - '@opentelemetry/sdk-trace-base'
       - '@preact/signals-core'
+      - '@types/node'
       - '@types/react'
       - '@types/react-dom'
       - bufferutil
+      - jiti
+      - less
+      - lightningcss
       - openai
       - preact
       - react-dom
       - react-native
+      - react-router-dom
       - rxjs
+      - sass
+      - sass-embedded
       - solid-js
+      - stylus
+      - sugarss
       - supports-color
+      - terser
       - utf-8-validate
       - vite
       - vue
+      - yaml
 
-  mcp-use@1.13.1(hqknhapyl2xqurryuibxxchwpy):
+  mcp-use@1.13.1(t6n76ujj4dwk6mbhfq5ccvb7mm):
     dependencies:
       '@hono/node-server': 1.19.11(hono@4.12.7)
       '@mcp-ui/server': 5.16.3(@cfworker/json-schema@4.1.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(zod@4.3.6)
-      '@mcp-use/cli': 2.9.1(hagqtleviuncdnr2rjrujtdyjm)
-      '@mcp-use/inspector': 0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@25.4.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(express@5.2.1)(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(yaml@2.8.2)(zod@4.3.6)
+      '@mcp-use/cli': 2.9.1(42i64ib7bnzdf5jltidnyx3qdu)
+      '@mcp-use/inspector': 0.14.6(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.208.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(@preact/signals-core@1.14.0)(@types/node@22.19.15)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(ai@6.0.116(zod@4.3.6))(express@5.2.1)(jiti@2.6.1)(lightningcss@1.31.1)(openai@6.27.0(ws@8.19.0)(zod@4.3.6))(react-dom@19.2.4(react@19.2.4))(react-router-dom@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-router@7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(yaml@2.8.2)(zod@4.3.6)
       '@modelcontextprotocol/sdk': 1.27.1(@cfworker/json-schema@4.1.1)(zod@4.3.6)
       express: 5.2.1
       hono: 4.12.7
@@ -9932,7 +9955,8 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici-types@7.18.2: {}
+  undici-types@7.18.2:
+    optional: true
 
   unicorn-magic@0.4.0: {}
 
@@ -10021,6 +10045,22 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2):
+    dependencies:
+      esbuild: 0.25.12
+      fdir: 6.5.0(picomatch@4.0.3)
+      picomatch: 4.0.3
+      postcss: 8.5.8
+      rollup: 4.59.0
+      tinyglobby: 0.2.15
+    optionalDependencies:
+      '@types/node': 22.19.15
+      fsevents: 2.3.3
+      jiti: 2.6.1
+      lightningcss: 1.31.1
+      tsx: 4.21.0
+      yaml: 2.8.2
+
   vite@6.4.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       esbuild: 0.25.12
@@ -10037,7 +10077,7 @@ snapshots:
       tsx: 4.21.0
       yaml: 2.8.2
 
-  vite@7.3.1(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2):
+  vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       esbuild: 0.27.3
       fdir: 6.5.0(picomatch@4.0.3)
@@ -10046,12 +10086,50 @@ snapshots:
       rollup: 4.59.0
       tinyglobby: 0.2.15
     optionalDependencies:
-      '@types/node': 25.4.0
+      '@types/node': 22.19.15
       fsevents: 2.3.3
       jiti: 2.6.1
       lightningcss: 1.31.1
       tsx: 4.21.0
       yaml: 2.8.2
+
+  vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2):
+    dependencies:
+      '@vitest/expect': 4.0.18
+      '@vitest/mocker': 4.0.18(vite@6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@vitest/pretty-format': 4.0.18
+      '@vitest/runner': 4.0.18
+      '@vitest/snapshot': 4.0.18
+      '@vitest/spy': 4.0.18
+      '@vitest/utils': 4.0.18
+      es-module-lexer: 1.7.0
+      expect-type: 1.3.0
+      magic-string: 0.30.21
+      obug: 2.1.1
+      pathe: 2.0.3
+      picomatch: 4.0.3
+      std-env: 3.10.0
+      tinybench: 2.9.0
+      tinyexec: 1.0.2
+      tinyglobby: 0.2.15
+      tinyrainbow: 3.0.3
+      vite: 6.4.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.0
+      '@types/node': 22.19.15
+    transitivePeerDependencies:
+      - jiti
+      - less
+      - lightningcss
+      - msw
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - terser
+      - tsx
+      - yaml
 
   vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@25.4.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
