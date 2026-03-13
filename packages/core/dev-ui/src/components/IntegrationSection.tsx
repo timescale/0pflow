@@ -12,6 +12,8 @@ interface IntegrationSectionProps {
   connectionsApi: ReturnType<typeof useConnections>;
   /** Auto-trigger the connect flow on mount (used by deep-links). */
   autoConnect?: boolean;
+  /** "manage" = full CRUD (global panel), "pick" = just select a connection (node popover). Default: "manage" */
+  mode?: "manage" | "pick";
 }
 
 export function IntegrationSection({
@@ -20,6 +22,7 @@ export function IntegrationSection({
   nodeName,
   connectionsApi,
   autoConnect,
+  mode = "manage",
 }: IntegrationSectionProps) {
   const { nangoConnections, loading: nangoLoading, refetch } = useNangoConnections(integrationId);
   const [connecting, setConnecting] = useState(false);
@@ -175,6 +178,11 @@ export function IntegrationSection({
         <span className="flex items-center gap-1.5 text-[12px] font-medium text-popover-foreground capitalize">
           <IntegrationIcon integrationId={integrationId} />
           {integrationId}
+          {mode === "pick" && !activeId && (
+            <span className="w-3.5 h-3.5 rounded-full bg-amber-400 flex items-center justify-center flex-shrink-0" title="No connection selected">
+              <span className="text-[7px] font-bold text-white leading-none">!</span>
+            </span>
+          )}
         </span>
         <button
           onClick={handleConnect}
@@ -206,32 +214,67 @@ export function IntegrationSection({
                   i > 0 ? "border-t border-[#ece8e3]" : ""
                 }`}
               >
-                <span className="truncate min-w-0 flex-1">{nc.display_name}</span>
-                <span className="flex items-center gap-2 flex-shrink-0">
-                  {isActive ? (
-                    <span className="text-[10px] text-green-600">default</span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleSelect(nc.connection_id)}
-                      className="text-[10px] text-[#a8a099] hover:text-[#787068] cursor-pointer"
-                    >
-                      set default
-                    </button>
-                  )}
+                {mode === "pick" ? (
+                  /* Pick mode: radio-style selection for node popover */
                   <button
                     type="button"
-                    onClick={() => handleDelete(nc.connection_id, nc.display_name)}
-                    disabled={isDeleting}
-                    className="text-[#c4bfb8] hover:text-red-400 transition-colors cursor-pointer disabled:opacity-50 opacity-0 group-hover:opacity-100"
-                    title="Delete connection"
+                    onClick={() => !isActive && handleSelect(nc.connection_id)}
+                    className={`flex items-center gap-2 w-full text-left cursor-pointer ${isActive ? "" : "opacity-60 hover:opacity-100"} transition-opacity`}
                   >
-                    {isDeleting ? "…" : "✕"}
+                    <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      isActive ? "border-green-500" : "border-[#c4bfb8]"
+                    }`}>
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+                    </span>
+                    <span className="truncate min-w-0">{nc.display_name}</span>
                   </button>
-                </span>
+                ) : (
+                  /* Manage mode: full CRUD for global connections panel */
+                  <>
+                    <span className="truncate min-w-0 flex-1">{nc.display_name}</span>
+                    <span className="flex items-center gap-2 flex-shrink-0">
+                      {isActive ? (
+                        <span className="text-[10px] text-green-600">default</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSelect(nc.connection_id)}
+                          className="text-[10px] text-[#a8a099] hover:text-[#787068] cursor-pointer"
+                        >
+                          set default
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(nc.connection_id, nc.display_name)}
+                        disabled={isDeleting}
+                        className="text-[#c4bfb8] hover:text-red-400 transition-colors cursor-pointer disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                        title="Delete connection"
+                      >
+                        {isDeleting ? "…" : "✕"}
+                      </button>
+                    </span>
+                  </>
+                )}
               </div>
             );
           })}
+          {mode === "pick" && nangoConnections.length > 0 && (
+            <div className={`px-3 py-1.5 text-[12px] text-[#787068] ${nangoConnections.length > 0 ? "border-t border-[#ece8e3]" : ""}`}>
+              <button
+                type="button"
+                onClick={() => activeId && connectionsApi.remove(workflowName, nodeName, integrationId)}
+                className={`flex items-center gap-2 w-full text-left cursor-pointer ${!activeId ? "" : "opacity-60 hover:opacity-100"} transition-opacity`}
+              >
+                <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                  !activeId ? "border-green-500" : "border-[#c4bfb8]"
+                }`}>
+                  {!activeId && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+                </span>
+                <span className="text-[#a8a099] italic">None</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -175,6 +175,7 @@ export function NodeDetailPopover({ node, position, onClose, workflowName, conne
                 workflowName={workflowName!}
                 nodeName={node.nodeName!}
                 connectionsApi={connectionsApi!}
+                mode="pick"
               />
             ))}
           </div>
